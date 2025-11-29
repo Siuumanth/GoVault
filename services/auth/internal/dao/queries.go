@@ -1,4 +1,4 @@
-package database
+package dao
 
 /*
 Only 2 main queries needed

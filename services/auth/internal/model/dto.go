@@ -16,13 +16,16 @@ type SignUpRequest struct {
 	Password string `json:"password"`
 }
 
-type LoginEmailRequest struct {
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
+// response from login
 type AuthResponse struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 type ErrorResponse struct {

@@ -1,4 +1,4 @@
-package database
+package dao
 
 import (
 	model "auth/internal/model"
@@ -6,6 +6,7 @@ import (
 )
 
 // now write implementations for PGSQL
+// PGUserDAO implements userDAO, so behaviour of userDAO can be used on this
 type PGUserDAO struct {
 	db *sql.DB
 }
