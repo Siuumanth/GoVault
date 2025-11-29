@@ -59,16 +59,21 @@ func (p *AuthService) Login(user model.LoginRequest) (model.AuthResponse, error)
 		return model.AuthResponse{}, err
 	}
 
+	if domainUser.Email == "" {
+		return model.AuthResponse{}, errors.New("invalid credentials")
+	}
+
 	// if user exists, check password
-	err = utils.VerifyPassword(user.Password, domainUser.PasswordHash)
+	if err := utils.VerifyPassword(user.Password, domainUser.PasswordHash); err != nil {
+		return model.AuthResponse{}, errors.New("invalid credentials")
+	}
+
 	var token string
 
-	if err == nil {
-		token, err = utils.SignToken(domainUser)
+	token, err = utils.SignToken(domainUser)
 
-		if err != nil {
-			return model.AuthResponse{}, err
-		}
+	if err != nil {
+		return model.AuthResponse{}, err
 	}
 
 	return model.AuthResponse{Token: token, Username: domainUser.Username, Email: domainUser.Email}, nil

@@ -14,10 +14,10 @@ type UserHandlerInterface interface {
 
 // to call services
 type AuthHandler struct {
-	service service.AuthService
+	service *service.AuthService
 }
 
-func NewAuthHandler(service service.AuthService) *AuthHandler {
+func NewAuthHandler(service *service.AuthService) *AuthHandler {
 	return &AuthHandler{service: service}
 }
 

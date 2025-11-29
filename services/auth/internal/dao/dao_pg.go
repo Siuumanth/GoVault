@@ -25,7 +25,7 @@ func (p *PGUserDAO) CreateUser(user model.NewUser) error {
 
 func (p *PGUserDAO) GetUserByEmail(email string) (model.DomainUser, error) {
 	// we have GetUserByEmailQuery
-	rows := p.db.QueryRow(email)
+	rows := p.db.QueryRow(GetUserByEmailQuery)
 
 	var user model.DomainUser
 	err := rows.Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
@@ -34,6 +34,7 @@ func (p *PGUserDAO) GetUserByEmail(email string) (model.DomainUser, error) {
 		if err == sql.ErrNoRows {
 			return model.DomainUser{}, nil // no user found
 		}
+
 		return model.DomainUser{}, err // some error
 	}
 	return user, nil
