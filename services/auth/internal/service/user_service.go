@@ -43,7 +43,10 @@ func (p *AuthService) Signup(user model.SignUpRequest) error {
 	err = p.dao.CreateUser(newUser)
 
 	if err != nil {
-		return errors.New("user already exists")
+		if err.Error() == "duplicate" {
+			return errors.New("user already exists")
+		}
+		return err
 	}
 
 	return nil
@@ -59,6 +62,7 @@ func (p *AuthService) Login(user model.LoginRequest) (model.AuthResponse, error)
 		return model.AuthResponse{}, err
 	}
 
+	// user not found
 	if domainUser.Email == "" {
 		return model.AuthResponse{}, errors.New("invalid credentials")
 	}

@@ -35,7 +35,7 @@ type ErrorResponse struct {
 
 // used to create token
 type TokenClaims struct {
-	ID    int    `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email"`
 	Iat   int64  `json:"iat"`
 	Exp   int64  `json:"exp"`

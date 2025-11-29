@@ -7,7 +7,7 @@ type NewUser struct {
 }
 
 type DomainUser struct {
-	ID           int    `json:"user_id"`
+	ID           string `json:"user_id"`
 	Username     string `json:"username"`
 	Email        string `json:"email"`
 	PasswordHash string `json:"password_hash"`
