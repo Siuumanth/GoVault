@@ -1,0 +1,2 @@
+./services/auth/.env
+./services/upload/.env
