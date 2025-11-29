@@ -198,18 +198,17 @@
   },
   "active": "ad8c8cf92dfc5bb6",
   "lastOpenFiles": [
-    "services/auth/notes/code.txt",
-    "services/auth/code.txt",
     "services/auth/notes/notes.md",
+    "services/auth/notes/code.txt",
     "services/auth/notes",
-    "services/auth/cmd/main.go",
-    "services/auth/internal/router/router.go",
-    "services/auth/internal/handler/error.go",
     "services/auth/internal/service/user_service.go",
+    "services/auth/internal/service",
+    "services/auth/internal/router/router.go",
+    "services/auth/internal/router",
     "services/auth/internal/handler/user_handler.go",
-    "services/auth/notes.md",
+    "services/auth/internal/handler/error.go",
     "services/auth/internal/handler",
-    "services/auth/internal/utils/password.go",
-    "services/auth/go.sum"
+    "services/auth/cmd/main.go",
+    "services/auth/notes.md"
   ]
 }
