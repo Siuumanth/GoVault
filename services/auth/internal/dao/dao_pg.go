@@ -15,7 +15,7 @@ func NewPostgresUserDAO(db *sql.DB) *PGUserDAO {
 	return &PGUserDAO{db: db}
 }
 
-func (p *PGUserDAO) CreateUser(user model.DomainUser) error {
+func (p *PGUserDAO) CreateUser(user model.NewUser) error {
 	// we have CreateUserQuery
 	// db.exec when we dont expect rows back
 	_, err := p.db.Exec(CreateUserQuery, user.Email, user.Username, user.PasswordHash)
@@ -27,8 +27,7 @@ func (p *PGUserDAO) GetUserByEmail(email string) (model.DomainUser, error) {
 	rows := p.db.QueryRow(email)
 
 	var user model.DomainUser
-
-	err := rows.Scan(&user.Email, &user.Username, &user.PasswordHash)
+	err := rows.Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -36,6 +35,5 @@ func (p *PGUserDAO) GetUserByEmail(email string) (model.DomainUser, error) {
 		}
 		return model.DomainUser{}, err // some error
 	}
-
 	return user, nil
 }

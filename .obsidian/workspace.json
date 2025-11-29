@@ -198,6 +198,9 @@
   },
   "active": "ad8c8cf92dfc5bb6",
   "lastOpenFiles": [
+    "services/auth/internal/utils/password.go",
+    "services/auth/go.sum",
+    "services/auth/internal/utils/jwt.go",
     "services/auth/internal/dao/dao_pg.go",
     "services/auth/internal/dao/user_dao_pg.go",
     "services/auth/internal/dao/user_dao.go",
@@ -205,9 +208,6 @@
     "services/auth/internal/database/connect.go",
     "services/auth/go.mod",
     "services/auth/internal/database/queries.go",
-    "services/auth/internal/database/create.sql",
-    "services/auth/internal/model/user.go",
-    "services/auth/internal/model/dto.go",
-    "services/auth/internal/model"
+    "services/auth/internal/database/create.sql"
   ]
 }
