@@ -220,3 +220,65 @@ Wire everything:
 Clean, readable, 20–30 lines.
 
 ---
+
+
+# Interface usage in main.go
+Short and direct:
+
+# ✅ Yes — your `main.go` **uses interfaces correctly**.
+
+Here’s **why** in one shot:
+
+### **1. You depend on interfaces, not concrete types**
+
+```go
+authDao := dao.NewPostgresUserDAO(db)       // concrete
+authService := service.NewPGAuthService(authDao) // takes interface
+authHandler := handler.NewAuthHandler(authService)
+```
+
+`NewPGAuthService` expects:
+
+```go
+func NewPGAuthService(p dao.UserDAO) *AuthService
+```
+
+So even though you passed `PGUserDAO`,
+the **service only knows about the interface** → ✔ SOLID, ✔ DIP.
+
+---
+
+### **2. You can swap implementations with zero changes**
+
+Example:
+
+```go
+authDao := dao.NewMemoryUserDAO()
+authService := service.NewPGAuthService(authDao)
+```
+
+No change in service.
+No change in handler.
+No change in router.
+
+= **Full power of interfaces.**
+
+---
+
+### **3. Handlers depend on the service interface too**
+
+So you can do:
+
+```go
+fakeService := service.NewMockAuthService()
+handler := handler.NewAuthHandler(fakeService)
+```
+
+Perfect for testing.
+
+---
+
+# ⭐ Final answer:
+
+**Yes — your main.go wiring fully and correctly uses interfaces (dependency inversion).
+This is exactly how professional Go services structure dependencies.**
