@@ -70,15 +70,16 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// set http-only cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    authResponse.Token,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/",
-	})
+	// not using cookie for jwt, we will use authorisation:bearer
+	// // set http-only cookie
+	// http.SetCookie(w, &http.Cookie{
+	// 	Name:     "token",
+	// 	Value:    authResponse.Token,
+	// 	HttpOnly: true,
+	// 	Secure:   true,
+	// 	SameSite: http.SameSiteStrictMode,
+	// 	Path:     "/",
+	// })
 
 	// send JSON response too (username, email, etc.)
 	w.Header().Set("Content-Type", "application/json")
