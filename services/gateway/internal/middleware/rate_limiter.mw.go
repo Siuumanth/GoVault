@@ -17,7 +17,7 @@ GOAL of this Rate Limiter:
 // TODO: switch rate limiter to Redis
 
 type RateLimiter interface {
-	Middleware(next http.Handler) http.Handler
+	RateLimiterMW(next http.Handler) http.Handler
 }
 
 type rateLimiter struct {
@@ -48,7 +48,7 @@ func (rl *rateLimiter) resetVisitorCount() {
 	}
 }
 
-func (rl *rateLimiter) Middleware(next http.Handler) http.Handler {
+func (rl *rateLimiter) RateLimiterMW(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rl.mu.Lock()

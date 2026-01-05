@@ -19,7 +19,7 @@ const authCtxKey contextKey = "auth"
 
 // http.Handler is an interface with 1 function - serveHTTP(w,r)
 // w http.ResponseWriter is an interface so its automatically pass by ref, so * not needed
-func JWTMiddleware(next http.Handler) http.Handler {
+func JWTMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Extract the "Bearer" token from the request

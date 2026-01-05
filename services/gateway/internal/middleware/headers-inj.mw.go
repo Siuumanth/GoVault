@@ -20,7 +20,7 @@ get these context values and addd them to the header
 - main thing is userID and
 */
 
-func HeaderMiddleware(next http.Handler) http.Handler {
+func HeaderInjectionMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCtx := utils.GetAuthContext(r.Context())
 
