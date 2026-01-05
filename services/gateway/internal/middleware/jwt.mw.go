@@ -13,13 +13,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type contextKey string
+type JWT struct{}
 
-const authCtxKey contextKey = "auth"
+const authCtxKey string = "auth"
 
 // http.Handler is an interface with 1 function - serveHTTP(w,r)
 // w http.ResponseWriter is an interface so its automatically pass by ref, so * not needed
-func JWTMW(next http.Handler) http.Handler {
+func (j JWT) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Extract the "Bearer" token from the request

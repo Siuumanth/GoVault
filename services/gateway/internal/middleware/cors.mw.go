@@ -5,10 +5,6 @@ import (
 	"net/http"
 )
 
-type Cors interface {
-	CorsMW(next http.Handler) http.Handler
-}
-
 // Allowed origins
 var allowedOrigins = []string{
 	"https://my-origin-url.com",
@@ -16,7 +12,9 @@ var allowedOrigins = []string{
 	"https://localhost:3000",
 }
 
-func (c cors) CorsMW(next http.Handler) http.Handler {
+type CORS struct{}
+
+func (c CORS) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { // now tihs function becomes a http.handler because we are wrapping it in http.HanderFunc
 		origin := r.Header.Get("Origin")
 		// fmt.Println(origin)

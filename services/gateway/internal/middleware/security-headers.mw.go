@@ -2,7 +2,9 @@ package middleware
 
 import "net/http"
 
-func SecurityHeadersMW(next http.Handler) http.Handler {
+type SecurityHeaders struct{}
+
+func (s SecurityHeaders) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("X-Content-Type-Options", "nosniff")

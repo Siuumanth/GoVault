@@ -16,19 +16,15 @@ GOAL of this Rate Limiter:
 
 // TODO: switch rate limiter to Redis
 
-type RateLimiter interface {
-	RateLimiterMW(next http.Handler) http.Handler
-}
-
-type rateLimiter struct {
+type RateLimiter struct {
 	mu        sync.Mutex
 	visitors  map[string]int
 	limit     int
 	resetTime time.Duration
 }
 
-func NewRateLimiter(limit int, resetTime time.Duration) *rateLimiter {
-	rl := &rateLimiter{
+func NewRateLimiter(limit int, resetTime time.Duration) *RateLimiter {
+	rl := &RateLimiter{
 		visitors:  make(map[string]int),
 		limit:     limit,
 		resetTime: resetTime,
@@ -38,7 +34,7 @@ func NewRateLimiter(limit int, resetTime time.Duration) *rateLimiter {
 	return rl
 }
 
-func (rl *rateLimiter) resetVisitorCount() {
+func (rl *RateLimiter) resetVisitorCount() {
 	for {
 		time.Sleep(rl.resetTime)
 		rl.mu.Lock()
@@ -48,7 +44,7 @@ func (rl *rateLimiter) resetVisitorCount() {
 	}
 }
 
-func (rl *rateLimiter) RateLimiterMW(next http.Handler) http.Handler {
+func (rl *RateLimiter) Handle(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rl.mu.Lock()
