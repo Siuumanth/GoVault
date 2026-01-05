@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"gateway/internal/utils"
 	"net"
 	"net/http"
 	"sync"
@@ -23,17 +24,6 @@ type RateLimiter struct {
 	resetTime time.Duration
 }
 
-func NewRateLimiter(limit int, resetTime time.Duration) *RateLimiter {
-	rl := &RateLimiter{
-		visitors:  make(map[string]int),
-		limit:     limit,
-		resetTime: resetTime,
-	}
-	// start the reset routine
-	go rl.resetVisitorCount()
-	return rl
-}
-
 func (rl *RateLimiter) resetVisitorCount() {
 	for {
 		time.Sleep(rl.resetTime)
@@ -43,32 +33,41 @@ func (rl *RateLimiter) resetVisitorCount() {
 		rl.mu.Unlock()
 	}
 }
+func NewRateLimiter(limit int, resetTime time.Duration) Middleware {
+	rl := &RateLimiter{
+		visitors:  make(map[string]int),
+		limit:     limit,
+		resetTime: resetTime,
+	}
 
-func (rl *RateLimiter) Handle(next http.Handler) http.Handler {
+	go rl.resetVisitorCount()
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rl.mu.Lock()
-		defer rl.mu.Unlock()
+	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		var visitorKey string
-		// r.Context().Value("UserID") returns a value of type any, so we must assert it to string before using it as a key
+			rl.mu.Lock()
+			defer rl.mu.Unlock()
 
-		if userID, ok := r.Context().Value("UserID").(string); ok && userID != "" {
-			visitorKey = userID
-		} else {
-			host, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				host = r.RemoteAddr
+			var visitorKey string
+
+			if userID, ok := r.Context().Value("UserID").(string); ok && userID != "" {
+				visitorKey = userID
+			} else {
+				host, _, err := net.SplitHostPort(r.RemoteAddr)
+				if err != nil {
+					host = r.RemoteAddr
+				}
+				visitorKey = host
 			}
-			visitorKey = host
-		}
 
-		rl.visitors[visitorKey]++
+			rl.visitors[visitorKey]++
 
-		if rl.visitors[visitorKey] > rl.limit {
-			http.Error(w, "Too many requests", http.StatusTooManyRequests)
-			return
-		}
-		next.ServeHTTP(w, r)
+			if rl.visitors[visitorKey] > rl.limit {
+				http.Error(w, "Too many requests", http.StatusTooManyRequests)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	})
 }

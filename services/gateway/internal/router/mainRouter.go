@@ -17,3 +17,7 @@ var ReverseProxies *Proxies = NewProxies()
 
 // we will implement our MW chain using an explicit pipeline
 // we could do by wrapping MW functions, but that would be harder to understand
+
+type Gateway struct {
+	jwt JWTMW
+}
