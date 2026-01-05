@@ -7,13 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type AuthContext struct {
-	UserID   string
-	Username string
-	Email    string
-	Expires  time.Time
-}
-
 func MapClaims(claims jwt.MapClaims) (*AuthContext, error) {
 	uid, ok := claims["uid"].(string)
 	if !ok {

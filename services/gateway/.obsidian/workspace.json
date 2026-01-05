@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "notes/why-contexts.md",
+                "file": "notes.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "why-contexts"
+              "title": "notes"
             }
           }
         ]
@@ -186,8 +186,8 @@
   "active": "5a6b7c619870a826",
   "lastOpenFiles": [
     "notes/jwt.md",
+    "notes.md",
     "notes/why-contexts.md",
-    "internal/utils/mapClaims.go",
-    "notes.md"
+    "internal/utils/mapClaims.go"
   ]
 }
