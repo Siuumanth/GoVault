@@ -18,20 +18,21 @@ Steps to create the api gatway:
 */
 
 func main() {
+	rl := MW.NewBasicRateLimiter(1000, time.Minute)
 	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{
 		JWT:              MW.NewJWT(),
 		CORS:             MW.NewCORS(),
 		SecurityHeaders:  MW.NewSecurityHeaders(),
 		Logger:           MW.NewLogger(),
-		RateLimiter:      MW.NewMemoryRateLimiter(1000, time.Minute),
+		RateLimiter:      MW.NewRateLimiter(rl),
 		HeadersInjection: MW.NewHeadersInjection(),
 	}
-	gateway := gateway.NewGateway(gatewayDeps) // dereferencing gatewayDeps
+	gw := gateway.NewGateway(gatewayDeps)
 	proxies := router.NewProxies()
-	router := router.NewChiRouter(proxies)
+	r := router.NewChiRouter(proxies)
 
-	finalGateway := gateway.BuildGateway(router)
+	finalGateway := gw.BuildGateway(r)
 
 	// finalGateway is a handler with all the middlewares applied
 	err := http.ListenAndServe(":8080", finalGateway)

@@ -22,47 +22,23 @@ Rn, all rate limiters must be middleware funcs
 goal: create an interface that all rate limiters must implement
 - reuse middleware funcs
 
-NewMemoryRateLimiter will return a Middleware object , which can use any rate limiter as its wrapped in middleware Func
+NewBasicRateLimiter will return a Middleware object , which can use any rate limiter as its wrapped in middleware Func
 
 */
 
-type MemoryRateLimiter struct {
-	mu        sync.Mutex
-	visitors  map[string]int
-	limit     int
-	resetTime time.Duration
+type RateLimiter interface {
+	Allow(key string) bool
 }
 
-func NewMemoryRateLimiter(limit int, resetTime time.Duration) Middleware {
-	rl := &MemoryRateLimiter{
-		visitors:  make(map[string]int),
-		limit:     limit,
-		resetTime: resetTime,
-	}
-
-	go rl.resetVisitorCount()
-
+// this is the basic master logic of the rate limiter, irrespective of the rate limiter implementation
+// only the Allow function will differ based on the type of rate limiter implementation
+// One middleware, many strategies
+func NewRateLimiter(rl RateLimiter) Middleware {
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			rl.mu.Lock()
-			defer rl.mu.Unlock()
-
-			var visitorKey string
-
-			if userID, ok := r.Context().Value("UserID").(string); ok && userID != "" {
-				visitorKey = userID
-			} else {
-				host, _, err := net.SplitHostPort(r.RemoteAddr)
-				if err != nil {
-					host = r.RemoteAddr
-				}
-				visitorKey = host
-			}
-
-			rl.visitors[visitorKey]++
-
-			if rl.visitors[visitorKey] > rl.limit {
+			key := extractKey(r)
+			if !rl.Allow(key) {
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
 				return
 			}
@@ -72,7 +48,52 @@ func NewMemoryRateLimiter(limit int, resetTime time.Duration) Middleware {
 	})
 }
 
-func (rl *MemoryRateLimiter) resetVisitorCount() {
+func extractKey(r *http.Request) string {
+	key := r.Header.Get("UserID")
+	if key == "" {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			host = r.RemoteAddr
+		}
+		key = host
+	}
+	return key
+}
+
+type BasicRateLimiter struct {
+	mu        sync.Mutex
+	visitors  map[string]int
+	limit     int
+	resetTime time.Duration
+}
+
+func NewBasicRateLimiter(limit int, resetTime time.Duration) *BasicRateLimiter {
+	rl := BasicRateLimiter{
+		mu:        sync.Mutex{},
+		visitors:  make(map[string]int),
+		limit:     limit,
+		resetTime: resetTime,
+	}
+	go rl.resetVisitorCount()
+
+	return &rl
+}
+
+// single responsibility
+func (rl *BasicRateLimiter) Allow(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	rl.visitors[key]++
+
+	if rl.visitors[key] > rl.limit {
+		return false
+	}
+
+	return true
+}
+
+func (rl *BasicRateLimiter) resetVisitorCount() {
 	for {
 		time.Sleep(rl.resetTime)
 		rl.mu.Lock()
