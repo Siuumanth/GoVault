@@ -18,7 +18,7 @@ Steps to create the api gatway:
 */
 
 func main() {
-	// all controllable from the main function
+	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{
 		JWT:              MW.NewJWT(),
 		CORS:             MW.NewCORS(),
