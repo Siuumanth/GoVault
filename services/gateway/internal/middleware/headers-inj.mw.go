@@ -22,7 +22,7 @@ get these context values and addd them to the header
 
 type HeaderInjectionMW struct{}
 
-func NewHeadersINJ() Middleware {
+func NewHeadersInjection() Middleware {
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authCtx := utils.GetAuthContext(r.Context())

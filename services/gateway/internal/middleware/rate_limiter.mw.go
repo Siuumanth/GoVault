@@ -17,24 +17,24 @@ GOAL of this Rate Limiter:
 
 // TODO: switch rate limiter to Redis
 
-type RateLimiter struct {
+/*
+Rn, all rate limiters must be middleware funcs
+goal: create an interface that all rate limiters must implement
+- reuse middleware funcs
+
+NewMemoryRateLimiter will return a Middleware object , which can use any rate limiter as its wrapped in middleware Func
+
+*/
+
+type MemoryRateLimiter struct {
 	mu        sync.Mutex
 	visitors  map[string]int
 	limit     int
 	resetTime time.Duration
 }
 
-func (rl *RateLimiter) resetVisitorCount() {
-	for {
-		time.Sleep(rl.resetTime)
-		rl.mu.Lock()
-		// assign new map to clear old data
-		rl.visitors = make(map[string]int)
-		rl.mu.Unlock()
-	}
-}
-func NewRateLimiter(limit int, resetTime time.Duration) Middleware {
-	rl := &RateLimiter{
+func NewMemoryRateLimiter(limit int, resetTime time.Duration) Middleware {
+	rl := &MemoryRateLimiter{
 		visitors:  make(map[string]int),
 		limit:     limit,
 		resetTime: resetTime,
@@ -70,4 +70,14 @@ func NewRateLimiter(limit int, resetTime time.Duration) Middleware {
 			next.ServeHTTP(w, r)
 		})
 	})
+}
+
+func (rl *MemoryRateLimiter) resetVisitorCount() {
+	for {
+		time.Sleep(rl.resetTime)
+		rl.mu.Lock()
+		// assign new map to clear old data
+		rl.visitors = make(map[string]int)
+		rl.mu.Unlock()
+	}
 }
