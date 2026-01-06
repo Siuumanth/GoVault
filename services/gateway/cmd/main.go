@@ -6,6 +6,8 @@ import (
 	"gateway/internal/router"
 	"net/http"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 /*
@@ -18,6 +20,8 @@ Steps to create the api gatway:
 */
 
 func main() {
+	godotenv.Load()
+
 	rl := MW.NewBasicRateLimiter(1000, time.Minute)
 	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{

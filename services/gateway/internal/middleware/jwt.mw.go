@@ -5,15 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"gateway/internal/utils"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
-
-const authCtxKey string = "auth"
 
 // http.Handler is an interface with 1 function - serveHTTP(w,r)
 // w http.ResponseWriter is an interface so its automatically pass by ref, so * not needed
@@ -64,10 +61,10 @@ func NewJWT() Middleware {
 
 			// Validate the parsed JWT token
 			if parsedToken.Valid {
-				log.Println("Valid JWT")
+				//log.Println("Valid JWT")
 			} else {
 				http.Error(w, "Invalid Login Token", http.StatusUnauthorized)
-				log.Println("Invalid JWT:", tokenString)
+				//log.Println("Invalid JWT:", tokenString)
 				return
 			}
 
@@ -86,7 +83,7 @@ func NewJWT() Middleware {
 			}
 
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, authCtxKey, authCtx)
+			ctx = context.WithValue(ctx, utils.AuthContextKey, authCtx)
 
 			// Call the next handler with the enriched context
 			// attaching old request with new contexrt and passing request

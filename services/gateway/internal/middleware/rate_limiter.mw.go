@@ -17,15 +17,6 @@ GOAL of this Rate Limiter:
 
 // TODO: switch rate limiter to Redis
 
-/*
-Rn, all rate limiters must be middleware funcs
-goal: create an interface that all rate limiters must implement
-- reuse middleware funcs
-
-NewBasicRateLimiter will return a Middleware object , which can use any rate limiter as its wrapped in middleware Func
-
-*/
-
 type RateLimiter interface {
 	Allow(key string) bool
 }

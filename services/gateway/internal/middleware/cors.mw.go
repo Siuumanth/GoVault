@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"gateway/internal/utils"
 	"net/http"
+	"os"
 )
 
 // Allowed origins
 var allowedOrigins = []string{
-	"https://my-origin-url.com",
-	"https://www.myfrontend.com",
-	"https://localhost:3000",
+	os.Getenv("FRONTEND_URL"),
+	os.Getenv("DEV_URL"),
+	os.Getenv("OTHER_URL"),
 }
 
 func NewCORS() Middleware {

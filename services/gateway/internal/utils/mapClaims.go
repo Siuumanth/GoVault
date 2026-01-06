@@ -9,15 +9,15 @@ import (
 
 func MapClaims(claims jwt.MapClaims) (*AuthContext, error) {
 	// only user ID is mandatory , otheres arent necessary
-	uid, ok := claims["uid"].(string)
+	uid, ok := claims[ClaimsUidKey].(string)
 	if !ok {
 		return nil, errors.New("uid missing or invalid")
 	}
 
-	email, _ := claims["email"].(string)
-	username, _ := claims["user"].(string)
+	email, _ := claims[ClaimsEmailKey].(string)
+	username, _ := claims[ClaimsUidKey].(string)
 
-	expFloat, ok := claims["exp"].(float64)
+	expFloat, ok := claims[ClaimsExpKey].(float64)
 	if !ok {
 		return nil, errors.New("exp missing or invalid")
 	}
