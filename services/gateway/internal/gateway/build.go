@@ -1,6 +1,8 @@
 package gateway
 
-import "net/http"
+import (
+	"net/http"
+)
 
 func (g *Gateway) BuildGateway(router http.Handler) http.Handler {
 	// base handler (router / proxy)

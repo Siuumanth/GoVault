@@ -16,7 +16,7 @@ Steps to create the api gatway:
 2. Create gateway
 3. Get proxies
 3. Get router
-4. Inject router while buidling gatewat
+4. Inject router while buidling gateway
 */
 
 func main() {
@@ -35,7 +35,8 @@ func main() {
 	}
 	gw := gateway.NewGateway(gatewayDeps)
 	proxies := router.NewProxies()
-	r := router.NewChiRouter(proxies, authz)
+	r := router.NewChiRouter()
+	r.ConfigureRoutes(proxies, authz)
 
 	finalGateway := gw.BuildGateway(r)
 
