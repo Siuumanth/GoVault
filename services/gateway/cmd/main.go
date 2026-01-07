@@ -23,6 +23,7 @@ func main() {
 	godotenv.Load()
 
 	rl := MW.NewBasicRateLimiter(1000, time.Minute)
+	authz := MW.NewAuthZ()
 	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{
 		JWT:              MW.NewJWT(),
@@ -34,7 +35,7 @@ func main() {
 	}
 	gw := gateway.NewGateway(gatewayDeps)
 	proxies := router.NewProxies()
-	r := router.NewChiRouter(proxies)
+	r := router.NewChiRouter(proxies, authz)
 
 	finalGateway := gw.BuildGateway(r)
 

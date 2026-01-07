@@ -21,7 +21,8 @@ func NewJWT() Middleware {
 			// Extract the "Bearer" token from the request
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				return // no auth header
+				next.ServeHTTP(w, r) // no auth header
+				return
 			}
 
 			const prefix = "Bearer "
@@ -49,13 +50,14 @@ func NewJWT() Middleware {
 				return []byte(jwtSecret), nil
 			})
 			if err != nil {
-				if errors.Is(err, jwt.ErrTokenExpired) {
-					http.Error(w, "Token Expired", http.StatusUnauthorized)
-					return
-				} else if errors.Is(err, jwt.ErrTokenMalformed) {
-					http.Error(w, "Token Malformed", http.StatusUnauthorized)
+				switch {
+				case errors.Is(err, jwt.ErrTokenExpired):
+					http.Error(w, "Token expired", http.StatusUnauthorized)
+				case errors.Is(err, jwt.ErrTokenMalformed):
+					http.Error(w, "Token malformed", http.StatusUnauthorized)
+				default:
+					http.Error(w, "Invalid token", http.StatusUnauthorized)
 				}
-				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
