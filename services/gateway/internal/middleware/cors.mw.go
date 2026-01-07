@@ -8,25 +8,28 @@ import (
 )
 
 // Allowed origins
-var allowedOrigins = []string{
-	os.Getenv("FRONTEND_URL"),
-	os.Getenv("DEV_URL"),
-	os.Getenv("OTHER_URL"),
-}
+var allowedOrigins []string
 
 func NewCORS() Middleware {
+	// runs once at startup
+	allowedOrigins = []string{
+		os.Getenv("FRONTEND_URL"),
+		os.Getenv("DEV_URL"),
+		os.Getenv("OTHER_URL"),
+	}
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		// Take that function value and treat it as a MiddlewareFunc
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { // now tihs function becomes a http.handler because we are wrapping it in http.HanderFunc
+
 			origin := r.Header.Get("Origin")
 			// fmt.Println(origin)
+			if origin == "" {
+				next.ServeHTTP(w, r) // no header means continue
+				return
+			}
 
 			if isOriginAllowed(origin) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
-
-			} else {
-				http.Error(w, "Not allowed by CORS", http.StatusForbidden)
-				return
 			}
 
 			// Set other CORS headers

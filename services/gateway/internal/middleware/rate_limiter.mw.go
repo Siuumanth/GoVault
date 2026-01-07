@@ -40,15 +40,16 @@ func NewRateLimiter(rl RateLimiter) Middleware {
 }
 
 func extractKey(r *http.Request) string {
-	key := r.Header.Get("UserID")
-	if key == "" {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			host = r.RemoteAddr
-		}
-		key = host
+	// check for User ID in the context, else fall back to IP
+	if auth, ok := r.Context().Value(utils.AuthContextKey).(utils.AuthContext); ok {
+		return auth.UserID
 	}
-	return key
+	// fallback to IP
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	return host
 }
 
 type BasicRateLimiter struct {

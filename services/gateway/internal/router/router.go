@@ -10,16 +10,23 @@ import (
 // DONE: Refactor router to allow for different implementatoins of router
 
 // the router is also just an http handler with some middlewares
-// interface for swapping routers
 
-/*
-dependency inject the router
-*/
-// any router than configure routes should implement this
 type Router interface {
 	http.Handler
 	ConfigureRoutes(proxies *Proxies, authz MW.Middleware)
 }
+
+/*
+.
+.
+.
+.
+MAKING CHI ROUTER:
+.
+.
+.
+.
+*/
 
 // container for holding a chi router
 type ChiRouter struct {
