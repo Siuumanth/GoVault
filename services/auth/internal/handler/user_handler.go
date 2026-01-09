@@ -10,7 +10,7 @@ import (
 type UserHandlerInterface interface {
 	SignupHandler(w http.ResponseWriter, r *http.Request)
 	LoginHandler(w http.ResponseWriter, r *http.Request)
-	TestHandler(w http.ResponseWriter, r *http.Request)
+	HealthCheckHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // to call services
@@ -20,10 +20,6 @@ type AuthHandler struct {
 
 func NewAuthHandler(service *service.AuthService) *AuthHandler {
 	return &AuthHandler{service: service}
-}
-
-func (h *AuthHandler) TestHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello world"))
 }
 
 func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {

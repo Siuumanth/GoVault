@@ -19,7 +19,7 @@ type AuthService struct {
 }
 
 // now any behaviour can be passed here, pg, mongo, memory
-func NewPGAuthService(p dao.UserDAO) *AuthService {
+func NewAuthService(p dao.UserDAO) *AuthService {
 	return &AuthService{dao: p}
 }
 
