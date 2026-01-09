@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"gateway/internal/gateway"
 	MW "gateway/internal/middleware"
 	"gateway/internal/router"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -18,6 +24,8 @@ Steps to create the api gatway:
 3. Get router
 4. Inject router while buidling gateway
 */
+
+// TODO: Add graceful shutdown code
 
 func main() {
 	godotenv.Load()
@@ -41,8 +49,34 @@ func main() {
 	finalGateway := gw.BuildGateway(r)
 
 	// finalGateway is a handler with all the middlewares applied
-	err := http.ListenAndServe(":8080", finalGateway)
-	if err != nil {
-		panic(err)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: finalGateway,
 	}
+
+	// 1. create a channel to listen for OS signals (Interrupt/Kill), eg:- Ctrl + C is a kill
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM) // set stop channel as a listener
+
+	// 2. run the server in a goroutine so it doesn't block
+	go func() {
+		fmt.Println("Gateway starting on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Listen error: %s\n", err)
+		}
+	}()
+
+	// 3. wait for any signal by OS (usere)
+	<-stop
+
+	// 4. shut down gracefully with some timeout
+	fmt.Println("\nShutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	fmt.Println("Server exiting")
 }
