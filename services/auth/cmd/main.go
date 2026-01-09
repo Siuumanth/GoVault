@@ -23,7 +23,8 @@ func main() {
 
 	db, err := database.Connect(dbURL)
 	if err != nil {
-		panic(err)
+		fmt.Println("DB connection Erorr ")
+		//panic(err)
 	}
 	fmt.Println("Connected to database...")
 
@@ -34,6 +35,7 @@ func main() {
 
 	err = http.ListenAndServe(":9001", userRouter)
 	if err != nil {
+		fmt.Println("Error starting server")
 		panic(err)
 	}
 
