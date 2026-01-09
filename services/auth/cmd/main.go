@@ -28,11 +28,11 @@ func main() {
 	fmt.Println("Connected to database...")
 
 	authDao := dao.NewPostgresUserDAO(db)
-	authService := service.NewPGAuthService(authDao)
+	authService := service.NewAuthService(authDao)
 	authHandler := handler.NewAuthHandler(authService)
 	userRouter := router.NewRouter(authHandler)
 
-	err = http.ListenAndServe(":8081", userRouter)
+	err = http.ListenAndServe(":9001", userRouter)
 	if err != nil {
 		panic(err)
 	}
