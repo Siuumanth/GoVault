@@ -26,6 +26,7 @@ type AuthContext struct {
 	Expires  time.Time
 }
 
-func GetAuthContext(ctx context.Context) AuthContext {
-	return ctx.Value(AuthContextKey).(AuthContext)
+func GetAuthContext(ctx context.Context) (AuthContext, bool) {
+	authCtx, ok := ctx.Value(AuthContextKey).(AuthContext)
+	return authCtx, ok
 }

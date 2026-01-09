@@ -1,6 +1,7 @@
 package router
 
 import (
+	"gateway/internal/health"
 	MW "gateway/internal/middleware"
 	"net/http"
 
@@ -45,6 +46,9 @@ func (r *ChiRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r ChiRouter) ConfigureRoutes(proxies *Proxies, authz MW.Middleware) {
+	// Health check
+	r.mux.Get("/health", health.HealthCheckHandler)
+
 	// Public routes (no JWT)
 	r.mux.Route("/auth", func(r chi.Router) {
 		r.Mount("/auth", proxies.Auth)
