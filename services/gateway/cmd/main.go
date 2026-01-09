@@ -50,7 +50,7 @@ func main() {
 
 	// finalGateway is a handler with all the middlewares applied
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":9000",
 		Handler: finalGateway,
 	}
 
@@ -60,7 +60,7 @@ func main() {
 
 	// 2. run the server in a goroutine so it doesn't block
 	go func() {
-		fmt.Println("Gateway starting on :8080")
+		fmt.Println("Gateway starting on :9000")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Listen error: %s\n", err)
 		}
