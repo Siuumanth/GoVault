@@ -51,15 +51,18 @@ func (r ChiRouter) ConfigureRoutes(proxies *Proxies, authz MW.Middleware) {
 
 	// Public routes (no JWT)
 	r.mux.Route("/auth", func(r chi.Router) {
-		r.Mount("/auth", proxies.Auth)
-		r.Mount("/preview", proxies.Preview)
+		r.Mount("/", http.StripPrefix("/auth", proxies.Auth))
+	})
+
+	r.mux.Route("/preview", func(r chi.Router) {
+		r.Mount("/", http.StripPrefix("/preview", proxies.Preview))
 	})
 
 	// Protected routes (JWT applied at gateway level or here)
 	r.mux.Route("/api", func(r chi.Router) {
 		r.Use(authz.Handle) // middleware to authorize secure routes
-		r.Mount("/upload", proxies.Upload)
-		r.Mount("/meta", proxies.Metadata)
-		r.Mount("/share", proxies.Sharing)
+		r.Mount("/upload", http.StripPrefix("/upload", proxies.Upload))
+		r.Mount("/meta", http.StripPrefix("/meta", proxies.Upload))
+		r.Mount("/share", http.StripPrefix("/upload", proxies.Upload))
 	})
 }
