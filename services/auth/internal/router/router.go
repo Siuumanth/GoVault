@@ -13,7 +13,7 @@ func NewRouter(h handler.UserHandlerInterface) http.Handler {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/signup", h.SignupHandler)
 		r.Post("/login", h.LoginHandler)
-		r.Get("/healtheck", h.HealthCheckHandler)
+		r.Get("/health", h.HealthCheckHandler)
 	})
 	return r
 }
