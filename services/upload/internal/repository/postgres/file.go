@@ -1,0 +1,88 @@
+package postgres
+
+import (
+	"database/sql"
+	"errors"
+	"upload/internal/model"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+)
+
+/*
+	type FileRepository interface {
+		Create(file *model.File) error
+		GetByID(fileID uuid.UUID) (*model.File, error)
+	}
+*/
+type PGFileRepo struct {
+	db *sql.DB
+}
+
+func NewFileRepo(db *sql.DB) *PGFileRepo {
+	return &PGFileRepo{db: db}
+}
+
+const (
+	CreateFileQuery = `
+		INSERT INTO files (file_uuid, user_id, file_name, mime_type, size_bytes, storage_key)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	GetFileQuery = `
+		SELECT file_uuid, user_id, session_id, name, mime_type, size_bytes, storage_key, uploaded_at
+		FROM files
+		WHERE file_uuid = $1
+	`
+)
+
+func (p *PGFileRepo) Create(file *model.File) error {
+	// we have CreateUserQuery
+	// fill all values of the file model to return
+	err := p.db.QueryRow(
+		CreateFileQuery,
+		file.FileUUID,
+		file.UserID,
+		file.SessionID,
+		file.Name,
+		file.MimeType,
+		file.SizeBytes,
+		file.StorageKey,
+	).Scan(&file.ID, &file.UploadedAt)
+
+	if err != nil {
+		// check duplicate violation
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code == "23505" {
+				return errors.New("duplicate")
+			}
+		}
+		return err
+	}
+	return nil
+}
+
+func (p *PGFileRepo) GetByID(fileID uuid.UUID) (*model.File, error) {
+	var file model.File
+
+	// fill all values of the file model to return
+	err := p.db.QueryRow(GetFileQuery, fileID).Scan(
+		&file.FileUUID,
+		&file.UserID,
+		&file.SessionID,
+		&file.Name,
+		&file.MimeType,
+		&file.SizeBytes,
+		&file.StorageKey,
+		&file.UploadedAt,
+	)
+
+	if err != nil {
+		// if file not found
+		if err == sql.ErrNoRows {
+			return &model.File{}, nil
+		} else {
+			return &model.File{}, err
+		}
+	}
+	return &file, nil
+}
