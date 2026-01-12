@@ -1,20 +1,25 @@
 package repository
 
-import "upload/internal/model"
+import (
+	"upload/internal/model"
 
-type UploadFileRepository interface {
+	"github.com/google/uuid"
+)
+
+type FileRepository interface {
 	Create(file *model.File) error
+	GetByID(fileID uuid.UUID) (*model.File, error)
 }
 
 // interface which stores methods for uploading chunks
 type UploadChunkRepository interface {
-	CreateChunk(session_id int, chunk_id int, size_bytes int) error
+	CreateChunk(chunk *model.UploadChunk) error
 	GetTotalChunks(session_id int) int
 }
 
 type UploadSessionRepository interface {
-	CreateUploadSession(user_id string, file_name string, file_size int, total_chunks int) (int, error)
-	GetUploadSession(session_id int) (int, error)
+	CreateUploadSession(session *model.UploadSession) error
+	GetUploadSession(session_id int) (*model.UploadSession, error)
+	GetTotalChunks(session_id int) int
 	UpdateUploadStatus(session_id int, status string) error
-	SetUploadedChunks(session_id int, count int) error
 }
