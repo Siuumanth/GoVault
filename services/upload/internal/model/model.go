@@ -35,5 +35,6 @@ type UploadChunk struct {
 	SessionID  int
 	ChunkIndex int
 	SizeBytes  int
+	CheckSum   string
 	UploadedAt time.Time
 }

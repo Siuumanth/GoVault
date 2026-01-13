@@ -14,12 +14,12 @@ type FileRepository interface {
 // interface which stores methods for uploading chunks
 type UploadChunkRepository interface {
 	CreateChunk(chunk *model.UploadChunk) error
-	GetTotalChunks(session_id int) int
+	GetSessionChunksCount(session_id int) (int, error)
 }
 
 type UploadSessionRepository interface {
-	CreateUploadSession(session *model.UploadSession) error
-	GetUploadSession(session_id int) (*model.UploadSession, error)
-	GetTotalChunks(session_id int) int
-	UpdateUploadStatus(session_id int, status string) error
+	CreateSession(session *model.UploadSession) error
+	GetSessionByID(session_id int) (*model.UploadSession, error)
+	GetSessionByUUID(upload_uuid uuid.UUID) (int, error)
+	UpdateSessionStatus(upload_uuid uuid.UUID, status string) error
 }
