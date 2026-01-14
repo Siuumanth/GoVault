@@ -1,6 +1,6 @@
 package repository
 
-type Registry struct {
+type RepoRegistry struct {
 	Sessions UploadSessionRepository
 	Chunks   UploadChunkRepository
 	Files    FileRepository
@@ -10,8 +10,8 @@ func NewRegistry(
 	sessions UploadSessionRepository,
 	chunks UploadChunkRepository,
 	files FileRepository,
-) *Registry {
-	return &Registry{
+) *RepoRegistry {
+	return &RepoRegistry{
 		Sessions: sessions,
 		Chunks:   chunks,
 		Files:    files,

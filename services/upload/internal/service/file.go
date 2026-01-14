@@ -13,5 +13,5 @@ type FileServiceMethods interface {
 }
 
 type FileService struct {
-	registry *repository.Registry
+	registry *repository.RepoRegistry
 }
