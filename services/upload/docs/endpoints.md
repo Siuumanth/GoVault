@@ -1,8 +1,10 @@
-1. POST upload/
-2. POST upload/chunk?idx=4
+1. POST upload/session - CreateUploadSessionHandler
+2. POST upload/chunk?idx=4 - UploadChunkHandler
+3. GET /upload/status?upload_uuid=...  - GetUploadStatusHandler
 
 
-1. POST upload/
+
+1. POST upload/session
    Whenever a user wants to upload, they first cal this URL to create a session, then the chunks are sent 
    - handler: validate fields, call service
    - service:
@@ -10,6 +12,41 @@
        - insert session row to uploadSession table 
        - get session ID , make folder for tat session
        - return UUID, 200, saying that session is created
+
+```yaml
+  /upload/session:
+    post:
+      summary: Create an upload session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - file_name
+                - file_size_bytes
+              properties:
+                file_name:
+                  type: string
+                file_size_bytes:
+                  type: integer
+                  format: int64
+      responses:
+        "200":
+          description: Upload session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_uuid:
+                    type: string
+                    format: uuid
+                  total_chunks:
+                    type: integer
+
+```
   
 
 2. POST upload/chunk?idx=4

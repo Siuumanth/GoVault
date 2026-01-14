@@ -19,6 +19,14 @@ CREATE TYPE upload_status AS ENUM ('pending', 'completed', 'failed');
 -- upload_sessions
 -- ===============================
 -- TODO: remove uploaded chunks and updated at 
+-- TODO: see if u shud add uploading status enum
+-- pending        // session created, no chunks yet
+-- uploading      // chunks coming in
+-- assembling     // all chunks received, merging
+-- uploading_s3   // pushing to S3
+-- completed      // file safely stored
+-- failed         // unrecoverable error
+
 CREATE TABLE upload_sessions (
     id BIGSERIAL PRIMARY KEY,
 

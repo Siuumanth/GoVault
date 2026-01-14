@@ -7,17 +7,6 @@ import (
 )
 
 // these are models returned by the repository and the actual schema
-type File struct {
-	ID         int
-	FileUUID   uuid.UUID
-	UserID     uuid.UUID
-	SessionID  int
-	Name       string
-	MimeType   string
-	SizeBytes  int
-	StorageKey string
-	UploadedAt time.Time
-}
 
 type UploadSession struct {
 	ID          int       // internal BIGSERIAL
@@ -36,5 +25,17 @@ type UploadChunk struct {
 	ChunkIndex int
 	SizeBytes  int
 	CheckSum   string
+	UploadedAt time.Time
+}
+
+type File struct {
+	ID         int
+	FileUUID   uuid.UUID
+	UserID     uuid.UUID
+	SessionID  int
+	Name       string
+	MimeType   string
+	SizeBytes  int
+	StorageKey string
 	UploadedAt time.Time
 }

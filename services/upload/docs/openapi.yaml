@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: GoVault Upload Service API
+  version: 1.0.0
+
+paths:
+  /upload/session:
+    post:
+      summary: Create an upload session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - file_name
+                - file_size_bytes
+              properties:
+                file_name:
+                  type: string
+                file_size_bytes:
+                  type: integer
+                  format: int64
+                chunk_size_bytes:
+                  type: integer
+      responses:
+        "200":
+          description: Upload session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_uuid:
+                    type: string
+                    format: uuid
+                  total_chunks:
+                    type: integer
+
+  /upload/chunk:
+    post:
+      summary: Upload a single chunk
+      parameters:
+        - name: upload_uuid
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: idx
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Chunk accepted
+        "400":
+          description: Invalid request or checksum mismatch
+        "409":
+          description: Duplicate chunk
+
+  /upload/status:
+    get:
+      summary: Get upload status
+      parameters:
+        - name: upload_uuid
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Upload status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - pending
+                      - uploading
+                      - assembling
+                      - uploading_s3
+                      - completed
+                      - failed
+                  total_chunks:
+                    type: integer
+                  uploaded_chunks:
+                    type: array
+                    items:
+                      type: integer
