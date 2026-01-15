@@ -76,3 +76,10 @@ func (p *PGUploadSessionRepo) UpdateSessionStatus(sessionID int, status string) 
 	_, err := p.db.Exec(UpdateSessionStatusQuery, status, sessionID)
 	return err
 }
+
+const DeleteSessionQuery = `DELETE FROM upload_sessions WHERE id = $1`
+
+func (p *PGUploadSessionRepo) DeleteSessionChunks(sessionID int) error {
+	_, err := p.db.Exec(DeleteSessionQuery, sessionID)
+	return err
+}

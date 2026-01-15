@@ -25,7 +25,7 @@ func (s *UploadService) UploadSession(inputs *CreateUploadSessionInput) (*model.
 	session.FileName = inputs.FileName
 	session.FileSize = inputs.FileSizeBytes
 	session.UserID = inputs.UserID
-	session.TotalChunks = CalculateTotalChunks(inputs.FileSizeBytes)
+	session.TotalChunks = calculateTotalChunks(inputs.FileSizeBytes)
 
 	// insert session into database
 	err := s.registry.Sessions.CreateSession(&session)
@@ -36,14 +36,15 @@ func (s *UploadService) UploadSession(inputs *CreateUploadSessionInput) (*model.
 	// create session folder
 	_, err = createSessionDir(session.ID)
 	if err != nil {
-		// TODO: delete row if fail
+		// delete row if fail
+		s.registry.Sessions.DeleteSessionChunks(session.ID)
 		return nil, err
 	}
 
 	return &session, nil
 }
 
-func CalculateTotalChunks(fileSize int64) int {
+func calculateTotalChunks(fileSize int64) int {
 	return int((fileSize + shared.ChunkSizeBytes - 1) / shared.ChunkSizeBytes)
 }
 
@@ -56,4 +57,10 @@ func createSessionDir(sessionID int) (string, error) {
 	}
 
 	return dir, nil
+}
+
+func deleteSessionDir(sessionID int) error {
+	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
+
+	return os.RemoveAll(dir)
 }

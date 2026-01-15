@@ -22,4 +22,5 @@ type UploadSessionRepository interface {
 	GetSessionByID(session_id int) (*model.UploadSession, error)
 	GetSessionByUUID(upload_uuid uuid.UUID) (int, error)
 	UpdateSessionStatus(upload_uuid uuid.UUID, status string) error
+	DeleteSessionChunks(session_id int) error
 }
