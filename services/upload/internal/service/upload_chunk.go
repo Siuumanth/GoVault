@@ -74,10 +74,29 @@ func (s *UploadService) UploadChunk(input *UploadChunkInput) error {
 	}
 
 	// 8 Count chunks
-	if noChunksUploaded == session.TotalChunks {
-		// Assemble and file upload left
-		// TODO: Assemble file logic
-		// TODO: Upload to S3 logic
+	if noChunksUploaded < session.TotalChunks {
+		return nil
+	}
+	// Assemble and file upload left
+	// Assemble file logic
+	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "assembling")
+	if err != nil {
+		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
+		return err
+	}
+	s.assembleChunks(session.ID, session.TotalChunks)
+
+	// Upload to S3
+	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "uploading")
+	if err != nil {
+		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
+		return err
+	}
+	// TODO: Upload to S3 logic
+
+	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
+	if err != nil {
+		return err
 	}
 	return nil
 }
