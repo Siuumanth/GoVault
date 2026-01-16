@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,61 +12,78 @@ import (
 )
 
 /*
-1. Resolve session by upload_uuid
-2. If status != uploading → reject
-3. Stream bytes → temp file
-4. Compute checksum while streaming
-5. If checksum mismatch → reject
-6. INSERT upload_chunks (unique constraint)
-7. COUNT(upload_chunks)
-8. If count == total_chunks:
-       - set status = assembling
-       - assemble file
-       - upload to S3
-       - create files row
-       - set status = completed
-9. Return success
+1. Resolve session
+2. Validate status
+3. Verify checksum
+4. Write chunk to disk
+5. INSERT chunk row (handle duplicate)
+6. COUNT chunks
+7. If complete:
+     - update status → assembling
+     - assemble
+     - upload to S3
+     - create file row
+     - update status → completed
+8. return nil
+
 */
 
 func (s *UploadService) UploadChunk(input *UploadChunkInput) error {
 	// 1.
-	chunk, err := s.registry.Sessions.GetSessionByUUID(input.UploadUUID)
+	session, err := s.registry.Sessions.GetSessionByUUID(input.UploadUUID)
 
 	if err != nil {
 		return err
 	}
 
 	// 2.
-	if chunk.Status != "uploading" {
+	if session.Status != "uploading" {
 		return fmt.Errorf("upload not in progress")
 	}
 
-	// 3.
-	err = storeChunk(input.ChunkID, input.ChunkBytes, chunk.ID)
-	if err != nil {
-		return err
-	}
 	//4,5 compute checksum and check
 	err = verifyChecksum(input.ChunkBytes, input.CheckSum)
 	if err != nil {
 		return err
 	}
 
-	// 6.
+	// 3.
+	err = storeChunk(input.ChunkID, input.ChunkBytes, session.ID)
+	if err != nil {
+		return err
+	}
+
+	// 6. Create chunk
 	err = s.registry.Chunks.CreateChunk(&model.UploadChunk{
-		SessionID:  chunk.ID,
+		SessionID:  session.ID,
 		ChunkIndex: input.ChunkID,
 		SizeBytes:  len(input.ChunkBytes),
 		CheckSum:   input.CheckSum,
 	})
 	if err != nil {
+		if errors.Is(err, shared.ErrChunkAlreadyExists) {
+			return nil // idempotent success
+		}
 		return err
 	}
 
+	// 7. Count total chunks in chunks
+	noChunksUploaded, err := s.registry.Chunks.GetSessionChunksCount(session.ID)
+	if err != nil {
+		return err
+	}
+
+	// 8 Count chunks
+	if noChunksUploaded == session.TotalChunks {
+		// Assemble and file upload left
+		// TODO: Assemble file logic
+		// TODO: Upload to S3 logic
+	}
+	return nil
 }
 
 func storeChunk(chunkID int, chunk []byte, sessionID int) error {
-	savePath := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d/%d", sessionID, chunkID))
+	savePath := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d/%d.part", sessionID, chunkID))
 
 	fmt.Printf("Writing chunk %d to %s\n", chunkID, savePath)
 

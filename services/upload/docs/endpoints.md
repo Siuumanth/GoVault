@@ -88,6 +88,7 @@
 4. Compute checksum while streaming
 5. If checksum mismatch → reject
 6. INSERT upload_chunks (unique constraint)
+  - if chunk already exists , then continue
 7. COUNT(upload_chunks)
 8. If count == total_chunks:
        - set status = assembling
@@ -95,4 +96,11 @@
        - upload to S3
        - create files row
        - set status = completed
-9. Return success
+9.  Return success
+
+/*
+3 outcomes: 
+- cHunk already exists 
+- Chunk uploaded successfully
+- all chunks uploaded
+*/
