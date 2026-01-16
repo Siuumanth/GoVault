@@ -2,8 +2,15 @@ package service
 
 import "github.com/google/uuid"
 
-type CreateUploadSessionInput struct {
+type UploadSessionInput struct {
 	UserID        uuid.UUID
 	FileName      string
 	FileSizeBytes int64
+}
+
+type UploadChunkInput struct {
+	UploadUUID uuid.UUID
+	ChunkID    int
+	ChunkBytes []byte
+	CheckSum   string
 }

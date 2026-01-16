@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *UploadService) UploadSession(inputs *CreateUploadSessionInput) (*model.UploadSession, error) {
+func (s *UploadService) UploadSession(inputs *UploadSessionInput) (*model.UploadSession, error) {
 	/*
 	   - calculate total chunks
 	   - insert session row to uploadSession table
@@ -37,7 +37,7 @@ func (s *UploadService) UploadSession(inputs *CreateUploadSessionInput) (*model.
 	_, err = createSessionDir(session.ID)
 	if err != nil {
 		// delete row if fail
-		s.registry.Sessions.DeleteSessionChunks(session.ID)
+		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
 		return nil, err
 	}
 

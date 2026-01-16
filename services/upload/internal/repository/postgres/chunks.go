@@ -2,7 +2,11 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 	"upload/internal/model"
+	"upload/shared"
+
+	"github.com/lib/pq"
 )
 
 // type UploadChunkRepository interface {
@@ -25,7 +29,6 @@ const (
 )
 
 func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {
-	// we have CreateChunkQuerys
 	err := p.db.QueryRow(
 		CreateChunkQuery,
 		chunk.SessionID,
@@ -34,7 +37,16 @@ func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {
 		chunk.CheckSum,
 	).Scan(&chunk.ID)
 
-	return err
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			// duplicate chunk (idempotent retry)
+			return shared.ErrChunkAlreadyExists
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (p *PGChunkRepo) CountBySession(sessionID int) (int, error) {
