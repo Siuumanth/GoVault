@@ -25,7 +25,7 @@ func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid upload_uuid", http.StatusBadRequest)
 		return
 	}
-
+	// TODO: check if user Id belongs to user before cehcking status
 	session, err := h.uploadService.GetUploadStatus(uploadUUID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

@@ -4,7 +4,6 @@ import "github.com/google/uuid"
 
 type UploadChunkRequest struct {
 	UploadUUID uuid.UUID `json:"upload_uuid"`
-	ChunkID    int       `json:"chunk_id"`
 	CheckSum   string    `json:"checksum"`
 	ChunkBytes []byte    `json:"chunk_bytes"`
 }

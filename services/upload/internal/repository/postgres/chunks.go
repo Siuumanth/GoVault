@@ -24,8 +24,8 @@ func NewChunkRepo(db *sql.DB) *PGChunkRepo {
 
 // queries
 const (
-	CreateChunkQuery           = `INSERT INTO chunks (session_id, chunk_index, size_bytes, checksum) VALUES ($1, $2, $3, $4) RETURNING id`
-	GetSessionChunksCountQuery = `Select Count(*) from chunks where session_id = $1`
+	CreateChunkQuery           = `INSERT INTO upload_chunks (session_id, chunk_index, size_bytes, checksum) VALUES ($1, $2, $3, $4) RETURNING id`
+	GetSessionChunksCountQuery = `Select Count(*) from upload_chunks where session_id = $1`
 )
 
 func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {

@@ -25,11 +25,11 @@ func NewFileRepo(db *sql.DB) *PGFileRepo {
 
 const (
 	CreateFileQuery = `
-		INSERT INTO files (file_uuid, user_id, file_name, mime_type, size_bytes, storage_key)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO files (file_uuid, user_id, session_id, file_name, mime_type, size_bytes, storage_key)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)	RETURNING id, created_at
 	`
 	GetFileQuery = `
-		SELECT file_uuid, user_id, session_id, name, mime_type, size_bytes, storage_key, uploaded_at
+		SELECT file_uuid, user_id, session_id, name, mime_type, size_bytes, storage_key, created_at
 		FROM files
 		WHERE file_uuid = $1
 	`
@@ -47,7 +47,7 @@ func (p *PGFileRepo) CreateFile(file *model.File) error {
 		file.MimeType,
 		file.SizeBytes,
 		file.StorageKey,
-	).Scan(&file.ID, &file.UploadedAt)
+	).Scan(&file.ID, &file.CreatedAt)
 
 	if err != nil {
 		// check duplicate violation
@@ -73,7 +73,7 @@ func (p *PGFileRepo) GetByID(fileID uuid.UUID) (*model.File, error) {
 		&file.MimeType,
 		&file.SizeBytes,
 		&file.StorageKey,
-		&file.UploadedAt,
+		&file.CreatedAt,
 	)
 
 	if err != nil {

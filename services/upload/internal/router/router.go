@@ -8,6 +8,7 @@ import (
 
 func RegisterUploadRoutes(r chi.Router, h *handler.Handler) {
 	r.Route("/", func(r chi.Router) {
+		r.Get("/health", handler.HealthHandler)
 		r.Post("/session", h.CreateUploadSession)
 		r.Post("/chunk", h.UploadChunk)
 		r.Get("/status", h.GetUploadStatus)

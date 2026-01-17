@@ -1,6 +1,10 @@
-Short and clean.
-I’ll give **only what’s needed**.
+upload chunk example format
+{
+    "upload_uuid": "1cb96d71-824e-4e13-bada-38358d55163b",
+    "checksum": "eef6a32ab0c3851e385fb4292092c421641b9e73b1338472f3ec3f87f585220b",
+    "chunk_bytes": "aGVsbG8gZ292YXVsdA=="
 
+}
 ---
 
 ## 1️⃣ Valid HTTP endpoints (final MVP)

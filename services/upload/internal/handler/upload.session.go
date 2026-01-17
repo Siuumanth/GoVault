@@ -15,8 +15,9 @@ func (h *Handler) CreateUploadSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req CreateUploadSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
+
+	if err := decodeJSON(r, req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 

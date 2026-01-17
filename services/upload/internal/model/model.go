@@ -37,5 +37,5 @@ type File struct {
 	MimeType   string
 	SizeBytes  int64
 	StorageKey string
-	UploadedAt time.Time
+	CreatedAt  time.Time
 }

@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO: Remove folder after complete
+
 /*
 1. Resolve session
 2. Validate status
@@ -43,13 +45,18 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 	// 3456
 	err = s.handleChunk(session, input)
 	if err != nil {
-		return s.fail(session.ID, err)
+		if errors.Is(err, shared.ErrChunkAlreadyExists) {
+			return err
+		} else {
+			return err
+		}
 	}
-
+	//fmt.Println("chunk storeds")
 	// 7. Count total chunks in chunks
 	if complete, _ := s.isUploadComplete(session); !complete {
 		return nil
 	}
+	//	fmt.Println("finalising upload")
 	// finalise upload by assemmblung, cloud
 	err = s.finalizeUpload(ctx, session)
 	if err != nil {
@@ -57,6 +64,27 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 	}
 	return nil
 
+}
+
+func (s *UploadService) handleChunk(session *model.UploadSession, input *UploadChunkInput) error {
+	if err := verifyChecksum(input.ChunkBytes, input.CheckSum); err != nil {
+		return err
+	}
+
+	if err := storeChunk(input.ChunkID, input.ChunkBytes, session.ID); err != nil {
+		return err
+	}
+
+	err := s.registry.Chunks.CreateChunk(&model.UploadChunk{
+		SessionID:  session.ID,
+		ChunkIndex: input.ChunkID,
+		SizeBytes:  int64(len(input.ChunkBytes)),
+		CheckSum:   input.CheckSum,
+	})
+	if errors.Is(err, shared.ErrChunkAlreadyExists) {
+		return err
+	}
+	return err
 }
 
 func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, error) {
@@ -74,6 +102,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	if err != nil {
 		return s.fail(session.ID, err)
 	}
+	//	fmt.Println("Assenbled", finalPath)
 
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "uploading")
 	if err != nil {
@@ -138,41 +167,27 @@ func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, er
 	return session, nil
 }
 
-func (s *UploadService) handleChunk(session *model.UploadSession, input *UploadChunkInput) error {
-	if err := verifyChecksum(input.ChunkBytes, input.CheckSum); err != nil {
-		return err
-	}
-
-	if err := storeChunk(input.ChunkID, input.ChunkBytes, session.ID); err != nil {
-		return err
-	}
-
-	err := s.registry.Chunks.CreateChunk(&model.UploadChunk{
-		SessionID:  session.ID,
-		ChunkIndex: input.ChunkID,
-		SizeBytes:  int64(len(input.ChunkBytes)),
-		CheckSum:   input.CheckSum,
-	})
-	if errors.Is(err, shared.ErrChunkAlreadyExists) {
-		return nil
-	}
-	return err
-}
-
 func (s *UploadService) fail(sessionID int, err error) error {
 	_ = s.registry.Sessions.UpdateSessionStatus(sessionID, "failed")
 	return err
 }
 
 func storeChunk(chunkID int, chunk []byte, sessionID int) error {
-	savePath := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d/%d.part", sessionID, chunkID))
+	dirPath := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
 
-	fmt.Printf("Writing chunk %d to %s\n", chunkID, savePath)
-
-	err := os.WriteFile(savePath, chunk, 0644)
+	err := os.MkdirAll(dirPath, 0755)
 	if err != nil {
 		return err
 	}
+
+	savePath := filepath.Join(dirPath, fmt.Sprintf("%d.part", chunkID))
+
+	err = os.WriteFile(savePath, chunk, 0644)
+	if err != nil {
+		return err
+	}
+
+	//fmt.Printf("chunk %d saved to %s\n", chunkID, savePath)
 	return nil
 }
 

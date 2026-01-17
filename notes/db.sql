@@ -1,3 +1,19 @@
+-- Database: govault
+
+-- DROP DATABASE IF EXISTS govault;
+
+CREATE DATABASE govault
+    WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'English_India.1252'
+    LC_CTYPE = 'English_India.1252'
+    LOCALE_PROVIDER = 'libc'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1
+    IS_TEMPLATE = False;
+
+
 -- USERS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
@@ -82,3 +98,4 @@ CREATE TABLE files (
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
