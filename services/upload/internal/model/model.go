@@ -23,7 +23,7 @@ type UploadChunk struct {
 	ID         int
 	SessionID  int
 	ChunkIndex int
-	SizeBytes  int
+	SizeBytes  int64
 	CheckSum   string
 	UploadedAt time.Time
 }
@@ -35,7 +35,7 @@ type File struct {
 	SessionID  int
 	Name       string
 	MimeType   string
-	SizeBytes  int
+	SizeBytes  int64
 	StorageKey string
 	UploadedAt time.Time
 }

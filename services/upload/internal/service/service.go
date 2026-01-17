@@ -3,16 +3,21 @@ package service
 import (
 	"upload/internal/model"
 	"upload/internal/repository"
+	"upload/internal/storage"
 
 	"github.com/google/uuid"
 )
 
 type UploadService struct {
 	registry repository.RepoRegistry
+	storage  storage.FileStorage
 }
 
-func NewService(registry repository.RepoRegistry) *UploadService {
-	return &UploadService{registry: registry}
+func NewService(registry repository.RepoRegistry, storage storage.FileStorage) *UploadService {
+	return &UploadService{
+		registry: registry,
+		storage:  storage,
+	}
 }
 
 type ServiceMethods interface {

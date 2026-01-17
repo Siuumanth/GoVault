@@ -7,7 +7,7 @@ import (
 )
 
 type FileRepository interface {
-	Create(file *model.File) error
+	CreateFile(file *model.File) error
 	GetByID(fileID uuid.UUID) (*model.File, error)
 }
 

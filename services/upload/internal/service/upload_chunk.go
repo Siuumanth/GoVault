@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -9,6 +10,9 @@ import (
 	"path/filepath"
 	"upload/internal/model"
 	"upload/shared"
+
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/google/uuid"
 )
 
 /*
@@ -19,86 +23,145 @@ import (
 5. INSERT chunk row (handle duplicate)
 6. COUNT chunks
 7. If complete:
-     - update status → assembling
-     - assemble
-     - upload to S3
-     - create file row
-     - update status → completed
-8. return nil
+  - update status → assembling
+  - assemble
+  - upload to S3
+  - create file row
+  - update status → completed
 
+8. return nil
 */
 
-func (s *UploadService) UploadChunk(input *UploadChunkInput) error {
-	// 1.
-	session, err := s.registry.Sessions.GetSessionByUUID(input.UploadUUID)
-
+// main func
+func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput) error {
+	// 1,2
+	session, err := s.mustAcceptChunks(input.UploadUUID)
 	if err != nil {
 		return err
 	}
 
-	// 2.
-	if session.Status != "uploading" {
-		return fmt.Errorf("upload not in progress")
-	}
-
-	//4,5 compute checksum and check
-	err = verifyChecksum(input.ChunkBytes, input.CheckSum)
+	// 3456
+	err = s.handleChunk(session, input)
 	if err != nil {
-		return err
-	}
-
-	// 3.
-	err = storeChunk(input.ChunkID, input.ChunkBytes, session.ID)
-	if err != nil {
-		return err
-	}
-
-	// 6. Create chunk
-	err = s.registry.Chunks.CreateChunk(&model.UploadChunk{
-		SessionID:  session.ID,
-		ChunkIndex: input.ChunkID,
-		SizeBytes:  len(input.ChunkBytes),
-		CheckSum:   input.CheckSum,
-	})
-	if err != nil {
-		if errors.Is(err, shared.ErrChunkAlreadyExists) {
-			return nil // idempotent success
-		}
-		return err
+		return s.fail(session.ID, err)
 	}
 
 	// 7. Count total chunks in chunks
-	noChunksUploaded, err := s.registry.Chunks.GetSessionChunksCount(session.ID)
-	if err != nil {
-		return err
-	}
-
-	// 8 Count chunks
-	if noChunksUploaded < session.TotalChunks {
+	if complete, _ := s.isUploadComplete(session); !complete {
 		return nil
 	}
-	// Assemble and file upload left
-	// Assemble file logic
-	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "assembling")
+	// finalise upload by assemmblung, cloud
+	err = s.finalizeUpload(ctx, session)
 	if err != nil {
-		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
 		return err
 	}
-	s.assembleChunks(session.ID, session.TotalChunks)
+	return nil
 
-	// Upload to S3
+}
+
+func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, error) {
+	count, err := s.registry.Chunks.GetSessionChunksCount(session.ID)
+	if err != nil {
+		return false, err
+	}
+	return count == session.TotalChunks, nil
+}
+
+func (s *UploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
+	s.registry.Sessions.UpdateSessionStatus(session.ID, "assembling")
+
+	finalPath, err := s.assembleChunks(session.ID, session.TotalChunks)
+	if err != nil {
+		return s.fail(session.ID, err)
+	}
+
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "uploading")
 	if err != nil {
-		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
-		return err
+		return s.fail(session.ID, err)
 	}
-	// TODO: Upload to S3 logic
+	// get mimeType of final file
+	fileUUID := uuid.New()
+	mimeType, err := DetectMimeFromFile(
+		finalPath,
+	)
+	if err != nil {
+		return s.fail(session.ID, err)
+	}
+	// Create File
+	file := model.File{
+		FileUUID:  fileUUID,
+		SessionID: session.ID,
+		UserID:    session.UserID,
+		Name:      session.FileName,
+		SizeBytes: session.FileSize,
+		MimeType:  mimeType,
+		StorageKey: fmt.Sprintf(
+			"%s%s/%s",
+			shared.S3UsersPrefix,
+			session.UserID,
+			fileUUID,
+		),
+	}
+
+	// upload to Cloud
+	err = s.storage.UploadFile(
+		ctx,
+		file.StorageKey,
+		finalPath,
+	)
+	if err != nil {
+		return s.fail(session.ID, err)
+	}
+
+	// Create file row
+	err = s.registry.Files.CreateFile(&file)
+	if err != nil {
+		return s.fail(session.ID, err)
+	}
 
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
 	if err != nil {
 		return err
 	}
 	return nil
+
+}
+
+func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, error) {
+	session, err := s.registry.Sessions.GetSessionByUUID(id)
+	if err != nil {
+		return nil, err
+	}
+	if session.Status != "pending" {
+		return nil, fmt.Errorf("session not accepting chunks")
+	}
+	return session, nil
+}
+
+func (s *UploadService) handleChunk(session *model.UploadSession, input *UploadChunkInput) error {
+	if err := verifyChecksum(input.ChunkBytes, input.CheckSum); err != nil {
+		return err
+	}
+
+	if err := storeChunk(input.ChunkID, input.ChunkBytes, session.ID); err != nil {
+		return err
+	}
+
+	err := s.registry.Chunks.CreateChunk(&model.UploadChunk{
+		SessionID:  session.ID,
+		ChunkIndex: input.ChunkID,
+		SizeBytes:  int64(len(input.ChunkBytes)),
+		CheckSum:   input.CheckSum,
+	})
+	if errors.Is(err, shared.ErrChunkAlreadyExists) {
+		return nil
+	}
+	return err
+}
+
+func (s *UploadService) fail(sessionID int, err error) error {
+	_ = s.registry.Sessions.UpdateSessionStatus(sessionID, "failed")
+	return err
 }
 
 func storeChunk(chunkID int, chunk []byte, sessionID int) error {
@@ -124,4 +187,19 @@ func verifyChecksum(data []byte, expected string) error {
 		return fmt.Errorf("checksum mismatch")
 	}
 	return nil
+}
+
+func DetectMimeFromFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	mime, err := mimetype.DetectReader(f)
+	if err != nil {
+		return "", err
+	}
+
+	return mime.String(), nil
 }
