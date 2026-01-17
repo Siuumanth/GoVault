@@ -13,46 +13,46 @@ CREATE TABLE users (
 -- ENUM TYPES
 -- ===============================
 
-CREATE TYPE upload_status AS ENUM ('pending', 'completed', 'failed');
-
+CREATE TYPE upload_status AS ENUM (
+    'pending', 
+    'assembling', 
+    'uploading', 
+    'completed', 
+    'failed'
+);
 -- ===============================
 -- upload_sessions
 -- ===============================
--- TODO: remove uploaded chunks and updated at 
--- TODO: see if u shud add uploading status enum
 -- pending        // session created, no chunks yet
--- uploading      // chunks coming in
 -- assembling     // all chunks received, merging
--- uploading_s3   // pushing to S3
+-- uploading      // file being sent to s3
 -- completed      // file safely stored
 -- failed         // unrecoverable error
 
+-- ===============================
+-- 2. upload_sessions
+-- ===============================
 CREATE TABLE upload_sessions (
     id BIGSERIAL PRIMARY KEY,
-
     upload_uuid UUID NOT NULL UNIQUE,
-    user_id UUID NOT NULL References users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
 
     file_name TEXT NOT NULL,
     file_size_bytes BIGINT NOT NULL,
     total_chunks INT NOT NULL,
-  --  uploaded_chunks INT NOT NULL DEFAULT 0,
 
     status upload_status NOT NULL DEFAULT 'pending',
-
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  -- updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- ===============================
--- upload_chunks
--- ===============================
 
+-- ===============================
+-- 3. upload_chunks
+-- ===============================
 CREATE TABLE upload_chunks (
     id BIGSERIAL PRIMARY KEY,
-
-    session_id BIGINT NOT NULL
-        REFERENCES upload_sessions(id)
+    session_id BIGINT NOT NULL 
+        REFERENCES upload_sessions(id) 
         ON DELETE CASCADE,
 
     chunk_index INT NOT NULL,
@@ -65,14 +65,13 @@ CREATE TABLE upload_chunks (
 );
 
 -- ===============================
--- files
+-- 4. files
 -- ===============================
-
 CREATE TABLE files (
     id BIGSERIAL PRIMARY KEY,
-
     file_uuid UUID NOT NULL UNIQUE,
-    user_id UUID NOT NULL References users(id),
+    session_id BIGINT REFERENCES upload_sessions(id) ON DELETE SET NULL,
+    user_id UUID NOT NULL REFERENCES users(id),
 
     file_name TEXT NOT NULL,
     mime_type TEXT,
