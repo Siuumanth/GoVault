@@ -35,7 +35,7 @@ const (
 	`
 )
 
-func (p *PGFileRepo) Create(file *model.File) error {
+func (p *PGFileRepo) CreateFile(file *model.File) error {
 	// we have CreateUserQuery
 	// fill all values of the file model to return
 	err := p.db.QueryRow(

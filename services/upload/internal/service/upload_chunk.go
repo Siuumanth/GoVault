@@ -60,7 +60,7 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 }
 
 func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, error) {
-	count, err := s.registry.Chunks.GetSessionChunksCount(session.ID)
+	count, err := s.registry.Chunks.CountBySession(session.ID)
 	if err != nil {
 		return false, err
 	}

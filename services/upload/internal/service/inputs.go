@@ -9,6 +9,7 @@ type UploadSessionInput struct {
 }
 
 type UploadChunkInput struct {
+	UserID     uuid.UUID
 	UploadUUID uuid.UUID
 	ChunkID    int
 	ChunkBytes []byte

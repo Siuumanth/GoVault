@@ -1,6 +1,13 @@
-package dto
+package handler
 
 import "github.com/google/uuid"
+
+type UploadChunkRequest struct {
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+	ChunkID    int       `json:"chunk_id"`
+	CheckSum   string    `json:"checksum"`
+	ChunkBytes []byte    `json:"chunk_bytes"`
+}
 
 // stores dto to communicate from handler to service layer
 type CreateUploadSessionRequest struct {
@@ -13,4 +20,11 @@ type CreateUploadSessionRequest struct {
 type CreateUploadSessionResponse struct {
 	UploadUUID  uuid.UUID `json:"upload_uuid"`
 	TotalChunks int       `json:"total_chunks"`
+}
+
+type UploadStatusResponse struct {
+	UploadUUID    string `json:"upload_uuid"`
+	Status        string `json:"status"`
+	TotalChunks   int    `json:"total_chunks"`
+	UploadedCount int    `json:"uploaded_count"`
 }

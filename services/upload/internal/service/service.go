@@ -9,11 +9,11 @@ import (
 )
 
 type UploadService struct {
-	registry repository.RepoRegistry
+	registry *repository.RepoRegistry
 	storage  storage.FileStorage
 }
 
-func NewService(registry repository.RepoRegistry, storage storage.FileStorage) *UploadService {
+func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage) *UploadService {
 	return &UploadService{
 		registry: registry,
 		storage:  storage,

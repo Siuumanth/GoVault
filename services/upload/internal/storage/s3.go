@@ -14,7 +14,7 @@ type S3Storage struct {
 	Bucket string
 }
 
-func NewS3Storage(client *s3.Client, bucket string) FileStorage {
+func NewS3Storage(client *s3.Client, bucket string) *S3Storage {
 	return &S3Storage{
 		Client: client,
 		Bucket: bucket,

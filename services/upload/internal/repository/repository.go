@@ -14,7 +14,7 @@ type FileRepository interface {
 // interface which stores methods for uploading chunks
 type UploadChunkRepository interface {
 	CreateChunk(chunk *model.UploadChunk) error
-	GetSessionChunksCount(session_id int) (int, error)
+	CountBySession(session_id int) (int, error)
 }
 
 type UploadSessionRepository interface {
