@@ -6,36 +6,36 @@ import (
 	"github.com/google/uuid"
 )
 
-// these are models returned by the repository and the actual schema
-
-type UploadSession struct {
-	ID          int       // internal BIGSERIAL
-	UploadUUID  uuid.UUID // public ID
-	UserID      uuid.UUID
-	FileName    string
-	FileSize    int64
-	TotalChunks int
-	Status      string
-	CreatedAt   time.Time
-}
-
-type UploadChunk struct {
-	ID         int
-	SessionID  int
-	ChunkIndex int
-	SizeBytes  int64
-	CheckSum   string
-	UploadedAt time.Time
+type FileShare struct {
+	ID               int64
+	FileID           int64
+	SharedWithUserID uuid.UUID
+	Permission       string
+	CreatedAt        time.Time
 }
 
 type File struct {
-	ID         int
+	ID         int64
 	FileUUID   uuid.UUID
+	SessionID  *int64
 	UserID     uuid.UUID
-	SessionID  int
-	Name       string
-	MimeType   string
+	FileName   string
+	MimeType   *string
 	SizeBytes  int64
 	StorageKey string
+	Checksum   *string
 	CreatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+type FileShortcut struct {
+	ID        int64
+	FileID    int64
+	UserID    uuid.UUID
+	CreatedAt time.Time
+}
+
+type PublicFile struct {
+	FileID    int64
+	CreatedAt time.Time
 }

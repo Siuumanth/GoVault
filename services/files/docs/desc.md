@@ -12,6 +12,7 @@ Registry or routes:
 MetaData(name)
 Files
 Sharing
+shortcuts
 
 Metadata:
 - Update name 
