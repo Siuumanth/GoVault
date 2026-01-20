@@ -97,5 +97,59 @@ CREATE TABLE files (
     checksum TEXT,
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    -- Done:: add deleted_at field 
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
+ALTER TABLE files
+ADD COLUMN deleted_at TIMESTAMP NULL;
+
+-- ===============================
+-- 5. file_shares
+-- ===============================
+
+CREATE TABLE file_shares (
+    id BIGSERIAL PRIMARY KEY,
+    file_id BIGINT NOT NULL
+        REFERENCES files(id)
+        ON DELETE CASCADE,
+
+    shared_with_user_id UUID NOT NULL
+        REFERENCES users(id),
+
+    permission TEXT NOT NULL CHECK (permission IN ('viewer', 'editor')),
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    UNIQUE (file_id, shared_with_user_id)
+);
+
+-- ===============================
+-- 6. file_shortcuts
+-- ===============================
+
+CREATE TABLE file_shortcuts (
+    id BIGSERIAL PRIMARY KEY,
+    file_id BIGINT NOT NULL
+        REFERENCES files(id)
+        ON DELETE CASCADE,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id),
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    UNIQUE (file_id, user_id)
+);
+
+-- ===============================
+-- 7. public_files
+-- ===============================
+
+CREATE TABLE public_files (
+    file_id BIGINT PRIMARY KEY
+        REFERENCES files(id)
+        ON DELETE CASCADE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

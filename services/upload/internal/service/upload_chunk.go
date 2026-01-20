@@ -16,6 +16,7 @@ import (
 )
 
 // TODO: Remove folder after complete
+// TODO: update uploads by multipart or raw bytes or fail
 
 /*
 1. Resolve session
