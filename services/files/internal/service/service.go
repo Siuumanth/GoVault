@@ -13,19 +13,16 @@ type MetadataService interface {
 
 type FilesService interface {
 	GetSingleFile(fileID uuid.UUID, actorUserID uuid.UUID) (*model.File, error)
-
 	ListOwnedFiles(
 		userID uuid.UUID,
 		limit int,
 		offset int,
 	) ([]*model.File, error)
-
 	ListSharedFiles(
 		userID uuid.UUID,
 		limit int,
 		offset int,
 	) ([]*model.File, error)
-
 	MakeFileCopy(
 		fileID uuid.UUID,
 		actorUserID uuid.UUID,
@@ -53,7 +50,6 @@ type ShortcutsService interface {
 		fileID uuid.UUID,
 		actorUserID uuid.UUID,
 	) (*model.FileShortcut, error)
-
 	DeleteShortcut(
 		shortcutID uuid.UUID,
 		actorUserID uuid.UUID,
