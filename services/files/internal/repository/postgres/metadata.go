@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"files/internal/service/files"
 
@@ -21,30 +22,31 @@ type MetaDataRepository struct {
 const (
 	GetFileMetadataQuery = `
 		SELECT
-			id,
+			file_uuid,
 			user_id,
 			name,
 			mime_type,
 			size,
 			created_at
 		FROM files
-		WHERE id = $1
+		WHERE file_uuid = $1
 		AND deleted_at IS NULL
 
 	`
 )
 
 func (r *MetaDataRepository) GetFileMetadata(
-	fileID uuid.UUID,
+	ctx context.Context, fileUUID uuid.UUID,
 ) (*files.FileSummary, error) {
 
 	var fs files.FileSummary
 
-	err := r.db.QueryRow(
+	err := r.db.QueryRowContext(
+		ctx,
 		GetFileMetadataQuery,
-		fileID,
+		fileUUID,
 	).Scan(
-		&fs.ID,
+		&fs.FileUUID,
 		&fs.UserID,
 		&fs.Name,
 		&fs.MimeType,
@@ -70,13 +72,15 @@ const UpdateFileNameQuery = `
 	`
 
 func (r *MetaDataRepository) UpdateFileName(
-	fileID uuid.UUID,
+	ctx context.Context,
+	fileUUID uuid.UUID,
 	newName string,
 ) (bool, error) {
 
-	result, err := r.db.Exec(
+	result, err := r.db.ExecContext(
+		ctx,
 		UpdateFileNameQuery,
-		fileID,
+		fileUUID,
 		newName,
 	)
 	if err != nil {

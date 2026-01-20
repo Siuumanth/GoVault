@@ -8,7 +8,7 @@ import (
 
 // internal/service/files_views.go
 type FileSummary struct {
-	ID        uuid.UUID
+	FileUUID  uuid.UUID
 	UserID    uuid.UUID
 	Name      string
 	MimeType  string
@@ -17,11 +17,12 @@ type FileSummary struct {
 }
 
 type CreateFileParams struct {
-	ID         uuid.UUID
+	SessionID  int
+	FileUUID   uuid.UUID
 	UserID     uuid.UUID
 	Name       string
 	MimeType   string
-	Size       int64
+	SizeBytes  int64
 	Checksum   string
 	StorageKey string
 }

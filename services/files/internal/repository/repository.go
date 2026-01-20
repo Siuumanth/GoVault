@@ -79,7 +79,7 @@ type MetaDataRepository interface {
 
 type FilesRepository interface {
 	GetSingleFile(fileID uuid.UUID) (*files.FileSummary, error)
-	ListOwnedFiles(userID uuid.UUID) ([]*files.FileSummary, error)
-	ListSharedFiles(userID uuid.UUID) ([]*files.FileSummary, error)
+	ListOwnedFiles(userID uuid.UUID, limit int, offset int) ([]*files.FileSummary, error)
+	ListSharedFiles(userID uuid.UUID, limit int, offset int) ([]*files.FileSummary, error)
 	CreateFile(file *files.CreateFileParams) (*model.File, error)
 }
