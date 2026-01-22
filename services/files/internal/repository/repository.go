@@ -30,7 +30,7 @@ type FileRepository interface {
 
 type ShareRepository interface {
 	CreateFileShare(ctx context.Context, p *share.FileShareParams) (*model.FileShare, error)
-	DeleteFileShare(ctx context.Context, fileID uuid.UUID, recipientUserID uuid.UUID) error
+	DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
 	UpdateFileShare(ctx context.Context, p *share.FileShareParams) error
 	FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
 	CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error

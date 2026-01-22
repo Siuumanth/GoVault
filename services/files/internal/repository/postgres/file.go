@@ -80,7 +80,7 @@ func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, 
 	}
 
 	for rows.Next() {
-		var f files.FileSummary
+		f := new(files.FileSummary)
 		if err := rows.Scan(
 			&f.FileUUID,
 			&f.UserID,
@@ -91,7 +91,7 @@ func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, 
 		); err != nil {
 			return nil, err
 		}
-		fs = append(fs, &f)
+		fs = append(fs, f)
 	}
 	return fs, nil
 }
@@ -115,7 +115,7 @@ func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID,
 	}
 
 	for rows.Next() {
-		var f files.FileSummary
+		f := new(files.FileSummary)
 		if err := rows.Scan(
 			&f.FileUUID,
 			&f.UserID,
@@ -126,7 +126,7 @@ func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID,
 		); err != nil {
 			return nil, err
 		}
-		fs = append(fs, &f)
+		fs = append(fs, f)
 	}
 	return fs, nil
 }
