@@ -36,6 +36,7 @@ type File struct {
 	Name       string
 	MimeType   string
 	SizeBytes  int64
+	CheckSum   *string
 	StorageKey string
 	CreatedAt  time.Time
 }

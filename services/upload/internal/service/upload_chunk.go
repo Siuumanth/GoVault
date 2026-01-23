@@ -118,6 +118,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		return s.fail(session.ID, err)
 	}
 	// Create File
+	// TODO: add checksum hile svaing file
 	file := model.File{
 		FileUUID:  fileUUID,
 		SessionID: session.ID,

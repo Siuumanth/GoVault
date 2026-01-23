@@ -86,6 +86,7 @@ CREATE TABLE upload_chunks (
 CREATE TABLE files (
     id BIGSERIAL PRIMARY KEY,
     file_uuid UUID NOT NULL UNIQUE,
+    -- TODO: set null default
     session_id BIGINT REFERENCES upload_sessions(id) ON DELETE SET NULL,
     user_id UUID NOT NULL REFERENCES users(id),
 
