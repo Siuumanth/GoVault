@@ -17,12 +17,12 @@ type FileSummary struct {
 }
 
 type CreateFileParams struct {
-	SessionID  int
+	SessionID  *int64
 	FileUUID   uuid.UUID
 	UserID     uuid.UUID
 	Name       string
 	MimeType   string
 	SizeBytes  int64
-	Checksum   string
+	Checksum   *string
 	StorageKey string
 }

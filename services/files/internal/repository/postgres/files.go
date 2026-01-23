@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	model "files/internal/model"
+	"files/internal/shared"
 
 	"github.com/google/uuid"
 )
@@ -36,7 +38,7 @@ FROM files
 WHERE file_uuid = $1
 AND deleted_at IS NULL`
 
-func (r *FilesRepository) GetSingleFile(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
+func (r *FilesRepository) GetFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
 	var fs model.FileSummary
 
 	err := r.db.QueryRowContext(
@@ -143,14 +145,13 @@ INSERT INTO files
 	checksum
 )
 VALUES ($1,$2, $3, $4, $5, $6, $7, $8)
-RETURNING created_at, deleted_at
+RETURNING id, file_uuid, session_id, user_id, file_name,
+          mime_type, size_bytes, storage_key, checksum,
+          created_at, deleted_at
+
 `
 
-func (r *FilesRepository) CreateFile(
-	ctx context.Context,
-	p *model.CreateFileParams,
-) (*model.File, error) {
-
+func (r *FilesRepository) CreateFile(ctx context.Context, p *model.CreateFileParams) (*model.File, error) {
 	var file model.File
 
 	err := r.db.QueryRowContext(
@@ -179,4 +180,58 @@ func (r *FilesRepository) CreateFile(
 	)
 
 	return &file, err
+}
+
+const DeleteFileQuery = `
+UPDATE files
+SET deleted_at = now()
+WHERE file_uuid = $1
+`
+
+func (r *FilesRepository) SoftDeleteFile(ctx context.Context, fileID uuid.UUID) error {
+	_, err := r.db.ExecContext(
+		ctx,
+		DeleteFileQuery,
+		fileID,
+	)
+
+	return err
+}
+
+const GetFullFileByIDQuery = `
+SELECT id, session_id,file_uuid, user_id, file_name, mime_type, size_bytes, storage_key, checksum, created_at, deleted_at
+FROM files
+WHERE file_uuid = $1
+AND deleted_at IS NULL
+`
+
+func (r *FilesRepository) GetFullFileByID(ctx context.Context, fileID uuid.UUID) (*model.File, error) {
+	var file model.File
+
+	err := r.db.QueryRowContext(
+		ctx,
+		GetFullFileByIDQuery,
+		fileID,
+	).Scan(
+		&file.ID,
+		&file.SessionID,
+		&file.FileUUID,
+		&file.UserID,
+		&file.FileName,
+		&file.MimeType,
+		&file.SizeBytes,
+		&file.StorageKey,
+		&file.CreatedAt,
+		&file.DeletedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, shared.ErrRowNotFound) {
+			return nil, shared.ErrRowNotFound
+		} else {
+			return nil, err
+		}
+	}
+
+	return &file, nil
 }

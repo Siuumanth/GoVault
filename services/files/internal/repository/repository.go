@@ -8,20 +8,27 @@ import (
 )
 
 type FileRepository interface {
+	FetchFullFileByID(ctx context.Context, fileID uuid.UUID) (*model.File, error)
+	FetchFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error)
 	UpdateFileName(ctx context.Context, fileID uuid.UUID, newName string) (bool, error)
-	GetSingleFileData(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error)
 	FetchOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
 	FetchSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
 	CreateFile(ctx context.Context, file *model.CreateFileParams) (*model.File, error)
+	SoftDeleteFile(ctx context.Context, fileID uuid.UUID) error
 }
 
 type ShareRepository interface {
 	CreateFileShare(ctx context.Context, p *model.FileShareParams) (*model.FileShare, error)
+	FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.FileShare, error)
 	DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
 	UpdateFileShare(ctx context.Context, p *model.FileShareParams) error
-	FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
+	FetchAllFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
+	IsFileSharedWithUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
+
+	// Public Access Methods
 	CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error
 	DeletePublicAccess(ctx context.Context, fileID uuid.UUID) error
+	IsFilePublic(ctx context.Context, fileID uuid.UUID) (bool, error)
 }
 
 type ShortcutsRepository interface {

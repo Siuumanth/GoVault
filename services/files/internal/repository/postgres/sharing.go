@@ -14,6 +14,7 @@ import (
 /*
 type ShareRepository interface {
 	CreateFileShare(ctx context.Context, p *share.FileShareParams) (*model.FileShare, error)
+	FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
 	DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
 	UpdateFileShare(ctx context.Context, p *share.FileShareParams) error
 	FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
@@ -24,6 +25,37 @@ type ShareRepository interface {
 
 type FileShareRepository struct {
 	db *sql.DB
+}
+
+const FetchUserFileShareQuery = `
+SELECT id, file_id, shared_with_user_id, permission, created_at
+FROM file_shares
+WHERE file_id = $1 AND shared_with_user_id = $2`
+
+func (r *FileShareRepository) FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.FileShare, error) {
+
+	var share model.FileShare
+
+	err := r.db.QueryRowContext(
+		ctx,
+		FetchUserFileShareQuery,
+		fileID,
+		userID,
+	).Scan(
+		&share.ID,
+		&share.FileID,
+		&share.SharedWithUserID,
+		&share.Permission,
+		&share.CreatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, shared.ErrRowNotFound
+		}
+		return nil, err
+	}
+	return &share, nil
 }
 
 const CreateFileShareQuery = `
@@ -73,7 +105,7 @@ SELECT file_id, shared_with_user_id, permission from file_shares
 WHERE file_id = $1
 `
 
-func (r *FileShareRepository) FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error) {
+func (r *FileShareRepository) FetchAllFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error) {
 	var res []*model.FileShare
 	rows, err := r.db.QueryContext(
 		ctx,
@@ -108,10 +140,7 @@ WHERE
 	shared_with_user_id = $3
 `
 
-func (r *FileShareRepository) UpdateFileShare(
-	ctx context.Context,
-	p *model.FileShareParams,
-) error {
+func (r *FileShareRepository) UpdateFileShare(ctx context.Context, p *model.FileShareParams) error {
 	_, err := r.db.ExecContext(
 		ctx,
 		UpdateFileShareQuery,
@@ -122,15 +151,50 @@ func (r *FileShareRepository) UpdateFileShare(
 	return err
 }
 
+const IsFileSharedWithUserQuery = `
+SELECT EXISTS (
+	SELECT 1
+	FROM file_shares
+	WHERE file_id = $1 AND shared_with_user_id = $2
+)
+`
+
+func (r *FileShareRepository) IsFileSharedWithUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
+	var res bool
+	err := r.db.QueryRowContext(
+		ctx,
+		IsFileSharedWithUserQuery,
+		fileID,
+		userID,
+	).Scan(&res)
+	return res, err
+}
+
+// PUBLIC ACCESS METHODS
+const FetchPublicAccessQuery = `
+SELECT EXISTS (
+    SELECT 1
+    FROM public_files
+    WHERE file_id = $1
+)
+`
+
+func (r *FileShareRepository) IsFilePublic(ctx context.Context, fileID uuid.UUID) (bool, error) {
+	var res bool
+	err := r.db.QueryRowContext(
+		ctx,
+		FetchPublicAccessQuery,
+		fileID,
+	).Scan(&res)
+	return res, err
+}
+
 const CreatePublicAccessQuery = `
 INSERT INTO file_shortcuts(file_id) 
 VALUES($1)
 `
 
-func (r *FileShareRepository) CreatePublicAccess(
-	ctx context.Context,
-	fileID uuid.UUID,
-) error {
+func (r *FileShareRepository) CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error {
 	_, err := r.db.ExecContext(
 		ctx,
 		CreatePublicAccessQuery,
@@ -144,10 +208,7 @@ DELETE from file_shortcuts
 WHERE file_id = $1
 `
 
-func (r *FileShareRepository) DeletePublicAccess(
-	ctx context.Context,
-	fileID uuid.UUID,
-) error {
+func (r *FileShareRepository) DeletePublicAccess(ctx context.Context, fileID uuid.UUID) error {
 	_, err := r.db.ExecContext(
 		ctx,
 		DeletePublicAccessQuery,

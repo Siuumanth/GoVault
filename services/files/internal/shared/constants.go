@@ -1,5 +1,6 @@
 package shared
 
 const (
-	FILES_PAGE_SIZE = 25
+	S3UsersURI    = "s3://govault-files/users/"
+	S3UsersPrefix = "users/"
 )

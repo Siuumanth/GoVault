@@ -20,7 +20,7 @@ type File struct {
 	SessionID  *int64
 	UserID     uuid.UUID
 	FileName   string
-	MimeType   *string
+	MimeType   string
 	SizeBytes  int64
 	StorageKey string
 	Checksum   *string

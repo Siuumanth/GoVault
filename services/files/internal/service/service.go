@@ -15,12 +15,20 @@ type ServiceRegistry struct {
 
 type FilesService interface {
 	UpdateFileName(ctx context.Context, in *UpdateFileNameInput) error
-	GetSingleFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error)
+	GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error)
 
 	ListOwnedFiles(ctx context.Context, in *ListOwnedFilesInput) ([]*model.FileSummary, error)
 	ListSharedFiles(ctx context.Context, in *ListSharedFilesInput) ([]*model.FileSummary, error)
 
 	MakeFileCopy(ctx context.Context, in *MakeFileCopyInput) (*model.File, error)
+	SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error
+
+	// helper
+	checkFileAccess(
+		ctx context.Context,
+		fileID uuid.UUID,
+		actorUserID uuid.UUID,
+	) (*model.File, error)
 }
 type SharingService interface {
 	AddFileShares(ctx context.Context, in *AddFileSharesInput) error
