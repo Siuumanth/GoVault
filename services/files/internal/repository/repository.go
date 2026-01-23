@@ -10,8 +10,8 @@ import (
 type FileRepository interface {
 	UpdateFileName(ctx context.Context, fileID uuid.UUID, newName string) (bool, error)
 	GetSingleFileData(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error)
-	ListOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
-	ListSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
+	FetchOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
+	FetchSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
 	CreateFile(ctx context.Context, file *model.CreateFileParams) (*model.File, error)
 }
 

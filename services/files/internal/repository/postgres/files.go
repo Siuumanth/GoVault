@@ -70,7 +70,7 @@ LIMIT $2
 OFFSET $3
 `
 
-func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
+func (r *FilesRepository) FetchOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
 	var fs []*model.FileSummary
 
 	rows, err := r.db.QueryContext(ctx, ListOwnedFilesQuery, userID, limit, offset)
@@ -105,7 +105,7 @@ AND files.deleted_at IS NULL
 LIMIT $2
 OFFSET $3`
 
-func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
+func (r *FilesRepository) FetchSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
 	var fs []*model.FileSummary
 
 	rows, err := r.db.QueryContext(ctx, ListSharedFilesQuery, userID, limit, offset)
