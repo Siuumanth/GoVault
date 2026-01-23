@@ -1,4 +1,4 @@
-package files
+package model
 
 import (
 	"time"
@@ -12,7 +12,7 @@ type FileSummary struct {
 	UserID    uuid.UUID
 	Name      string
 	MimeType  string
-	Size      int64
+	SizeBytes int64
 	CreatedAt time.Time
 }
 

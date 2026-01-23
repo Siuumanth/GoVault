@@ -1,4 +1,4 @@
-package share
+package model
 
 import "github.com/google/uuid"
 

@@ -3,18 +3,17 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"files/internal/model"
-	"files/internal/service/files"
+	model "files/internal/model"
 
 	"github.com/google/uuid"
 )
 
 /*
 type FilesRepository interface {
-	GetSingleFile(fileID uuid.UUID) (*files.FileSummary, error)
-	ListOwnedFiles(userID uuid.UUID, limit int, offset int) ([]*files.FileSummary, error)
-	ListSharedFiles(userID uuid.UUID) ([]*files.FileSummary, error)
-	CreateFile(file *files.CreateFileParams) (*model.File, error)
+	GetSingleFile(fileID uuid.UUID) (*model.FileSummary, error)
+	ListOwnedFiles(userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
+	ListSharedFiles(userID uuid.UUID) ([]*model.FileSummary, error)
+	CreateFile(file *model.CreateFileParams) (*model.File, error)
 }
 
 type FileSummary struct {
@@ -37,8 +36,8 @@ FROM files
 WHERE file_uuid = $1
 AND deleted_at IS NULL`
 
-func (r *FilesRepository) GetSingleFile(ctx context.Context, fileID uuid.UUID) (*files.FileSummary, error) {
-	var fs files.FileSummary
+func (r *FilesRepository) GetSingleFile(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
+	var fs model.FileSummary
 
 	err := r.db.QueryRowContext(
 		ctx,
@@ -49,7 +48,7 @@ func (r *FilesRepository) GetSingleFile(ctx context.Context, fileID uuid.UUID) (
 		&fs.UserID,
 		&fs.Name,
 		&fs.MimeType,
-		&fs.Size,
+		&fs.SizeBytes,
 		&fs.CreatedAt,
 	)
 
@@ -71,8 +70,8 @@ LIMIT $2
 OFFSET $3
 `
 
-func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*files.FileSummary, error) {
-	var fs []*files.FileSummary
+func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
+	var fs []*model.FileSummary
 
 	rows, err := r.db.QueryContext(ctx, ListOwnedFilesQuery, userID, limit, offset)
 	if err != nil {
@@ -80,13 +79,13 @@ func (r *FilesRepository) ListOwnedFiles(ctx context.Context, userID uuid.UUID, 
 	}
 
 	for rows.Next() {
-		f := new(files.FileSummary)
+		f := new(model.FileSummary)
 		if err := rows.Scan(
 			&f.FileUUID,
 			&f.UserID,
 			&f.Name,
 			&f.MimeType,
-			&f.Size,
+			&f.SizeBytes,
 			&f.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -106,8 +105,8 @@ AND files.deleted_at IS NULL
 LIMIT $2
 OFFSET $3`
 
-func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*files.FileSummary, error) {
-	var fs []*files.FileSummary
+func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
+	var fs []*model.FileSummary
 
 	rows, err := r.db.QueryContext(ctx, ListSharedFilesQuery, userID, limit, offset)
 	if err != nil {
@@ -115,13 +114,13 @@ func (r *FilesRepository) ListSharedFiles(ctx context.Context, userID uuid.UUID,
 	}
 
 	for rows.Next() {
-		f := new(files.FileSummary)
+		f := new(model.FileSummary)
 		if err := rows.Scan(
 			&f.FileUUID,
 			&f.UserID,
 			&f.Name,
 			&f.MimeType,
-			&f.Size,
+			&f.SizeBytes,
 			&f.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -149,7 +148,7 @@ RETURNING created_at, deleted_at
 
 func (r *FilesRepository) CreateFile(
 	ctx context.Context,
-	p *files.CreateFileParams,
+	p *model.CreateFileParams,
 ) (*model.File, error) {
 
 	var file model.File

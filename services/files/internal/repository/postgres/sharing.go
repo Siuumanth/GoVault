@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"files/internal/model"
-	"files/internal/service/share"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
@@ -31,7 +30,7 @@ const CreateFileShareQuery = `
 INSERT INTO file_shares (file_id, shared_with_user_id, permission) VALUES ($1, $2, $3) RETURNING id, created_at
 `
 
-func (r *FileShareRepository) CreateFileShare(ctx context.Context, p *share.FileShareParams) (*model.FileShare, error) {
+func (r *FileShareRepository) CreateFileShare(ctx context.Context, p *model.FileShareParams) (*model.FileShare, error) {
 	var share model.FileShare
 	err := r.db.QueryRowContext(
 		ctx,
@@ -111,7 +110,7 @@ WHERE
 
 func (r *FileShareRepository) UpdateFileShare(
 	ctx context.Context,
-	p *share.FileShareParams,
+	p *model.FileShareParams,
 ) error {
 	_, err := r.db.ExecContext(
 		ctx,

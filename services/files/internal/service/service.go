@@ -1,57 +1,49 @@
 package service
 
 import (
+	"context"
 	"files/internal/model"
 
 	"github.com/google/uuid"
 )
 
-type MetadataService interface {
-	UpdateFileName(input *UpdateFileNameInput) error
-	GetFileMetadata(fileID uuid.UUID, actorUserID uuid.UUID) (*model.File, error)
+type ServiceRegistry struct {
+	Files     FilesService
+	Sharing   SharingService
+	Shortcuts ShortcutsService
 }
 
 type FilesService interface {
-	GetSingleFile(fileID uuid.UUID, actorUserID uuid.UUID) (*model.File, error)
-	ListOwnedFiles(
-		userID uuid.UUID,
-		limit int,
-		offset int,
-	) ([]*model.File, error)
-	ListSharedFiles(
-		userID uuid.UUID,
-		limit int,
-		offset int,
-	) ([]*model.File, error)
-	MakeFileCopy(
-		fileID uuid.UUID,
-		actorUserID uuid.UUID,
-	) (*model.File, error)
-}
+	UpdateFileName(ctx context.Context, in *UpdateFileNameInput) error
+	GetSingleFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error)
 
+	ListOwnedFiles(ctx context.Context, in *ListOwnedFilesInput) ([]*model.FileSummary, error)
+	ListSharedFiles(ctx context.Context, in *ListSharedFilesInput) ([]*model.FileSummary, error)
+
+	MakeFileCopy(ctx context.Context, in *MakeFileCopyInput) (*model.File, error)
+}
 type SharingService interface {
-	AddFileShares(input *AddFileSharesInput) error
+	AddFileShares(ctx context.Context, in *AddFileSharesInput) error
+	UpdateFileShare(ctx context.Context, in *UpdateFileShareInput) error
 
 	DeleteFileShare(
+		ctx context.Context,
 		fileID uuid.UUID,
+		actorUserID uuid.UUID,
 		recipientUserID uuid.UUID,
 	) error
 
-	UpdateFileShare(input *UpdateFileShareInput) error
+	ListFileShares(
+		ctx context.Context,
+		fileID uuid.UUID,
+		actorUserID uuid.UUID,
+	) ([]*model.FileShare, error)
 
-	ListFileShares(fileID uuid.UUID) ([]*model.FileShare, error)
-
-	AddPublicAccess(fileID uuid.UUID) error
-	RemovePublicAccess(fileID uuid.UUID) error
+	AddPublicAccess(ctx context.Context, in *AddPublicAccessInput) error
+	RemovePublicAccess(ctx context.Context, in *RemovePublicAccessInput) error
 }
 
 type ShortcutsService interface {
-	CreateShortcut(
-		fileID uuid.UUID,
-		actorUserID uuid.UUID,
-	) (*model.FileShortcut, error)
-	DeleteShortcut(
-		shortcutID uuid.UUID,
-		actorUserID uuid.UUID,
-	) error
+	CreateShortcut(ctx context.Context, in *CreateShortcutInput) (*model.FileShortcut, error)
+	DeleteShortcut(ctx context.Context, in *DeleteShortcutInput) error
 }

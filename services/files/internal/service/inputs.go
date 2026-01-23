@@ -2,14 +2,13 @@ package service
 
 import "github.com/google/uuid"
 
-// ---------- Metadata ----------
+// ---------- Files ----------
 type UpdateFileNameInput struct {
 	FileID      uuid.UUID
 	ActorUserID uuid.UUID
 	NewName     string
 }
 
-// ---------- Files ----------
 type MakeFileCopyInput struct {
 	FileID      uuid.UUID
 	ActorUserID uuid.UUID
@@ -36,7 +35,7 @@ type AddFileSharesInput struct {
 
 type ShareRecipientInput struct {
 	RecipientUserID uuid.UUID
-	Permission      string // e.g. "read", "write"
+	Permission      string
 }
 
 type UpdateFileShareInput struct {

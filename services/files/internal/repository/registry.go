@@ -1,27 +1,28 @@
 package repository
 
-// type RepoRegistry struct {
-// 	Sessions UploadSessionRepository
-// 	Chunks   UploadChunkRepository
-// 	Files    FileRepository
-// }
+type RepoRegistry struct {
+	File      FileRepository
+	Sharing   ShareRepository
+	Shortcuts ShortcutsRepository
+}
 
-// func NewRegistry(
-// 	sessions UploadSessionRepository,
-// 	chunks UploadChunkRepository,
-// 	files FileRepository,
-// ) *RepoRegistry {
-// 	return &RepoRegistry{
-// 		Sessions: sessions,
-// 		Chunks:   chunks,
-// 		Files:    files,
-// 	}
-// }
+func NewRegistry(
+	files FileRepository,
+	sharing ShareRepository,
+	shortcuts ShortcutsRepository,
+) *RepoRegistry {
+	return &RepoRegistry{
+		File:      files,
+		Sharing:   sharing,
+		Shortcuts: shortcuts,
+	}
+}
 
 // func NewRegistryFromDB(db *sql.DB) *RepoRegistry {
 // 	return &RepoRegistry{
-// 		Sessions: postgres.NewUploadSessionRepo(db),
-// 		Chunks:   postgres.NewChunkRepo(db),
-// 		Files:    postgres.NewFileRepo(db),
+// 		Metadata:  postgres.NewMetaDataRepo(db),
+// 		File:      postgres.NewFileRepo(db),
+// 		Sharing:   postgres.NewShareRepo(db),
+// 		Shortcuts: postgres.NewShortcutsRepo(db),
 // 	}
 // }
