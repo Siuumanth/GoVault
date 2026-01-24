@@ -33,20 +33,8 @@ type FilesService interface {
 type SharingService interface {
 	AddFileShares(ctx context.Context, in *AddFileSharesInput) error
 	UpdateFileShare(ctx context.Context, in *UpdateFileShareInput) error
-
-	DeleteFileShare(
-		ctx context.Context,
-		fileID uuid.UUID,
-		actorUserID uuid.UUID,
-		recipientUserID uuid.UUID,
-	) error
-
-	ListFileShares(
-		ctx context.Context,
-		fileID uuid.UUID,
-		actorUserID uuid.UUID,
-	) ([]*model.FileShare, error)
-
+	DeleteFileShare(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID, recipientUserID uuid.UUID) error
+	ListFileShares(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) ([]*model.FileShare, error)
 	AddPublicAccess(ctx context.Context, in *AddPublicAccessInput) error
 	RemovePublicAccess(ctx context.Context, in *RemovePublicAccessInput) error
 }

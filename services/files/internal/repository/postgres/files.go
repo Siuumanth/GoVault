@@ -38,7 +38,7 @@ FROM files
 WHERE file_uuid = $1
 AND deleted_at IS NULL`
 
-func (r *FilesRepository) GetFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
+func (r *FilesRepository) FetchFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
 	var fs model.FileSummary
 
 	err := r.db.QueryRowContext(
@@ -148,7 +148,6 @@ VALUES ($1,$2, $3, $4, $5, $6, $7, $8)
 RETURNING id, file_uuid, session_id, user_id, file_name,
           mime_type, size_bytes, storage_key, checksum,
           created_at, deleted_at
-
 `
 
 func (r *FilesRepository) CreateFile(ctx context.Context, p *model.CreateFileParams) (*model.File, error) {
@@ -205,7 +204,7 @@ WHERE file_uuid = $1
 AND deleted_at IS NULL
 `
 
-func (r *FilesRepository) GetFullFileByID(ctx context.Context, fileID uuid.UUID) (*model.File, error) {
+func (r *FilesRepository) FetchFullFileByID(ctx context.Context, fileID uuid.UUID) (*model.File, error) {
 	var file model.File
 
 	err := r.db.QueryRowContext(
