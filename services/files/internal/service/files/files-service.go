@@ -2,7 +2,6 @@ package files
 
 import (
 	"context"
-	"errors"
 	"files/internal/model"
 	"files/internal/repository"
 	"files/internal/service"
@@ -40,15 +39,21 @@ func NewFilesService(f repository.FileRepository, s repository.ShareRepository, 
 }
 
 func (s *FilesService) UpdateFileName(ctx context.Context, in *service.UpdateFileNameInput) error {
-	if in.NewName == "" {
-		return errors.New("file name cannot be empty")
+
+	// if file is owned or user is editor then only allow
+	canEdit, err := s.canUserEditFile(ctx, in.FileID, in.ActorUserID)
+	if err != nil {
+		return err
+	}
+	if !canEdit {
+		return shared.ErrUnauthorized
 	}
 
 	// permission + existence check should live here or inside repo
-	deleted, err := s.fileRepo.UpdateFileName(ctx, in.FileID, in.NewName)
+	success, err := s.fileRepo.UpdateFileName(ctx, in.FileID, in.NewName)
 
-	if !deleted {
-		return errors.New("file not found or soft-deleted")
+	if !success {
+		return shared.ErrRowNotFound
 	}
 	return err
 
@@ -101,6 +106,10 @@ func (s *FilesService) ListSharedFiles(ctx context.Context, in *service.ListShar
 func (s *FilesService) MakeFileCopy(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.File, error) {
 
 	// first check if user has access to the file
+	_, err := s.checkFileAccess(ctx, fileID, actorUserID)
+	if err != nil {
+		return nil, err
+	}
 
 	src, err := s.fileRepo.FetchFullFileByID(ctx, fileID)
 	if err != nil {

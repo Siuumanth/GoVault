@@ -13,14 +13,20 @@ import (
 
 /*
 type ShareRepository interface {
-	CreateFileShare(ctx context.Context, p *share.FileShareParams) (*model.FileShare, error)
-	FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
+		CreateFileShare(ctx context.Context, p *model.FileShareParams) (*model.FileShare, error)
+	FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.FileShare, error)
 	DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
-	UpdateFileShare(ctx context.Context, p *share.FileShareParams) error
-	FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
+	UpdateFileShare(ctx context.Context, p *model.FileShareParams) error
+	FetchAllFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
+	IsFileSharedWithUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
+	IsFileEditableByUser(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error)
+
+	// Public Access Methods
 	CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error
 	DeletePublicAccess(ctx context.Context, fileID uuid.UUID) error
+	IsFilePublic(ctx context.Context, fileID uuid.UUID) (bool, error)
 }
+
 */
 
 type FileShareRepository struct {
@@ -215,4 +221,23 @@ func (r *FileShareRepository) DeletePublicAccess(ctx context.Context, fileID uui
 		fileID,
 	)
 	return err
+}
+
+// IsFileEditableByUser(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error)
+
+const FetchUserPermissionQuery = `
+SELECT permission
+FROM file_shares
+WHERE file_id = $1 AND shared_with_user_id = $2
+`
+
+func (r *FileShareRepository) IsFileEditableByUser(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error) {
+	var res string
+	err := r.db.QueryRowContext(
+		ctx,
+		FetchUserPermissionQuery,
+		fileID,
+		userID,
+	).Scan(&res)
+	return res == "editor", err
 }

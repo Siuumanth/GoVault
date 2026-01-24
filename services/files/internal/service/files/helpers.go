@@ -45,3 +45,21 @@ func (s *FilesService) checkFileAccess(
 
 	return nil, shared.ErrUnauthorized
 }
+
+func (s *FilesService) canUserEditFile(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
+	isOwner, err := s.fileRepo.CheckFileOwnership(ctx, fileID, userID)
+	if err != nil {
+		return false, err
+	}
+	if !isOwner {
+		isEditor, err := s.shareRepo.IsFileEditableByUser(ctx, fileID, userID)
+		if err != nil {
+			return false, err
+		}
+		if !isEditor {
+			return false, shared.ErrUnauthorized
+		}
+	}
+
+	return true, nil
+}

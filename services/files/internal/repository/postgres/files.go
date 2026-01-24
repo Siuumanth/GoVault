@@ -16,6 +16,7 @@ type FilesRepository interface {
 	ListOwnedFiles(userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
 	ListSharedFiles(userID uuid.UUID) ([]*model.FileSummary, error)
 	CreateFile(file *model.CreateFileParams) (*model.File, error)
+	FetchOwnerIDByFileID(ctx context.Context, fileID uuid.UUID) error
 }
 
 type FileSummary struct {
@@ -30,6 +31,64 @@ type FileSummary struct {
 
 type FilesRepository struct {
 	db *sql.DB
+}
+
+const CheckFileOwnershipQuery = `
+SELECT EXISTS (
+	SELECT 1
+	FROM files
+	WHERE file_uuid = $1
+	  AND user_id = $2
+	  AND deleted_at IS NULL
+)
+`
+
+func (r *FilesRepository) CheckFileOwnership(
+	ctx context.Context,
+	fileID uuid.UUID,
+	userID uuid.UUID,
+) (bool, error) {
+
+	var exists bool
+	err := r.db.QueryRowContext(
+		ctx,
+		CheckFileOwnershipQuery,
+		fileID,
+		userID,
+	).Scan(&exists)
+
+	return exists, err
+}
+
+const UpdateFileNameQuery = `
+		UPDATE files
+		SET name = $2
+		WHERE id = $1
+		AND deleted_at IS NULL
+	`
+
+func (r *FilesRepository) UpdateFileName(ctx context.Context, fileUUID uuid.UUID, newName string) (bool, error) {
+
+	result, err := r.db.ExecContext(
+		ctx,
+		UpdateFileNameQuery,
+		fileUUID,
+		newName,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rows == 0 {
+		return false, nil // file not found or soft-deleted
+	}
+
+	return true, nil
 }
 
 const GetSingleFileQuery = `

@@ -34,8 +34,8 @@ type AddFileSharesInput struct {
 }
 
 type ShareRecipientInput struct {
-	RecipientUserID uuid.UUID
-	Permission      string
+	Email      string
+	Permission string
 }
 
 type UpdateFileShareInput struct {
