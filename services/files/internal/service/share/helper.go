@@ -2,6 +2,7 @@ package share
 
 import (
 	"context"
+	"files/internal/shared"
 
 	"github.com/google/uuid"
 )
@@ -15,4 +16,19 @@ func (s *ShareService) isUserOwnerOfFile(ctx context.Context, fileID *uuid.UUID,
 	}
 	return res, err
 
+}
+
+func (s *ShareService) assertOwner(
+	ctx context.Context,
+	fileID *uuid.UUID,
+	userID *uuid.UUID,
+) error {
+	ok, err := s.isUserOwnerOfFile(ctx, fileID, userID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return shared.ErrUnauthorized
+	}
+	return nil
 }

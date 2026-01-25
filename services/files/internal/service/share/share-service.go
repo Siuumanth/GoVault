@@ -6,6 +6,8 @@ import (
 	"files/internal/repository"
 	"files/internal/service"
 	"files/internal/shared"
+
+	"github.com/google/uuid"
 )
 
 /*
@@ -79,35 +81,99 @@ func NewShareService(shareRepo repository.ShareRepository) *ShareService {
 }
 
 func (s *ShareService) AddFileShares(ctx context.Context, in *service.AddFileSharesInput) error {
-	// Verify if user is owner of file
-	isOwner, err := s.isUserOwnerOfFile(ctx, &in.FileID, &in.ActorUserID)
-	if err != nil {
+	// owner check
+	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
 		return err
 	}
-	if !isOwner {
-		return shared.ErrUnauthorized
-	}
 
-	// verify if amount of shares are valid
+	// share count check
 	if len(in.Recipients) > shared.MAX_SHARES {
 		return shared.ErrTooManyShares
 	}
 
-	// create shares
-	// Extract User IDs of the emails of recipiemnts
+	// collect emails
+	emails := make([]string, 0, len(in.Recipients))
+	for _, r := range in.Recipients {
+		emails = append(emails, r.Email)
+	}
 
-	// TODO: Make this a Transaction
-	n := len(in.Recipients)
-	for i := 0; i < n; i++ {
+	// bulk resolve emails → userIDs
+	emailToUserID, err := s.shareRepo.ResolveUserIDsByEmails(ctx, emails)
+	if err != nil {
+		return err
+	}
+
+	// TODO: make tis a transaction
+	// create shares
+	for _, r := range in.Recipients {
+		userID, ok := emailToUserID[r.Email]
+		if !ok {
+			return shared.ErrRowNotFound // or ErrUserNotFound
+		}
+
 		p := &model.FileShareParams{
 			FileID:           in.FileID,
-			SharedWithUserID: in.Recipients[i].Email,
-			Permission:       in.Recipients[i].Permission,
+			SharedWithUserID: userID,
+			Permission:       r.Permission,
 		}
-		_, err := s.shareRepo.CreateFileShare(ctx, p)
-		if err != nil {
+
+		if _, err := s.shareRepo.CreateFileShare(ctx, p); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func (s *ShareService) UpdateFileShare(ctx context.Context, in *service.UpdateFileShareInput) error {
+	// validate if owner, only owner can update
+	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
+		return err
+	}
+
+	// update share
+	p := &model.FileShareParams{
+		FileID:           in.FileID,
+		SharedWithUserID: in.RecipientUserID,
+		Permission:       in.Permission,
+	}
+
+	return s.shareRepo.UpdateFileShare(ctx, p)
+}
+
+func (s *ShareService) RemoveFileShare(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID, recipientUserID uuid.UUID) error {
+	// validate if owner
+	if err := s.assertOwner(ctx, &fileID, &actorUserID); err != nil {
+		return err
+	}
+
+	// delete share
+	return s.shareRepo.DeleteFileShare(ctx, fileID, recipientUserID)
+}
+
+func (s *ShareService) ListFileShares(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) ([]*model.FileShare, error) {
+	// validate if owner, only owner can list shares
+	if err := s.assertOwner(ctx, &fileID, &actorUserID); err != nil {
+		return nil, err
+	}
+
+	return s.shareRepo.FetchAllFileShares(ctx, fileID)
+}
+
+func (s *ShareService) AddPublicAccess(ctx context.Context, in *service.AddPublicAccessInput) error {
+	// check owner
+	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
+		return err
+	}
+
+	return s.shareRepo.CreatePublicAccess(ctx, in.FileID)
+}
+
+func (s *ShareService) RemovePublicAccess(ctx context.Context, in *service.RemovePublicAccessInput) error {
+	// check owner
+	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
+		return err
+	}
+
+	return s.shareRepo.DeletePublicAccess(ctx, in.FileID)
 }

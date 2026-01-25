@@ -26,6 +26,10 @@ type ShareRepository interface {
 	FetchAllFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
 	IsFileSharedWithUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
 	IsFileEditableByUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
+	ResolveUserIDsByEmails(
+		ctx context.Context,
+		emails []string,
+	) (map[string]uuid.UUID, error)
 
 	// Public Access Methods
 	CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error
