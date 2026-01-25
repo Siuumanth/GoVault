@@ -72,11 +72,11 @@ s
 */
 
 type ShareService struct {
-	shareRepo repository.ShareRepository
-	fileRepo  repository.FileRepository
+	shareRepo repository.SharesRepository
+	fileRepo  repository.FilesRepository
 }
 
-func NewShareService(shareRepo repository.ShareRepository) *ShareService {
+func NewShareService(shareRepo repository.SharesRepository) *ShareService {
 	return &ShareService{shareRepo: shareRepo}
 }
 

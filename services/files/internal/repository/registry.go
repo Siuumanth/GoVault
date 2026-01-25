@@ -1,14 +1,14 @@
 package repository
 
 type RepoRegistry struct {
-	File      FileRepository
-	Sharing   ShareRepository
+	File      FilesRepository
+	Sharing   SharesRepository
 	Shortcuts ShortcutsRepository
 }
 
 func NewRegistry(
-	files FileRepository,
-	sharing ShareRepository,
+	files FilesRepository,
+	sharing SharesRepository,
 	shortcuts ShortcutsRepository,
 ) *RepoRegistry {
 	return &RepoRegistry{

@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type FileRepository interface {
+type FilesRepository interface {
 	FetchFullFileByID(ctx context.Context, fileID uuid.UUID) (*model.File, error)
 	FetchFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error)
 	UpdateFileName(ctx context.Context, fileID uuid.UUID, newName string) (bool, error)
@@ -18,7 +18,7 @@ type FileRepository interface {
 	CheckFileOwnership(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
 }
 
-type ShareRepository interface {
+type SharesRepository interface {
 	CreateFileShare(ctx context.Context, p *model.FileShareParams) (*model.FileShare, error)
 	FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.FileShare, error)
 	DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error

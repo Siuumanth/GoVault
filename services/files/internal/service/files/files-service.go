@@ -25,12 +25,12 @@ import (
 	}
 */
 type FilesService struct {
-	fileRepo  repository.FileRepository
-	shareRepo repository.ShareRepository
+	fileRepo  repository.FilesRepository
+	shareRepo repository.SharesRepository
 	storage   storage.FileStorage
 }
 
-func NewFilesService(f repository.FileRepository, s repository.ShareRepository, fs storage.FileStorage) *FilesService {
+func NewFilesService(f repository.FilesRepository, s repository.SharesRepository, fs storage.FileStorage) *FilesService {
 	return &FilesService{
 		fileRepo:  f,
 		shareRepo: s,
