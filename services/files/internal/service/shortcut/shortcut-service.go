@@ -20,10 +20,7 @@ type ShortcutsService struct {
 	shortcutsRepo repository.ShortcutsRepository
 }
 
-func (s *ShortcutsService) CreateShortcut(
-	ctx context.Context,
-	in *service.CreateShortcutInput,
-) (*model.FileShortcut, error) {
+func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *service.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)
 	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)

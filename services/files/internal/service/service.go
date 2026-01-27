@@ -22,14 +22,6 @@ type FilesService interface {
 
 	MakeFileCopy(ctx context.Context, in *MakeFileCopyInput) (*model.File, error)
 	SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error
-
-	// helper
-	// checkFileAccess(
-	// 	ctx context.Context,
-	// 	fileID uuid.UUID,
-	// 	actorUserID uuid.UUID,
-	// ) (*model.File, error)
-	// isUserOwnerOfFile(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error)
 }
 type SharingService interface {
 	AddFileShares(ctx context.Context, in *AddFileSharesInput) error
@@ -38,9 +30,6 @@ type SharingService interface {
 	ListFileShares(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) ([]*model.FileShare, error)
 	AddPublicAccess(ctx context.Context, in *AddPublicAccessInput) error
 	RemovePublicAccess(ctx context.Context, in *RemovePublicAccessInput) error
-
-	// // helper
-	// doesUserHaveEditPermissions(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error)
 }
 
 type ShortcutsService interface {

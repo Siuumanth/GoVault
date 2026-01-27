@@ -64,3 +64,93 @@ Creates a reference to an existing file for quick access without affecting owner
 
 - `DeleteShortcut`
 Removes the reference only; the underlying file is untouched.
+
+
+
+
+
+FILES
+GET     /{fileID}
+PATCH   /{fileID}
+DELETE  /{fileID}
+POST    /{fileID}/copy
+
+LISTS
+GET     /moved
+GET     /shared
+
+SHARES
+POST    /{fileID}/shares
+PATCH   /{fileID}/shares/{userID}
+DELETE  /{fileID}/shares/{userID}
+GET     /{fileID}/shares
+
+PUBLIC ACCESS
+POST    /{fileID}/public
+DELETE  /{fileID}/public
+
+SHORTCUTS
+POST    /{fileID}/shortcut
+DELETE  /shortcuts/{shortcutID}
+
+
+
+
+
+FILES
+GET /{fileID}
+→ GetSingleFileSummary(ctx, fileID, actorUserID)
+
+PATCH /{fileID}
+→ UpdateFileName(ctx, UpdateFileNameInput)
+
+DELETE /{fileID}
+→ SoftDeleteFile(ctx, fileID, actorUserID)
+
+POST /{fileID}/copy
+→ MakeFileCopy(ctx, MakeFileCopyInput)
+
+---
+
+LISTS
+GET /moved
+→ ListOwnedFiles(ctx, ListOwnedFilesInput)
+
+GET /shared
+→ ListSharedFiles(ctx, ListSharedFilesInput)
+
+---
+
+SHARES
+POST /{fileID}/shares
+→ AddFileShares(ctx, AddFileSharesInput)
+
+PATCH /{fileID}/shares/{userID}
+→ UpdateFileShare(ctx, UpdateFileShareInput)
+
+DELETE /{fileID}/shares/{userID}
+→ RemoveFileShare(ctx, fileID, actorUserID, recipientUserID)
+
+GET /{fileID}/shares
+→ ListFileShares(ctx, fileID, actorUserID)
+
+---
+
+PUBLIC ACCESS
+POST /{fileID}/public
+→ AddPublicAccess(ctx, AddPublicAccessInput)
+
+DELETE /{fileID}/public
+→ RemovePublicAccess(ctx, RemovePublicAccessInput)
+
+---
+
+SHORTCUTS
+POST /{fileID}/shortcut
+→ CreateShortcut(ctx, CreateShortcutInput)
+
+DELETE /shortcuts/{shortcutID}
+→ DeleteShortcut(ctx, DeleteShortcutInput)
+
+---
+
