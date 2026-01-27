@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// MAybe 1 helper ws enuf
 func (s *ShareService) isUserOwnerOfFile(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error) {
 	// fetch file summary and check
 	res, err := s.fileRepo.CheckFileOwnership(ctx, *fileID, *userID)

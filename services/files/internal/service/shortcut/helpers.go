@@ -1,5 +1,6 @@
 package shortcut
 
+// TODO: update names to plural
 import (
 	"context"
 	"files/internal/model"

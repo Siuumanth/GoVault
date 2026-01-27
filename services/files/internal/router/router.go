@@ -3,57 +3,60 @@ package router
 import (
 	"net/http"
 
-	"files/internal/handler"
+	filesHandler "files/internal/handler/files"
+	"files/internal/handler/health"
+	sharesHandler "files/internal/handler/shares"
+	shortcutsHandler "files/internal/handler/shortcuts"
 	"files/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
 
-// mounts all file-service routes
-func NewFileRouter(h *handler.Handler) http.Handler {
+// NewFileRouter wires all routes for the files service
+func NewFileRouter(
+	filesH *filesHandler.Handler,
+	sharesH *sharesHandler.Handler,
+	shortcutsH *shortcutsHandler.Handler,
+) http.Handler {
+
 	r := chi.NewRouter()
 
-	// attach actor middleware once
+	// inject actor id from x-user-id (non blocking)
 	r.Use(middleware.ActorContext)
 
-	// --------------------
-	// FILES (mixed access)
-	// --------------------
+	// health
+	r.Get("/health", health.HealthHandler)
+
+	// lists
+	r.Get("/owned", filesH.ListOwnedFiles)
+	r.Get("/shared", filesH.ListSharedFiles)
+
+	// file scoped routes
 	r.Route("/{fileID}", func(r chi.Router) {
-		r.Get("/", h.GetSingleFileSummary)
-		r.Patch("/", h.UpdateFileName)
-		r.Delete("/", h.SoftDeleteFile)
-		r.Post("/copy", h.MakeFileCopy)
+		// files
+		r.Get("/", filesH.GetSingleFileSummary)
+		r.Patch("/", filesH.UpdateFileName)
+		r.Delete("/", filesH.SoftDeleteFile)
+		r.Post("/copy", filesH.MakeFileCopy)
 
 		// shares
 		r.Route("/shares", func(r chi.Router) {
-			r.Post("/", h.AddFileShares)
-			r.Get("/", h.ListFileShares)
-
+			r.Post("/", sharesH.AddFileShares)
+			r.Get("/", sharesH.ListFileShares)
 			r.Route("/{userID}", func(r chi.Router) {
-				r.Patch("/", h.UpdateFileShare)
-				r.Delete("/", h.UpdateFileShare) // if you later add RemoveFileShare handler, swap this
+				r.Patch("/", sharesH.UpdateFileShare)
+				r.Delete("/", sharesH.RemoveFileShare)
 			})
 		})
 
-		// public access
-		r.Post("/public", h.AddPublicAccess)
-		r.Delete("/public", h.RemovePublicAccess)
+		// public access (handled by shares)
+		r.Post("/public", sharesH.AddPublicAccess)
+		r.Delete("/public", sharesH.RemovePublicAccess)
 
 		// shortcuts
-		r.Post("/shortcut", h.CreateShortcut)
+		r.Post("/shortcut", shortcutsH.CreateShortcut)
+		r.Delete("/shortcut", shortcutsH.DeleteShortcut)
 	})
-
-	// --------------------
-	// LISTS
-	// --------------------
-	r.Get("/moved", h.ListOwnedFiles)
-	r.Get("/shared", h.ListSharedFiles)
-
-	// --------------------
-	// SHORTCUTS
-	// --------------------
-	r.Delete("/shortcuts/{shortcutID}", h.DeleteShortcut)
 
 	return r
 }

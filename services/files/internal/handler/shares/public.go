@@ -1,19 +1,18 @@
-package handler
+package shares
 
 import (
 	"errors"
-	"files/internal/handler/dto"
+	"files/internal/handler/common"
 	"files/internal/service"
 	"files/internal/shared"
 	"net/http"
-	"strconv"
 
 	"github.com/google/uuid"
 )
 
-// POST /{fileID}/shortcut
-func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
-	actorID, err := h.getActorID(r)
+// POST /{fileID}/public
+func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
+	actorID, err := common.GetActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -25,7 +24,7 @@ func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sc, err := h.registry.Shortcuts.CreateShortcut(r.Context(), &service.CreateShortcutInput{
+	err = h.shares.AddPublicAccess(r.Context(), &service.AddPublicAccessInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 	})
@@ -39,39 +38,31 @@ func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := dto.CreateShortcutResponse{
-		ShortcutID: strconv.FormatInt(sc.ID, 10),
-		FileID:     fileID.String(),
-		CreatedAt:  sc.CreatedAt,
-	}
-
-	respondJSON(w, http.StatusCreated, resp)
+	w.WriteHeader(http.StatusCreated)
 }
 
-// DELETE /shortcuts/{shortcutID}
-func (h *Handler) DeleteShortcut(w http.ResponseWriter, r *http.Request) {
-	actorID, err := h.getActorID(r)
+// DELETE /{fileID}/public
+func (h *Handler) RemovePublicAccess(w http.ResponseWriter, r *http.Request) {
+	actorID, err := common.GetActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	shortcutID, err := uuid.Parse(r.PathValue("shortcutID"))
+	fileID, err := uuid.Parse(r.PathValue("fileID"))
 	if err != nil {
-		http.Error(w, "invalid shortcut id", http.StatusBadRequest)
+		http.Error(w, "invalid file id", http.StatusBadRequest)
 		return
 	}
 
-	err = h.registry.Shortcuts.DeleteShortcut(r.Context(), &service.DeleteShortcutInput{
-		ShortcutID:  shortcutID,
+	err = h.shares.RemovePublicAccess(r.Context(), &service.RemovePublicAccessInput{
+		FileID:      fileID,
 		ActorUserID: actorID,
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, shared.ErrUnauthorized):
 			http.Error(w, err.Error(), http.StatusForbidden)
-		case errors.Is(err, shared.ErrRowNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
 		default:
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}

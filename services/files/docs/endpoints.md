@@ -149,7 +149,7 @@ SHORTCUTS
 POST /{fileID}/shortcut
 → CreateShortcut(ctx, CreateShortcutInput)
 
-DELETE /shortcuts/{shortcutID}
+DELETE /{fileID}/shortcut
 → DeleteShortcut(ctx, DeleteShortcutInput)
 
 ---

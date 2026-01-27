@@ -43,7 +43,7 @@ func (s *ShortcutsService) DeleteShortcut(
 	// only shortcut owner can delete
 	return s.shortcutsRepo.DeleteShortcut(
 		ctx,
-		in.ShortcutID,
+		in.FileID,
 		in.ActorUserID,
 	)
 }

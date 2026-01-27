@@ -63,6 +63,6 @@ type CreateShortcutInput struct {
 }
 
 type DeleteShortcutInput struct {
-	ShortcutID  uuid.UUID
+	FileID      uuid.UUID
 	ActorUserID uuid.UUID
 }
