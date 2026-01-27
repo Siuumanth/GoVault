@@ -1,28 +1,32 @@
 package repository
 
+import (
+	"database/sql"
+	"files/internal/repository/postgres"
+)
+
 type RepoRegistry struct {
 	File      FilesRepository
-	Sharing   SharesRepository
+	Shares    SharesRepository
 	Shortcuts ShortcutsRepository
 }
 
 func NewRegistry(
 	files FilesRepository,
-	sharing SharesRepository,
+	shares SharesRepository,
 	shortcuts ShortcutsRepository,
 ) *RepoRegistry {
 	return &RepoRegistry{
 		File:      files,
-		Sharing:   sharing,
+		Shares:    shares,
 		Shortcuts: shortcuts,
 	}
 }
 
-// func NewRegistryFromDB(db *sql.DB) *RepoRegistry {
-// 	return &RepoRegistry{
-// 		Metadata:  postgres.NewMetaDataRepo(db),
-// 		File:      postgres.NewFileRepo(db),
-// 		Sharing:   postgres.NewShareRepo(db),
-// 		Shortcuts: postgres.NewShortcutsRepo(db),
-// 	}
-// }
+func NewPostgresRegistry(db *sql.DB) *RepoRegistry {
+	return &RepoRegistry{
+		File:      postgres.NewFilesRepository(db),
+		Shares:    postgres.NewFileShareRepository(db),
+		Shortcuts: postgres.NewShortcutsRepository(db),
+	}
+}

@@ -33,6 +33,10 @@ type FileShareRepository struct {
 	db *sql.DB
 }
 
+func NewFileShareRepository(db *sql.DB) *FileShareRepository {
+	return &FileShareRepository{db: db}
+}
+
 const FetchUserFileShareQuery = `
 SELECT id, file_id, shared_with_user_id, permission, created_at
 FROM file_shares
@@ -231,7 +235,7 @@ FROM file_shares
 WHERE file_id = $1 AND shared_with_user_id = $2
 `
 
-func (r *FileShareRepository) IsFileEditableByUser(ctx context.Context, fileID *uuid.UUID, userID *uuid.UUID) (bool, error) {
+func (r *FileShareRepository) IsFileEditableByUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
 	var res string
 	err := r.db.QueryRowContext(
 		ctx,

@@ -33,6 +33,10 @@ type FilesRepository struct {
 	db *sql.DB
 }
 
+func NewFilesRepository(db *sql.DB) *FilesRepository {
+	return &FilesRepository{db: db}
+}
+
 const CheckFileOwnershipQuery = `
 SELECT EXISTS (
 	SELECT 1

@@ -26,6 +26,10 @@ type ShortcutsRepository struct {
 	db *sql.DB
 }
 
+func NewShortcutsRepository(db *sql.DB) *ShortcutsRepository {
+	return &ShortcutsRepository{db: db}
+}
+
 func (r *ShortcutsRepository) CreateShortcut(
 	ctx context.Context,
 	fileID uuid.UUID,
