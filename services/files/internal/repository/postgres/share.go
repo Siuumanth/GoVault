@@ -92,7 +92,7 @@ func (r *FileShareRepository) CreateFileShare(ctx context.Context, p *model.File
 	return &share, nil
 }
 
-const DeleteFileShareQuery = `DELETE from file_shares WHERE file_id = $1 && shared_with_user_id = $2`
+const DeleteFileShareQuery = `DELETE from file_shares WHERE file_id = $1 AND shared_with_user_id = $2`
 
 func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error {
 	rows := r.db.QueryRowContext(
@@ -196,7 +196,7 @@ func (r *FileShareRepository) IsFilePublic(ctx context.Context, fileID uuid.UUID
 }
 
 const CreatePublicAccessQuery = `
-INSERT INTO file_shortcuts(file_id) 
+INSERT INTO public_files(file_id) 
 VALUES($1)
 `
 

@@ -30,7 +30,7 @@ type File struct {
 
 type FileShortcut struct {
 	ID        int64
-	FileID    int64
+	FileID    uuid.UUID
 	UserID    uuid.UUID
 	CreatedAt time.Time
 }

@@ -103,15 +103,15 @@ func (s *FilesService) ListSharedFiles(ctx context.Context, in *service.ListShar
 	return files, nil
 }
 
-func (s *FilesService) MakeFileCopy(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.File, error) {
+func (s *FilesService) MakeFileCopy(ctx context.Context, in *service.MakeFileCopyInput) (*model.File, error) {
 
 	// first check if user has access to the file
-	_, err := s.checkFileAccess(ctx, fileID, actorUserID)
+	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	src, err := s.fileRepo.FetchFullFileByID(ctx, fileID)
+	src, err := s.fileRepo.FetchFullFileByID(ctx, in.FileID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (s *FilesService) MakeFileCopy(ctx context.Context, fileID uuid.UUID, actor
 	storageKey := fmt.Sprintf(
 		"%s%s/%s",
 		shared.S3UsersPrefix,
-		actorUserID.String(),
+		in.ActorUserID.String(),
 		newUUID.String(),
 	)
 	// first store then add to db
@@ -132,7 +132,7 @@ func (s *FilesService) MakeFileCopy(ctx context.Context, fileID uuid.UUID, actor
 	params := &model.CreateFileParams{
 		SessionID:  nil,
 		FileUUID:   newUUID,
-		UserID:     actorUserID,
+		UserID:     in.ActorUserID,
 		Name:       src.FileName,
 		MimeType:   src.MimeType,
 		SizeBytes:  src.SizeBytes,

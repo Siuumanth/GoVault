@@ -28,7 +28,7 @@ type ShortcutsRepository struct {
 
 func (r *ShortcutsRepository) CreateShortcut(
 	ctx context.Context,
-	fileID int64,
+	fileID uuid.UUID,
 	userID uuid.UUID,
 ) (*model.FileShortcut, error) {
 
