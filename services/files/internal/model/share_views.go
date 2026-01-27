@@ -7,5 +7,3 @@ type FileShareParams struct {
 	SharedWithUserID uuid.UUID
 	Permission       string
 }
-
-// TODO: make is shred with user ID

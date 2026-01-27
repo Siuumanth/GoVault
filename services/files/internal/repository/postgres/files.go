@@ -164,7 +164,8 @@ FS.file_uuid = files.file_uuid
 WHERE FS.user_id = $1
 AND files.deleted_at IS NULL
 LIMIT $2
-OFFSET $3`
+OFFSET $3
+`
 
 func (r *FilesRepository) FetchSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error) {
 	var fs []*model.FileSummary
