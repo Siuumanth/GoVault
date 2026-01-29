@@ -5,9 +5,9 @@ import (
 )
 
 type Handler struct {
-	files files.FileService
+	files *files.FileService
 }
 
-func New(files files.FileService) *Handler {
+func NewHandler(files *files.FileService) *Handler {
 	return &Handler{files: files}
 }

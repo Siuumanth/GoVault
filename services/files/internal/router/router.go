@@ -12,11 +12,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// NewFileRouter wires all routes for the files service
-func NewFileRouter(
+// NewChiRouter wires all routes for the files service
+func NewConfiguredChiRouter(
 	filesH *filesHandler.Handler,
 	sharesH *sharesHandler.Handler,
 	shortcutsH *shortcutsHandler.Handler,
+	healthH *health.Handler,
 ) http.Handler {
 
 	r := chi.NewRouter()
@@ -25,7 +26,7 @@ func NewFileRouter(
 	r.Use(middleware.ActorContext)
 
 	// health
-	r.Get("/health", health.HealthHandler)
+	r.Get("/health", healthH.HealthHandler)
 
 	// lists
 	r.Get("/owned", filesH.ListOwnedFiles)
