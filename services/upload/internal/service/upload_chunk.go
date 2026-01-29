@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"upload/internal/model"
@@ -118,7 +119,12 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		return s.fail(session.ID, err)
 	}
 	// Create File
-	// TODO: add checksum hile svaing file
+	// calculate checksum of final file
+	checksum, err := CalculateSHA256(finalPath)
+	if err != nil {
+		return s.fail(session.ID, err)
+	}
+
 	file := model.File{
 		FileUUID:  fileUUID,
 		SessionID: session.ID,
@@ -126,6 +132,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		Name:      session.FileName,
 		SizeBytes: session.FileSize,
 		MimeType:  mimeType,
+		CheckSum:  &checksum,
 		StorageKey: fmt.Sprintf(
 			"%s%s/%s",
 			shared.S3UsersPrefix,
@@ -219,4 +226,21 @@ func DetectMimeFromFile(path string) (string, error) {
 	}
 
 	return mime.String(), nil
+}
+
+func CalculateSHA256(filePath string) (string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	hasher := sha256.New()
+
+	if _, err := io.Copy(hasher, f); err != nil {
+		return "", err
+	}
+
+	sum := hasher.Sum(nil)
+	return hex.EncodeToString(sum), nil
 }
