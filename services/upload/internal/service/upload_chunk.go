@@ -16,9 +16,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: Remove folder after complete
-// TODO: update uploads by multipart or raw bytes or fail
-
 /*
 1. Resolve session
 2. Validate status
@@ -161,8 +158,23 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	if err != nil {
 		return err
 	}
+	err = s.removeSessionFolder(finalPath)
+	if err != nil {
+		return err
+	}
 	return nil
 
+}
+
+func (s *UploadService) removeSessionFolder(finalPath string) error {
+	dirPath := filepath.Join(shared.UploadBasePath, filepath.Dir(finalPath))
+
+	err := os.RemoveAll(dirPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, error) {
