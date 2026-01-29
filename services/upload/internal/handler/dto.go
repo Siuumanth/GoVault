@@ -22,8 +22,7 @@ type CreateUploadSessionResponse struct {
 }
 
 type UploadStatusResponse struct {
-	UploadUUID    string `json:"upload_uuid"`
-	Status        string `json:"status"`
-	TotalChunks   int    `json:"total_chunks"`
-	UploadedCount int    `json:"uploaded_count"`
+	UploadUUID  string `json:"upload_uuid"`
+	Status      string `json:"status"`
+	TotalChunks int    `json:"total_chunks"`
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
-	_, err := userIDFromHeader(r)
+	userID, err := userIDFromHeader(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -25,13 +25,19 @@ func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid upload_uuid", http.StatusBadRequest)
 		return
 	}
-	// TODO: check if user Id belongs to user before cehcking status
-	session, err := h.uploadService.GetUploadStatus(uploadUUID)
+
+	session, err := h.uploadService.GetUploadStatus(uploadUUID, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
+	res := UploadStatusResponse{
+		UploadUUID:  session.UploadUUID.String(),
+		Status:      string(session.Status),
+		TotalChunks: session.TotalChunks,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
+	json.NewEncoder(w).Encode(res)
 }
