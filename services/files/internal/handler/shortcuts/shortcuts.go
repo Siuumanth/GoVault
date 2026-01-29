@@ -6,7 +6,7 @@ import (
 
 	"files/internal/handler/common"
 	"files/internal/handler/dto"
-	"files/internal/service"
+	"files/internal/service/inputs"
 
 	"github.com/google/uuid"
 )
@@ -25,7 +25,7 @@ func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sc, err := h.shortcuts.CreateShortcut(r.Context(), &service.CreateShortcutInput{
+	sc, err := h.shortcuts.CreateShortcut(r.Context(), &inputs.CreateShortcutInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 	})
@@ -55,7 +55,7 @@ func (h *Handler) DeleteShortcut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.shortcuts.DeleteShortcut(r.Context(), &service.DeleteShortcutInput{
+	err = h.shortcuts.DeleteShortcut(r.Context(), &inputs.DeleteShortcutInput{
 		FileID:      shortcutID,
 		ActorUserID: actorID,
 	})

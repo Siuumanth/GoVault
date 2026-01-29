@@ -6,7 +6,7 @@ import (
 )
 
 type RepoRegistry struct {
-	File      FilesRepository
+	Files     FilesRepository
 	Shares    SharesRepository
 	Shortcuts ShortcutsRepository
 }
@@ -17,7 +17,7 @@ func NewRegistry(
 	shortcuts ShortcutsRepository,
 ) *RepoRegistry {
 	return &RepoRegistry{
-		File:      files,
+		Files:     files,
 		Shares:    shares,
 		Shortcuts: shortcuts,
 	}
@@ -25,7 +25,7 @@ func NewRegistry(
 
 func NewPostgresRegistry(db *sql.DB) *RepoRegistry {
 	return &RepoRegistry{
-		File:      postgres.NewFilesRepository(db),
+		Files:     postgres.NewFilesRepository(db),
 		Shares:    postgres.NewFileShareRepository(db),
 		Shortcuts: postgres.NewShortcutsRepository(db),
 	}

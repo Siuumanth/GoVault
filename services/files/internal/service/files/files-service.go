@@ -4,7 +4,7 @@ import (
 	"context"
 	"files/internal/model"
 	"files/internal/repository"
-	"files/internal/service"
+	"files/internal/service/inputs"
 	"files/internal/shared"
 	"files/internal/storage"
 	"fmt"
@@ -38,7 +38,7 @@ func NewFilesService(f repository.FilesRepository, s repository.SharesRepository
 	}
 }
 
-func (s *FilesService) UpdateFileName(ctx context.Context, in *service.UpdateFileNameInput) error {
+func (s *FilesService) UpdateFileName(ctx context.Context, in *inputs.UpdateFileNameInput) error {
 
 	// if file is owned or user is editor then only allow
 	canEdit, err := s.canUserEditFile(ctx, in.FileID, in.ActorUserID)
@@ -81,7 +81,7 @@ func (s *FilesService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUI
 	}, nil
 }
 
-func (s *FilesService) ListOwnedFiles(ctx context.Context, in *service.ListOwnedFilesInput) ([]*model.FileSummary, error) {
+func (s *FilesService) ListOwnedFiles(ctx context.Context, in *inputs.ListOwnedFilesInput) ([]*model.FileSummary, error) {
 	// definition
 	var files []*model.FileSummary
 	// repo handles joins + access check
@@ -92,7 +92,7 @@ func (s *FilesService) ListOwnedFiles(ctx context.Context, in *service.ListOwned
 	return files, nil
 }
 
-func (s *FilesService) ListSharedFiles(ctx context.Context, in *service.ListSharedFilesInput) ([]*model.FileSummary, error) {
+func (s *FilesService) ListSharedFiles(ctx context.Context, in *inputs.ListSharedFilesInput) ([]*model.FileSummary, error) {
 	// definition
 	var files []*model.FileSummary
 	// repo handles joins + access check
@@ -103,7 +103,7 @@ func (s *FilesService) ListSharedFiles(ctx context.Context, in *service.ListShar
 	return files, nil
 }
 
-func (s *FilesService) MakeFileCopy(ctx context.Context, in *service.MakeFileCopyInput) (*model.File, error) {
+func (s *FilesService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error) {
 
 	// first check if user has access to the file
 	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)

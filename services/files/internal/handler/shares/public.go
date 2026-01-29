@@ -3,7 +3,7 @@ package shares
 import (
 	"errors"
 	"files/internal/handler/common"
-	"files/internal/service"
+	"files/internal/service/inputs"
 	"files/internal/shared"
 	"net/http"
 
@@ -24,7 +24,7 @@ func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.shares.AddPublicAccess(r.Context(), &service.AddPublicAccessInput{
+	err = h.shares.AddPublicAccess(r.Context(), &inputs.AddPublicAccessInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 	})
@@ -55,7 +55,7 @@ func (h *Handler) RemovePublicAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.shares.RemovePublicAccess(r.Context(), &service.RemovePublicAccessInput{
+	err = h.shares.RemovePublicAccess(r.Context(), &inputs.RemovePublicAccessInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 	})

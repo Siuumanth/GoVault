@@ -2,10 +2,10 @@ package share
 
 import (
 	"context"
-	"files/internal/service"
+	"files/internal/service/inputs"
 )
 
-func (s *ShareService) AddPublicAccess(ctx context.Context, in *service.AddPublicAccessInput) error {
+func (s *ShareService) AddPublicAccess(ctx context.Context, in *inputs.AddPublicAccessInput) error {
 	// check owner
 	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
 		return err
@@ -14,7 +14,7 @@ func (s *ShareService) AddPublicAccess(ctx context.Context, in *service.AddPubli
 	return s.shareRepo.CreatePublicAccess(ctx, in.FileID)
 }
 
-func (s *ShareService) RemovePublicAccess(ctx context.Context, in *service.RemovePublicAccessInput) error {
+func (s *ShareService) RemovePublicAccess(ctx context.Context, in *inputs.RemovePublicAccessInput) error {
 	// check owner
 	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
 		return err

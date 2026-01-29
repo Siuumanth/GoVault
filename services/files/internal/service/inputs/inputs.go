@@ -1,4 +1,4 @@
-package service
+package inputs
 
 import "github.com/google/uuid"
 

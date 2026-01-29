@@ -4,7 +4,7 @@ import (
 	"context"
 	"files/internal/model"
 	"files/internal/repository"
-	"files/internal/service"
+	"files/internal/service/inputs"
 )
 
 /*
@@ -20,7 +20,7 @@ type ShortcutsService struct {
 	shortcutsRepo repository.ShortcutsRepository
 }
 
-func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *service.CreateShortcutInput) (*model.FileShortcut, error) {
+func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)
 	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
@@ -37,7 +37,7 @@ func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *service.Creat
 
 func (s *ShortcutsService) DeleteShortcut(
 	ctx context.Context,
-	in *service.DeleteShortcutInput,
+	in *inputs.DeleteShortcutInput,
 ) error {
 
 	// only shortcut owner can delete

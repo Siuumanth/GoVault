@@ -6,7 +6,7 @@ import (
 
 	"files/internal/handler/common"
 	"files/internal/handler/dto"
-	"files/internal/service"
+	"files/internal/service/inputs"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
@@ -65,7 +65,7 @@ func (h *Handler) UpdateFileName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.files.UpdateFileName(r.Context(), &service.UpdateFileNameInput{
+	err = h.files.UpdateFileName(r.Context(), &inputs.UpdateFileNameInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 		NewName:     req.Name,
@@ -114,7 +114,7 @@ func (h *Handler) MakeFileCopy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.files.MakeFileCopy(r.Context(), &service.MakeFileCopyInput{
+	_, err = h.files.MakeFileCopy(r.Context(), &inputs.MakeFileCopyInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 	})

@@ -4,7 +4,7 @@ import (
 	"context"
 	"files/internal/model"
 	"files/internal/repository"
-	"files/internal/service"
+	"files/internal/service/inputs"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
@@ -80,7 +80,7 @@ func NewShareService(shareRepo repository.SharesRepository) *ShareService {
 	return &ShareService{shareRepo: shareRepo}
 }
 
-func (s *ShareService) AddFileShares(ctx context.Context, in *service.AddFileSharesInput) error {
+func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileSharesInput) error {
 	// owner check
 	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
 		return err
@@ -125,7 +125,7 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *service.AddFileSha
 	return nil
 }
 
-func (s *ShareService) UpdateFileShare(ctx context.Context, in *service.UpdateFileShareInput) error {
+func (s *ShareService) UpdateFileShare(ctx context.Context, in *inputs.UpdateFileShareInput) error {
 	// validate if owner, only owner can update
 	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
 		return err

@@ -5,7 +5,7 @@ import (
 
 	"files/internal/handler/common"
 	"files/internal/handler/dto"
-	"files/internal/service"
+	"files/internal/service/inputs"
 )
 
 // GET /moved
@@ -18,7 +18,7 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := common.GetPagination(r)
 
-	files, err := h.files.ListOwnedFiles(r.Context(), &service.ListOwnedFilesInput{
+	files, err := h.files.ListOwnedFiles(r.Context(), &inputs.ListOwnedFilesInput{
 		UserID: actorID,
 		Limit:  limit,
 		Offset: offset,
@@ -53,7 +53,7 @@ func (h *Handler) ListSharedFiles(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := common.GetPagination(r)
 
-	files, err := h.files.ListSharedFiles(r.Context(), &service.ListSharedFilesInput{
+	files, err := h.files.ListSharedFiles(r.Context(), &inputs.ListSharedFilesInput{
 		UserID: actorID,
 		Limit:  limit,
 		Offset: offset,

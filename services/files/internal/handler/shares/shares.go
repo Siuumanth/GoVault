@@ -6,7 +6,7 @@ import (
 
 	"files/internal/handler/common"
 	"files/internal/handler/dto"
-	"files/internal/service"
+	"files/internal/service/inputs"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
@@ -32,19 +32,19 @@ func (h *Handler) AddFileShares(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipients := make([]service.ShareRecipientInput, 0, len(req.Recipients))
+	recipients := make([]inputs.ShareRecipientInput, 0, len(req.Recipients))
 	for _, r := range req.Recipients {
 		if r.Email == "" || r.Permission == "" {
 			http.Error(w, "invalid recipient", http.StatusBadRequest)
 			return
 		}
-		recipients = append(recipients, service.ShareRecipientInput{
+		recipients = append(recipients, inputs.ShareRecipientInput{
 			Email:      r.Email,
 			Permission: r.Permission,
 		})
 	}
 
-	err = h.shares.AddFileShares(r.Context(), &service.AddFileSharesInput{
+	err = h.shares.AddFileShares(r.Context(), &inputs.AddFileSharesInput{
 		FileID:      fileID,
 		ActorUserID: actorID,
 		Recipients:  recipients,
@@ -88,7 +88,7 @@ func (h *Handler) UpdateFileShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.shares.UpdateFileShare(r.Context(), &service.UpdateFileShareInput{
+	err = h.shares.UpdateFileShare(r.Context(), &inputs.UpdateFileShareInput{
 		FileID:          fileID,
 		ActorUserID:     actorID,
 		RecipientUserID: userID,

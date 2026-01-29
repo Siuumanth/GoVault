@@ -3,9 +3,9 @@ package shares
 import "files/internal/service"
 
 type Handler struct {
-	shares service.SharingService
+	shares service.SharesService
 }
 
-func New(shares service.SharingService) *Handler {
+func New(shares service.SharesService) *Handler {
 	return &Handler{shares: shares}
 }
