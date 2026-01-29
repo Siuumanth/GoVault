@@ -24,21 +24,21 @@ import (
 		SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error
 	}
 */
-type FilesService struct {
+type FileService struct {
 	fileRepo  repository.FilesRepository
 	shareRepo repository.SharesRepository
 	storage   storage.FileStorage
 }
 
-func NewFilesService(f repository.FilesRepository, s repository.SharesRepository, fs storage.FileStorage) *FilesService {
-	return &FilesService{
+func NewFileService(f repository.FilesRepository, s repository.SharesRepository, fs storage.FileStorage) *FileService {
+	return &FileService{
 		fileRepo:  f,
 		shareRepo: s,
 		storage:   fs,
 	}
 }
 
-func (s *FilesService) UpdateFileName(ctx context.Context, in *inputs.UpdateFileNameInput) error {
+func (s *FileService) UpdateFileName(ctx context.Context, in *inputs.UpdateFileNameInput) error {
 
 	// if file is owned or user is editor then only allow
 	canEdit, err := s.canUserEditFile(ctx, in.FileID, in.ActorUserID)
@@ -59,7 +59,7 @@ func (s *FilesService) UpdateFileName(ctx context.Context, in *inputs.UpdateFile
 
 }
 
-func (s *FilesService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error) {
+func (s *FileService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error) {
 	/*
 		First check if user is owner of file
 		else check if file is public
@@ -81,7 +81,7 @@ func (s *FilesService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUI
 	}, nil
 }
 
-func (s *FilesService) ListOwnedFiles(ctx context.Context, in *inputs.ListOwnedFilesInput) ([]*model.FileSummary, error) {
+func (s *FileService) ListOwnedFiles(ctx context.Context, in *inputs.ListOwnedFilesInput) ([]*model.FileSummary, error) {
 	// definition
 	var files []*model.FileSummary
 	// repo handles joins + access check
@@ -92,7 +92,7 @@ func (s *FilesService) ListOwnedFiles(ctx context.Context, in *inputs.ListOwnedF
 	return files, nil
 }
 
-func (s *FilesService) ListSharedFiles(ctx context.Context, in *inputs.ListSharedFilesInput) ([]*model.FileSummary, error) {
+func (s *FileService) ListSharedFiles(ctx context.Context, in *inputs.ListSharedFilesInput) ([]*model.FileSummary, error) {
 	// definition
 	var files []*model.FileSummary
 	// repo handles joins + access check
@@ -103,7 +103,7 @@ func (s *FilesService) ListSharedFiles(ctx context.Context, in *inputs.ListShare
 	return files, nil
 }
 
-func (s *FilesService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error) {
+func (s *FileService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error) {
 
 	// first check if user has access to the file
 	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
@@ -148,7 +148,7 @@ func (s *FilesService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopy
 	return newFile, nil
 }
 
-func (s *FilesService) SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error {
+func (s *FileService) SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error {
 
 	// first check if user has access to the file
 	file, err := s.fileRepo.FetchFileSummaryByID(ctx, fileID)

@@ -4,28 +4,31 @@ import (
 	"context"
 	"files/internal/model"
 	"files/internal/repository"
+	"files/internal/service/files"
 	"files/internal/service/inputs"
+	"files/internal/service/shares"
+	"files/internal/service/shortcuts"
 	"files/internal/storage"
 
 	"github.com/google/uuid"
 )
 
 type ServiceRegistry struct {
-	Files     FilesService
-	Sharing   SharesService
-	Shortcuts ShortcutsService
+	Files     *files.FileService
+	Shares    *shares.ShareService
+	Shortcuts *shortcuts.ShortcutService
 }
 
 // func that takes in repo registry and returns service registry:
 func NewServiceRegistry(r *repository.RepoRegistry, storage storage.FileStorage) *ServiceRegistry {
 	return &ServiceRegistry{
-		Files:     NewFilesService(r.Files, r.Shares, storage),
-		Sharing:   NewSharesService(registry),
-		Shortcuts: NewShortcutsService(registry),
+		Files:     files.NewFileService(r.Files, r.Shares, storage),
+		Shares:    shares.NewShareService(r.Shares),
+		Shortcuts: shortcuts.NewShortcutService(r.Files, r.Shares, r.Shortcuts),
 	}
 }
 
-type FilesService interface {
+type FilesServiceMethods interface {
 	UpdateFileName(ctx context.Context, in *inputs.UpdateFileNameInput) error
 	GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error)
 
@@ -35,7 +38,7 @@ type FilesService interface {
 	MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error)
 	SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error
 }
-type SharesService interface {
+type SharesServiceMethods interface {
 	AddFileShares(ctx context.Context, in *inputs.AddFileSharesInput) error
 	UpdateFileShare(ctx context.Context, in *inputs.UpdateFileShareInput) error
 	RemoveFileShare(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID, recipientUserID uuid.UUID) error
@@ -44,7 +47,7 @@ type SharesService interface {
 	RemovePublicAccess(ctx context.Context, in *inputs.RemovePublicAccessInput) error
 }
 
-type ShortcutsService interface {
+type ShortcutsServiceMethods interface {
 	CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error)
 	DeleteShortcut(ctx context.Context, in *inputs.DeleteShortcutInput) error
 }

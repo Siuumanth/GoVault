@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *FilesService) checkFileAccess(
+func (s *FileService) checkFileAccess(
 	ctx context.Context,
 	fileID uuid.UUID,
 	actorUserID uuid.UUID,
@@ -46,7 +46,7 @@ func (s *FilesService) checkFileAccess(
 	return nil, shared.ErrUnauthorized
 }
 
-func (s *FilesService) canUserEditFile(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
+func (s *FileService) canUserEditFile(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
 	isOwner, err := s.fileRepo.CheckFileOwnership(ctx, fileID, userID)
 	if err != nil {
 		return false, err

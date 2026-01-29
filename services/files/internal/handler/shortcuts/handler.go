@@ -1,11 +1,11 @@
 package shortcuts
 
-import "files/internal/service"
+import "files/internal/service/shortcuts"
 
 type Handler struct {
-	shortcuts service.ShortcutsService
+	shortcuts shortcuts.ShortcutService
 }
 
-func New(shortcuts service.ShortcutsService) *Handler {
+func New(shortcuts shortcuts.ShortcutService) *Handler {
 	return &Handler{shortcuts: shortcuts}
 }

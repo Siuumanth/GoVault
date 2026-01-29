@@ -3,6 +3,7 @@ package main
 import (
 	"files/internal/database"
 	"files/internal/repository"
+	"files/internal/service"
 	"log"
 	"os"
 
@@ -20,8 +21,10 @@ func main() {
 	}
 	defer db.Close()
 
-	repo := repository.NewPostgresRegistry(db)
+	repoReg := repository.NewPostgresRegistry(db)
+	st := storage.NewStorage(repoReg)
 
-	// ---------- SERVER ----------
+	// ---------- SERvice ----------
+	s := service.NewServiceRegistry(repoReg)
 
 }

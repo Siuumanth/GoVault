@@ -1,11 +1,11 @@
 package shares
 
-import "files/internal/service"
+import "files/internal/service/shares"
 
 type Handler struct {
-	shares service.SharesService
+	shares shares.ShareService
 }
 
-func New(shares service.SharesService) *Handler {
+func New(shares shares.ShareService) *Handler {
 	return &Handler{shares: shares}
 }

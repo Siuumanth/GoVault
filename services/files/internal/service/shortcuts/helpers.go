@@ -1,6 +1,5 @@
-package shortcut
+package shortcuts
 
-// TODO: update names to plural
 import (
 	"context"
 	"files/internal/model"
@@ -9,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *ShortcutsService) checkFileAccess(
+func (s *ShortcutService) checkFileAccess(
 	ctx context.Context,
 	fileID uuid.UUID,
 	actorUserID uuid.UUID,

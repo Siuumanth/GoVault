@@ -1,11 +1,13 @@
 package files
 
-import "files/internal/service"
+import (
+	"files/internal/service/files"
+)
 
 type Handler struct {
-	files service.FilesService
+	files files.FileService
 }
 
-func New(files service.FilesService) *Handler {
+func New(files files.FileService) *Handler {
 	return &Handler{files: files}
 }

@@ -1,4 +1,4 @@
-package shortcut
+package shortcuts
 
 import (
 	"context"
@@ -14,13 +14,25 @@ type ShortcutRepository interface {
 }
 */
 
-type ShortcutsService struct {
+type ShortcutService struct {
 	filesRepo     repository.FilesRepository
 	sharesRepo    repository.SharesRepository
 	shortcutsRepo repository.ShortcutsRepository
 }
 
-func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
+func NewShortcutService(
+	filesRepo repository.FilesRepository,
+	sharesRepo repository.SharesRepository,
+	shortcutsRepo repository.ShortcutsRepository,
+) *ShortcutService {
+	return &ShortcutService{
+		filesRepo:     filesRepo,
+		sharesRepo:    sharesRepo,
+		shortcutsRepo: shortcutsRepo,
+	}
+}
+
+func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)
 	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
@@ -35,7 +47,7 @@ func (s *ShortcutsService) CreateShortcut(ctx context.Context, in *inputs.Create
 	)
 }
 
-func (s *ShortcutsService) DeleteShortcut(
+func (s *ShortcutService) DeleteShortcut(
 	ctx context.Context,
 	in *inputs.DeleteShortcutInput,
 ) error {
