@@ -1,6 +1,5 @@
 package shared
 
-// TODO: Add limit and pgnos
 const (
 	S3UsersURI          = "s3://govault-files/users/"
 	S3UsersPrefix       = "users/"
