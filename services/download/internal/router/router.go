@@ -1,19 +1,13 @@
 package router
 
 import (
-	"auth/internal/handler"
-	"net/http"
+	"download/internal/handler"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(h handler.UserHandlerInterface) http.Handler {
-	r := chi.NewRouter()
-
+func RegisterDownloadRoutes(r chi.Router, h *handler.Handler) {
 	r.Route("/", func(r chi.Router) {
-		r.Post("/signup", h.SignupHandler)
-		r.Post("/login", h.LoginHandler)
-		r.Get("/health", h.HealthCheckHandler)
+		r.Get("/download/url", h.GetDownloadURL)
 	})
-	return r
 }

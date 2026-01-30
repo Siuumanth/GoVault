@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/lib/pq"
 )
@@ -17,6 +18,7 @@ func Connect(url string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
+	fmt.Println("connected to database")
 
 	return db, nil
 }

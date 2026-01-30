@@ -1,44 +1,58 @@
 package main
 
 import (
-	"auth/internal/dao"
-	"auth/internal/database"
-	"auth/internal/handler"
-	"auth/internal/router"
-	"auth/internal/service"
-	"fmt"
+	"context"
+	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"download/internal/database"
+	"download/internal/handler"
+	"download/internal/repository"
+	"download/internal/router"
+	"download/internal/service"
+	"download/internal/storage"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 )
 
-/*
-Here we have to define all db, dao, service handlers, etc and connect them all
-*/
 func main() {
-	godotenv.Load() // loads .env from root
-	fmt.Println("Starting server...")
+	godotenv.Load()
+
 	dbURL := os.Getenv("GOVAULT_POSTGRES_URL_DEV")
-
-	fmt.Println("DB URL:", dbURL)
-
 	db, err := database.Connect(dbURL)
 	if err != nil {
-		fmt.Println("DB connection Erorr ")
-		panic(err)
+		log.Fatal(err)
 	}
-	fmt.Println("Connected to database...")
 
-	authDao := dao.NewPostgresUserDAO(db)
-	authService := service.NewAuthService(authDao)
-	authHandler := handler.NewAuthHandler(authService)
-	userRouter := router.NewRouter(authHandler)
+	repos := repository.NewRegistryFromDB(db)
 
-	err = http.ListenAndServe(":9001", userRouter)
+	awsCfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		fmt.Println("Error starting server")
-		panic(err)
+		log.Fatal(err)
 	}
 
+	s3Client := s3.NewFromConfig(awsCfg)
+	bucket := os.Getenv("BUCKET_NAME")
+	s3Storage := storage.NewS3Storage(s3Client, bucket)
+
+	downloadService := service.NewDownloadService(repos, s3Storage)
+	downloadHandler := handler.NewDownloadHandler(downloadService)
+
+	r := chi.NewRouter()
+	router.RegisterDownloadRoutes(r, downloadHandler)
+
+	server := &http.Server{
+		Addr:         ":9003",
+		Handler:      r,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 0, // streaming
+	}
+
+	log.Println("Download service running on :9003")
+	log.Fatal(server.ListenAndServe())
 }
