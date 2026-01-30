@@ -15,5 +15,10 @@ func NewRouter(h handler.UserHandlerInterface) http.Handler {
 		r.Post("/login", h.LoginHandler)
 		r.Get("/health", h.HealthCheckHandler)
 	})
+	// internal
+	r.Route("/internal", func(r chi.Router) {
+		r.Post("/resolve-users", h.ResolveUserIDsHandler)
+	})
+
 	return r
 }

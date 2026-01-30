@@ -1,7 +1,8 @@
-package dao
+package postgres
 
 import (
 	model "auth/internal/model"
+	"context"
 	"database/sql"
 	"errors"
 
@@ -19,10 +20,10 @@ func NewPostgresUserDAO(db *sql.DB) *PGUserDAO {
 	return &PGUserDAO{db: db}
 }
 
-func (p *PGUserDAO) CreateUser(user model.NewUser) error {
+func (p *PGUserDAO) CreateUser(ctx context.Context, user model.NewUser) error {
 	// we have CreateUserQuery
 	// db.exec when we dont expect rows back
-	_, err := p.db.Exec(CreateUserQuery, user.Email, user.Username, user.PasswordHash)
+	_, err := p.db.ExecContext(ctx, CreateUserQuery, user.Email, user.Username, user.PasswordHash)
 	if err != nil {
 		// check duplicate violation
 		if pgErr, ok := err.(*pq.Error); ok {
@@ -35,9 +36,9 @@ func (p *PGUserDAO) CreateUser(user model.NewUser) error {
 	return nil
 }
 
-func (p *PGUserDAO) GetUserByEmail(email string) (model.DomainUser, error) {
+func (p *PGUserDAO) GetUserByEmail(ctx context.Context, email string) (model.DomainUser, error) {
 	// we have GetUserByEmailQuery
-	rows := p.db.QueryRow(GetUserByEmailQuery, email)
+	rows := p.db.QueryRowContext(ctx, GetUserByEmailQuery, email)
 
 	var user model.DomainUser
 	err := rows.Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)

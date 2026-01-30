@@ -1,7 +1,7 @@
 package main
 
 import (
-	"auth/internal/dao"
+	"auth/internal/dao/postgres"
 	"auth/internal/database"
 	"auth/internal/handler"
 	"auth/internal/router"
@@ -30,7 +30,7 @@ func main() {
 	}
 	fmt.Println("Connected to database...")
 
-	authDao := dao.NewPostgresUserDAO(db)
+	authDao := postgres.NewPostgresUserDAO(db)
 	authService := service.NewAuthService(authDao)
 	authHandler := handler.NewAuthHandler(authService)
 	userRouter := router.NewRouter(authHandler)

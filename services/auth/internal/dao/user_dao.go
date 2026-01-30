@@ -1,9 +1,14 @@
 package dao
 
-import model "auth/internal/model"
+import (
+	model "auth/internal/model"
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type UserDAO interface {
-	// user creation doesnt mean user logging in, just create
-	CreateUser(user model.NewUser) error
-	GetUserByEmail(email string) (model.DomainUser, error)
+	CreateUser(ctx context.Context, user model.NewUser) error
+	GetUserByEmail(ctx context.Context, email string) (model.DomainUser, error)
+	ResolveUserIDsByEmails(ctx context.Context, emails []string) (map[string]uuid.UUID, error)
 }

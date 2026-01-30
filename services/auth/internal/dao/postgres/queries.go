@@ -1,4 +1,4 @@
-package dao
+package postgres
 
 /*
 Only 2 main queries needed

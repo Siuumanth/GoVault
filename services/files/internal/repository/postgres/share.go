@@ -246,33 +246,33 @@ func (r *FileShareRepository) IsFileEditableByUser(ctx context.Context, fileID u
 	return res == "editor", err
 }
 
-const ResolveUserIDsByEmailsQuery = `SELECT id, email FROM users WHERE email = ANY($1)`
+// const ResolveUserIDsByEmailsQuery = `SELECT id, email FROM users WHERE email = ANY($1)`
 
-func (r *FileShareRepository) ResolveUserIDsByEmails(
-	ctx context.Context,
-	emails []string,
-) (map[string]uuid.UUID, error) {
+// func (r *FileShareRepository) ResolveUserIDsByEmails(
+// 	ctx context.Context,
+// 	emails []string,
+// ) (map[string]uuid.UUID, error) {
 
-	rows, err := r.db.QueryContext(
-		ctx,
-		ResolveUserIDsByEmailsQuery,
-		emails,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// 	rows, err := r.db.QueryContext(
+// 		ctx,
+// 		ResolveUserIDsByEmailsQuery,
+// 		emails,
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	result := make(map[string]uuid.UUID)
+// 	result := make(map[string]uuid.UUID)
 
-	for rows.Next() {
-		var id uuid.UUID
-		var email string
-		if err := rows.Scan(&id, &email); err != nil {
-			return nil, err
-		}
-		result[email] = id
-	}
+// 	for rows.Next() {
+// 		var id uuid.UUID
+// 		var email string
+// 		if err := rows.Scan(&id, &email); err != nil {
+// 			return nil, err
+// 		}
+// 		result[email] = id
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }

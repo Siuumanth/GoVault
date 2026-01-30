@@ -11,6 +11,7 @@ type UserHandlerInterface interface {
 	SignupHandler(w http.ResponseWriter, r *http.Request)
 	LoginHandler(w http.ResponseWriter, r *http.Request)
 	HealthCheckHandler(w http.ResponseWriter, r *http.Request)
+	ResolveUserIDsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // to call services
@@ -37,7 +38,7 @@ func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Signup(user); err != nil {
+	if err := h.service.Signup(r.Context(), user); err != nil {
 		ErrorJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -60,7 +61,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authResponse, err := h.service.Login(userReq)
+	authResponse, err := h.service.Login(r.Context(), userReq)
 	if err != nil {
 		ErrorJSON(w, http.StatusBadRequest, err.Error())
 		return
