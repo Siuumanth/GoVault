@@ -25,8 +25,6 @@ Steps to create the api gatway:
 4. Inject router while buidling gateway
 */
 
-// TODO: Add graceful shutdown code
-
 func main() {
 	godotenv.Load()
 

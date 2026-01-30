@@ -20,6 +20,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// TODO: Make it multipart uplaod
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
