@@ -96,7 +96,7 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileShar
 	for _, r := range in.Recipients {
 		emails = append(emails, r.Email)
 	}
-
+	// TODO: user Auth microservice for this
 	// bulk resolve emails → userIDs
 	emailToUserID, err := s.shareRepo.ResolveUserIDsByEmails(ctx, emails)
 	if err != nil {

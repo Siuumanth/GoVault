@@ -11,6 +11,6 @@ type FileSummaryResponse struct {
 	OwnerID   string    `json:"owner_id"`
 	Name      string    `json:"name"`
 	MimeType  string    `json:"mime_type"`
-	Size      int64     `json:"size"`
+	SizeBytes int64     `json:"size_bytes"`
 	CreatedAt time.Time `json:"created_at"`
 }

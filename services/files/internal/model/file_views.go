@@ -26,3 +26,11 @@ type CreateFileParams struct {
 	Checksum   *string
 	StorageKey string
 }
+
+type DownloadRow struct {
+	StorageKey string
+}
+type DownloadResponse struct {
+	StorageKey string
+	ExpiresAt  time.Time
+}
