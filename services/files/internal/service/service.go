@@ -38,8 +38,8 @@ type FilesServiceMethods interface {
 	MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error)
 	SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error
 
-	// Internal
-	GetDownloadDetails(ctx context.Context, fildID uuid.UUID) (*model.DownloadDetails, error)
+	// Download
+	GetDownloadDetails(ctx context.Context, fildID uuid.UUID) (*model.DownloadRow, error)
 }
 type SharesServiceMethods interface {
 	AddFileShares(ctx context.Context, in *inputs.AddFileSharesInput) error

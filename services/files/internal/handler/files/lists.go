@@ -35,7 +35,7 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 			OwnerID:   f.UserID.String(),
 			Name:      f.Name,
 			MimeType:  f.MimeType,
-			Size:      f.SizeBytes,
+			SizeBytes: f.SizeBytes,
 			CreatedAt: f.CreatedAt,
 		})
 	}
@@ -70,7 +70,7 @@ func (h *Handler) ListSharedFiles(w http.ResponseWriter, r *http.Request) {
 			OwnerID:   f.UserID.String(),
 			Name:      f.Name,
 			MimeType:  f.MimeType,
-			Size:      f.SizeBytes,
+			SizeBytes: f.SizeBytes,
 			CreatedAt: f.CreatedAt,
 		})
 	}

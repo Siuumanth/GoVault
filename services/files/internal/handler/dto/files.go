@@ -14,3 +14,8 @@ type FileSummaryResponse struct {
 	SizeBytes int64     `json:"size_bytes"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type DownloadInfoResponse struct {
+	DownloadURL string `json:"download_url"`
+	ExpiresAt   int64  `json:"expires_at"`
+}
