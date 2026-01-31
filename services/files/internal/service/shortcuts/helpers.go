@@ -2,46 +2,47 @@ package shortcuts
 
 import (
 	"context"
-	"files/internal/model"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
 )
 
+// TODO: MAke a commmon check file access helper for files and shortcuts services
+
 func (s *ShortcutService) checkFileAccess(
 	ctx context.Context,
 	fileID uuid.UUID,
 	actorUserID uuid.UUID,
-) (*model.File, error) {
+) (bool, error) {
 
 	// 1 fetch file (existence + not deleted)
-	file, err := s.filesRepo.FetchFullFileByID(ctx, fileID)
+	isOwner, err := s.filesRepo.CheckFileOwnership(ctx, fileID, actorUserID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	// 2owner check
-	if file.UserID == actorUserID {
-		return file, nil
+	if isOwner == true {
+		return true, nil
 	}
 
 	// 3public access
 	isPublic, err := s.sharesRepo.IsFilePublic(ctx, fileID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if isPublic {
-		return file, nil
+		return true, nil
 	}
 
 	// 4shared access
 	isShared, err := s.sharesRepo.IsFileSharedWithUser(ctx, fileID, actorUserID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if isShared {
-		return file, nil
+		return true, nil
 	}
 
-	return nil, shared.ErrUnauthorized
+	return false, shared.ErrUnauthorized
 }

@@ -65,20 +65,20 @@ func (s *FileService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUID
 		else check if file is public
 		else check if user has access by shared
 	*/
-	file, err := s.checkFileAccess(ctx, fileID, actorUserID)
+	isAllowed, err := s.checkFileAccess(ctx, fileID, actorUserID)
 
+	if err != nil {
+		return nil, err
+	} else if !isAllowed {
+		return nil, shared.ErrUnauthorized
+	}
+
+	file, err := s.fileRepo.FetchFileSummaryByID(ctx, fileID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.FileSummary{
-		FileUUID:  file.FileUUID,
-		UserID:    file.UserID,
-		Name:      file.FileName,
-		MimeType:  file.MimeType,
-		SizeBytes: file.SizeBytes,
-		CreatedAt: file.CreatedAt,
-	}, nil
+	return file, nil
 }
 
 func (s *FileService) ListOwnedFiles(ctx context.Context, in *inputs.ListOwnedFilesInput) ([]*model.FileSummary, error) {
@@ -106,9 +106,11 @@ func (s *FileService) ListSharedFiles(ctx context.Context, in *inputs.ListShared
 func (s *FileService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error) {
 
 	// first check if user has access to the file
-	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
+	isAllowed, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
 	if err != nil {
 		return nil, err
+	} else if !isAllowed {
+		return nil, shared.ErrUnauthorized
 	}
 
 	src, err := s.fileRepo.FetchFullFileByID(ctx, in.FileID)

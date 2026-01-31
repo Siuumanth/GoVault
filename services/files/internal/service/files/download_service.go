@@ -13,7 +13,13 @@ import (
 // used by Download/Upload services.
 func (s *FileService) GetDownloadDetails(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.DownloadResponse, error) {
 	// first verify if user can acccess file
-	_, err := s.checkFileAccess(ctx, fileID, userID)
+	isAllowed, err := s.checkFileAccess(ctx, fileID, userID)
+	if err != nil {
+		return nil, err
+	} else if !isAllowed {
+		return nil, shared.ErrUnauthorized
+	}
+
 	d, err := s.fileRepo.FetchDownloadInfo(ctx, fileID)
 	if err != nil {
 		return nil, err
@@ -21,14 +27,4 @@ func (s *FileService) GetDownloadDetails(ctx context.Context, fileID uuid.UUID, 
 	expiresAt := time.Now().Add(shared.DOWNLOAD_LINK_TTL)
 
 	return &model.DownloadResponse{StorageKey: d.StorageKey, ExpiresAt: expiresAt}, nil
-}
-
-// SystemVerifyAccess reuses your existing Public Service logic
-// to ensure the user has permission to the file before a download starts.
-func (s *FileService) SystemVerifyAccess(ctx context.Context, fileID, userID uuid.UUID) (bool, error) {
-	_, err := s.checkFileAccess(ctx, fileID, userID)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }

@@ -5,6 +5,7 @@ import (
 	"files/internal/model"
 	"files/internal/repository"
 	"files/internal/service/inputs"
+	"files/internal/shared"
 )
 
 /*
@@ -35,9 +36,11 @@ func NewShortcutService(
 func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)
-	_, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
+	isAllowed, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
 	if err != nil {
 		return nil, err
+	} else if !isAllowed {
+		return nil, shared.ErrUnauthorized
 	}
 
 	return s.shortcutsRepo.CreateShortcut(
