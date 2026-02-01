@@ -7,8 +7,8 @@ import (
 )
 
 type FileRepository interface {
-	CreateFile(file *model.File) error
-	GetByID(fileID uuid.UUID) (*model.File, error)
+	//CreateFile(file *model.File) error
+	//GetByID(fileID uuid.UUID) (*model.File, error)
 }
 
 // interface which stores methods for uploading chunks

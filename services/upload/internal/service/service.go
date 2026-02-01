@@ -1,6 +1,7 @@
 package service
 
 import (
+	"upload/internal/clients"
 	"upload/internal/model"
 	"upload/internal/repository"
 	"upload/internal/storage"
@@ -9,8 +10,9 @@ import (
 )
 
 type UploadService struct {
-	registry *repository.RepoRegistry
-	storage  storage.FileStorage
+	registry   *repository.RepoRegistry
+	storage    storage.FileStorage
+	fileClient *clients.FileClient
 }
 
 func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage) *UploadService {

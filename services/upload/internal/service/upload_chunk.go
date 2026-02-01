@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"upload/internal/clients"
 	"upload/internal/model"
 	"upload/shared"
 
@@ -108,7 +109,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		return s.fail(session.ID, err)
 	}
 	// get mimeType of final file
-	fileUUID := uuid.New()
+	//	fileUUID := uuid.New()
 	mimeType, err := DetectMimeFromFile(
 		finalPath,
 	)
@@ -122,20 +123,14 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		return s.fail(session.ID, err)
 	}
 
-	file := model.File{
-		FileUUID:  fileUUID,
-		SessionID: session.ID,
-		UserID:    session.UserID,
-		Name:      session.FileName,
-		SizeBytes: session.FileSize,
-		MimeType:  mimeType,
-		CheckSum:  &checksum,
-		StorageKey: fmt.Sprintf(
-			"%s%s/%s",
-			shared.S3UsersPrefix,
-			session.UserID,
-			fileUUID,
-		),
+	file := clients.CreateFileRequest{
+		UserID:     session.UserID,
+		UploadUUID: session.UploadUUID,
+		Name:       session.FileName,
+		MimeType:   mimeType,
+		SizeBytes:  session.FileSize,
+		StorageKey: finalPath,
+		CheckSum:   checksum,
 	}
 
 	// upload to Cloud
@@ -149,11 +144,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	}
 
 	// Create file row
-	err = s.registry.Files.CreateFile(&file)
-	if err != nil {
-		return s.fail(session.ID, err)
-	}
-
+	err = s.fileClient.AddFile(ctx, &file)
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
 	if err != nil {
 		return err

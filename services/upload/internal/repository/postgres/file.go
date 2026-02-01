@@ -2,11 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"errors"
-	"upload/internal/model"
-
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 /*
@@ -35,54 +30,56 @@ const (
 	`
 )
 
-func (p *PGFileRepo) CreateFile(file *model.File) error {
-	// we have CreateUserQuery
-	// fill all values of the file model to return
-	err := p.db.QueryRow(
-		CreateFileQuery,
-		file.FileUUID,
-		file.UserID,
-		file.SessionID,
-		file.Name,
-		file.MimeType,
-		file.SizeBytes,
-		file.StorageKey,
-	).Scan(&file.ID, &file.CreatedAt)
+// TODO: make it request files microservce
 
-	if err != nil {
-		// check duplicate violation
-		if pgErr, ok := err.(*pq.Error); ok {
-			if pgErr.Code == "23505" {
-				return errors.New("duplicate")
-			}
-		}
-		return err
-	}
-	return nil
-}
+// func (p *PGFileRepo) CreateFile(file *model.File) error {
+// 	// we have CreateUserQuery
+// 	// fill all values of the file model to return
+// 	err := p.db.QueryRow(
+// 		CreateFileQuery,
+// 		file.FileUUID,
+// 		file.UserID,
+// 		file.SessionID,
+// 		file.Name,
+// 		file.MimeType,
+// 		file.SizeBytes,
+// 		file.StorageKey,
+// 	).Scan(&file.ID, &file.CreatedAt)
 
-func (p *PGFileRepo) GetByID(fileID uuid.UUID) (*model.File, error) {
-	var file model.File
+// 	if err != nil {
+// 		// check duplicate violation
+// 		if pgErr, ok := err.(*pq.Error); ok {
+// 			if pgErr.Code == "23505" {
+// 				return errors.New("duplicate")
+// 			}
+// 		}
+// 		return err
+// 	}
+// 	return nil
+// }
 
-	// fill all values of the file model to return
-	err := p.db.QueryRow(GetFileQuery, fileID).Scan(
-		&file.FileUUID,
-		&file.UserID,
-		&file.SessionID,
-		&file.Name,
-		&file.MimeType,
-		&file.SizeBytes,
-		&file.StorageKey,
-		&file.CreatedAt,
-	)
+// func (p *PGFileRepo) GetByID(fileID uuid.UUID) (*model.File, error) {
+// 	var file model.File
 
-	if err != nil {
-		// if file not found
-		if err == sql.ErrNoRows {
-			return &model.File{}, nil
-		} else {
-			return &model.File{}, err
-		}
-	}
-	return &file, nil
-}
+// 	// fill all values of the file model to return
+// 	err := p.db.QueryRow(GetFileQuery, fileID).Scan(
+// 		&file.FileUUID,
+// 		&file.UserID,
+// 		&file.SessionID,
+// 		&file.Name,
+// 		&file.MimeType,
+// 		&file.SizeBytes,
+// 		&file.StorageKey,
+// 		&file.CreatedAt,
+// 	)
+
+// 	if err != nil {
+// 		// if file not found
+// 		if err == sql.ErrNoRows {
+// 			return &model.File{}, nil
+// 		} else {
+// 			return &model.File{}, err
+// 		}
+// 	}
+// 	return &file, nil
+// }

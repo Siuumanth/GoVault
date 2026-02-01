@@ -28,15 +28,15 @@ type UploadChunk struct {
 	UploadedAt time.Time
 }
 
-type File struct {
-	ID         int
-	FileUUID   uuid.UUID
-	UserID     uuid.UUID
-	SessionID  int
-	Name       string
-	MimeType   string
-	SizeBytes  int64
-	CheckSum   *string
-	StorageKey string
-	CreatedAt  time.Time
-}
+// type File struct {
+// 	ID         int
+// 	FileUUID   uuid.UUID
+// 	UserID     uuid.UUID
+// 	SessionID  int
+// 	Name       string
+// 	MimeType   string
+// 	SizeBytes  int64
+// 	CheckSum   *string
+// 	StorageKey string
+// 	CreatedAt  time.Time
+// }

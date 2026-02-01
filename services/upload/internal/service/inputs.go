@@ -15,3 +15,13 @@ type UploadChunkInput struct {
 	ChunkBytes []byte
 	CheckSum   string
 }
+
+// type CreateFileCommand struct {
+// 	UploadUUID uuid.UUID
+// 	UserID     uuid.UUID
+// 	Name       string
+// 	SizeBytes  int64
+// 	MimeType   string
+// 	CheckSum   string
+// 	StorageKey string
+// }
