@@ -40,7 +40,7 @@ func (h *Handler) GetSingleFileSummary(w http.ResponseWriter, r *http.Request) {
 		OwnerID:   file.UserID.String(),
 		Name:      file.Name,
 		MimeType:  file.MimeType,
-		Size:      file.SizeBytes,
+		SizeBytes: file.SizeBytes,
 		CreatedAt: file.CreatedAt,
 	})
 }

@@ -72,8 +72,9 @@ s
 */
 
 type ShareService struct {
-	shareRepo repository.SharesRepository
-	fileRepo  repository.FilesRepository
+	shareRepo  repository.SharesRepository
+	fileRepo   repository.FilesRepository
+	authClient *AuthClient
 }
 
 func NewShareService(shareRepo repository.SharesRepository) *ShareService {
@@ -96,9 +97,9 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileShar
 	for _, r := range in.Recipients {
 		emails = append(emails, r.Email)
 	}
-	// TODO: user Auth microservice for this
+	// Done: user Auth microservice for this
 	// bulk resolve emails → userIDs
-	emailToUserID, err := s.shareRepo.ResolveUserIDsByEmails(ctx, emails)
+	emailToUserID, err := s.authClient.ResolveEmails(ctx, emails)
 	if err != nil {
 		return err
 	}
