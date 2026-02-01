@@ -122,15 +122,22 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	if err != nil {
 		return s.fail(session.ID, err)
 	}
+	fileUUID := uuid.New()
 
 	file := clients.CreateFileRequest{
+		FileUUID:   fileUUID,
 		UserID:     session.UserID,
 		UploadUUID: session.UploadUUID,
 		Name:       session.FileName,
 		MimeType:   mimeType,
 		SizeBytes:  session.FileSize,
-		StorageKey: finalPath,
-		CheckSum:   checksum,
+		StorageKey: fmt.Sprintf(
+			"%s%s/%s",
+			shared.S3UsersPrefix,
+			session.UserID,
+			fileUUID,
+		),
+		CheckSum: checksum,
 	}
 
 	// upload to Cloud

@@ -15,7 +15,7 @@ type FileClient struct {
 	client  *http.Client
 }
 
-func NewAuthClient(url string) *FileClient {
+func NewFileClient(url string) *FileClient {
 	return &FileClient{
 		BaseURL: url,
 		// timeout 2 second

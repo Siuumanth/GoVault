@@ -3,6 +3,7 @@ package clients
 import "github.com/google/uuid"
 
 type CreateFileRequest struct {
+	FileUUID   uuid.UUID `json:"file_uuid"`
 	UploadUUID uuid.UUID `json:"upload_id"`
 	UserID     uuid.UUID `json:"user_id"`
 	Name       string    `json:"name"`
