@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"files/internal/clients"
 	"files/internal/database"
 	"files/internal/handler"
 	"files/internal/repository"
@@ -21,7 +22,10 @@ import (
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
-	dbURL := os.Getenv("GOVAULT_POSTGRES_URL_DEV")
+	dbURL := os.Getenv("GOVAULT_FILES_POSTGRES_URL")
+	if dbURL == "" {
+		log.Fatal("Database URL is not set")
+	}
 
 	db, err := database.Connect(dbURL)
 	if err != nil {
@@ -29,26 +33,31 @@ func main() {
 	}
 	defer db.Close()
 
-	repoReg := repository.NewPostgresRegistry(db)
+	repoRegistry := repository.NewPostgresRegistry(db)
 	// ---------- AWS / S3 ----------
 	s3Client := getS3Client()
 	bucket := os.Getenv("BUCKET_NAME")
 	s3Storage := storage.NewS3Storage(s3Client, bucket)
 
 	// ---------- SERvice ----------
-	s := service.NewServiceRegistry(repoReg, s3Storage)
+	authServiceURL := os.Getenv("GOVAULT_AUTH_SERVICE_URL")
+	if authServiceURL == "" {
+		log.Fatal("Auth service URL is not set")
+	}
+	authClient := clients.NewAuthClient(authServiceURL)
+	s := service.NewServiceRegistry(repoRegistry, s3Storage, authClient)
 
 	// ---------- HTTP ----------
 	h := handler.NewHandlerRegistry(s)
-	r := router.NewConfiguredChiRouter(h.Files, h.Shares, h.Shortcuts, h.Health)
+	filesRouter := router.NewConfiguredChiRouter(h.Files, h.Shares, h.Shortcuts, h.Health)
 	server := &http.Server{
 		Addr:         ":9003",
-		Handler:      r,
+		Handler:      filesRouter,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 
-	log.Println("Upload service running on :9003")
+	log.Println("Files service running on :9003")
 	log.Fatal(server.ListenAndServe())
 
 }

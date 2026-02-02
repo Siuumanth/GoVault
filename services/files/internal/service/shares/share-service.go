@@ -2,6 +2,7 @@ package shares
 
 import (
 	"context"
+	"files/internal/clients"
 	"files/internal/model"
 	"files/internal/repository"
 	"files/internal/service/inputs"
@@ -35,55 +36,26 @@ type ShareService interface {
 	AddPublicAccess(ctx context.Context, in *AddPublicAccessInput) error
 	RemovePublicAccess(ctx context.Context, in *RemovePublicAccessInput) error
 }
-	type FileShare struct {
-	ID               int64
-	FileID           int64
-	SharedWithUserID uuid.UUID
-	Permission       string
-	CreatedAt        time.Time
-}
-
-type File struct {
-	ID         int64
-	FileUUID   uuid.UUID
-	SessionID  *int64
-	UserID     uuid.UUID
-	FileName   string
-	MimeType   string
-	SizeBytes  int64
-	StorageKey string
-	Checksum   *string
-	CreatedAt  time.Time
-	DeletedAt  *time.Time
-}
-
-type ShareRecipientInput struct {
-	Email       string
-	Permissions string
-}
-
-type AddFileSharesInput struct {
-	FileID      uuid.UUID
-	ActorUserID uuid.UUID
-	Recipients  []ShareRecipientInput
-}
-s
 
 */
 
 type ShareService struct {
 	shareRepo  repository.SharesRepository
 	fileRepo   repository.FilesRepository
-	authClient *AuthClient
+	authClient *clients.AuthClient
 }
 
-func NewShareService(shareRepo repository.SharesRepository) *ShareService {
-	return &ShareService{shareRepo: shareRepo}
+func NewShareService(shareRepo repository.SharesRepository, fileRepo repository.FilesRepository, authClient *clients.AuthClient) *ShareService {
+	return &ShareService{
+		shareRepo:  shareRepo,
+		fileRepo:   fileRepo,
+		authClient: authClient,
+	}
 }
 
 func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileSharesInput) error {
 	// owner check
-	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
+	if err := s.fileRepo.CheckFileOwnership(ctx, in.FileID, in.ActorUserID); err != nil {
 		return err
 	}
 
@@ -98,7 +70,7 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileShar
 		emails = append(emails, r.Email)
 	}
 	// Done: user Auth microservice for this
-	// bulk resolve emails → userIDs
+	// bulk resolve emails to userIDs to insert shares
 	emailToUserID, err := s.authClient.ResolveEmails(ctx, emails)
 	if err != nil {
 		return err
@@ -128,7 +100,7 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileShar
 
 func (s *ShareService) UpdateFileShare(ctx context.Context, in *inputs.UpdateFileShareInput) error {
 	// validate if owner, only owner can update
-	if err := s.assertOwner(ctx, &in.FileID, &in.ActorUserID); err != nil {
+	if err := s.fileRepo.CheckFileOwnership(ctx, in.FileID, in.ActorUserID); err != nil {
 		return err
 	}
 
@@ -144,7 +116,7 @@ func (s *ShareService) UpdateFileShare(ctx context.Context, in *inputs.UpdateFil
 
 func (s *ShareService) RemoveFileShare(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID, recipientUserID uuid.UUID) error {
 	// validate if owner
-	if err := s.assertOwner(ctx, &fileID, &actorUserID); err != nil {
+	if err := s.fileRepo.CheckFileOwnership(ctx, fileID, actorUserID); err != nil {
 		return err
 	}
 
@@ -154,9 +126,8 @@ func (s *ShareService) RemoveFileShare(ctx context.Context, fileID uuid.UUID, ac
 
 func (s *ShareService) ListFileShares(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) ([]*model.FileShare, error) {
 	// validate if owner, only owner can list shares
-	if err := s.assertOwner(ctx, &fileID, &actorUserID); err != nil {
+	if err := s.fileRepo.CheckFileOwnership(ctx, fileID, actorUserID); err != nil {
 		return nil, err
 	}
-
 	return s.shareRepo.FetchAllFileShares(ctx, fileID)
 }

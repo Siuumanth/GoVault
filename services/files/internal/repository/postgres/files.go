@@ -51,7 +51,7 @@ func (r *FilesRepository) CheckFileOwnership(
 	ctx context.Context,
 	fileID uuid.UUID,
 	userID uuid.UUID,
-) (bool, error) {
+) error {
 
 	var exists bool
 	err := r.db.QueryRowContext(
@@ -61,7 +61,14 @@ func (r *FilesRepository) CheckFileOwnership(
 		userID,
 	).Scan(&exists)
 
-	return exists, err
+	if err != nil {
+		if !exists {
+			return shared.ErrUnauthorized
+		}
+		return err
+	}
+	return nil
+
 }
 
 const UpdateFileNameQuery = `

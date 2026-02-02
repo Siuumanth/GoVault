@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: MAke a commmon check file access helper for files and shortcuts services
+// TODO: MAke a commmon check file access helper for files and shortcuts services n make logic more error handling
 
 func (s *ShortcutService) checkFileAccess(
 	ctx context.Context,
@@ -15,15 +15,10 @@ func (s *ShortcutService) checkFileAccess(
 	actorUserID uuid.UUID,
 ) (bool, error) {
 
-	// 1 fetch file (existence + not deleted)
-	isOwner, err := s.filesRepo.CheckFileOwnership(ctx, fileID, actorUserID)
+	// 1,2 owner check (existence + not deleted)
+	err := s.filesRepo.CheckFileOwnership(ctx, fileID, actorUserID)
 	if err != nil {
 		return false, err
-	}
-
-	// 2owner check
-	if isOwner == true {
-		return true, nil
 	}
 
 	// 3public access

@@ -15,7 +15,7 @@ type FilesRepository interface {
 	FetchSharedFiles(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*model.FileSummary, error)
 	CreateFile(ctx context.Context, file *model.CreateFileParams) (*model.File, error)
 	SoftDeleteFile(ctx context.Context, fileID uuid.UUID) error
-	CheckFileOwnership(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error)
+	CheckFileOwnership(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error
 
 	// Internal methods
 	FetchDownloadInfo(ctx context.Context, fildID uuid.UUID) (*model.DownloadRow, error)

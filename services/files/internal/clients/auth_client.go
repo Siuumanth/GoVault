@@ -1,4 +1,4 @@
-package shares
+package clients
 
 import (
 	"bytes"
@@ -24,7 +24,6 @@ func NewAuthClient(url string) *AuthClient {
 	}
 }
 
-// TODO: add correct URL
 func (c *AuthClient) ResolveEmails(
 	ctx context.Context,
 	emails []string,

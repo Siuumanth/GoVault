@@ -2,6 +2,7 @@ package files
 
 import (
 	"context"
+	"errors"
 	"files/internal/shared"
 
 	"github.com/google/uuid"
@@ -13,15 +14,10 @@ func (s *FileService) checkFileAccess(
 	actorUserID uuid.UUID,
 ) (bool, error) {
 
-	// 1 fetch file (existence + not deleted)
-	isOwner, err := s.fileRepo.CheckFileOwnership(ctx, fileID, actorUserID)
+	// 1,2 fetch file (existence + not deleted)
+	err := s.fileRepo.CheckFileOwnership(ctx, fileID, actorUserID)
 	if err != nil {
 		return false, err
-	}
-
-	// 2owner check
-	if isOwner == true {
-		return true, nil
 	}
 
 	// 3public access
@@ -46,11 +42,9 @@ func (s *FileService) checkFileAccess(
 }
 
 func (s *FileService) canUserEditFile(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {
-	isOwner, err := s.fileRepo.CheckFileOwnership(ctx, fileID, userID)
-	if err != nil {
-		return false, err
-	}
-	if !isOwner {
+	err := s.fileRepo.CheckFileOwnership(ctx, fileID, userID)
+
+	if errors.Is(err, shared.ErrUnauthorized) {
 		isEditor, err := s.shareRepo.IsFileEditableByUser(ctx, fileID, userID)
 		if err != nil {
 			return false, err
@@ -58,6 +52,8 @@ func (s *FileService) canUserEditFile(ctx context.Context, fileID uuid.UUID, use
 		if !isEditor {
 			return false, shared.ErrUnauthorized
 		}
+	} else if err != nil {
+		return false, err
 	}
 
 	return true, nil
