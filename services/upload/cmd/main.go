@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"upload/internal/clients"
 	"upload/internal/database"
 	"upload/internal/handler"
 	"upload/internal/repository"
@@ -24,7 +25,7 @@ import (
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
-	dbURL := os.Getenv("GOVAULT_POSTGRES_URL_DEV")
+	dbURL := os.Getenv("GOVAULT_UPLOAD_POSTGRES_URL")
 	db, err := database.Connect(dbURL)
 	if err != nil {
 		log.Fatal(err)
@@ -32,16 +33,18 @@ func main() {
 
 	repos := repository.NewRegistryFromDB(db)
 	// ---------- AWS / S3 ----------
-	awsCfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	s3Client := s3.NewFromConfig(awsCfg)
+	s3Client := getS3Client()
 	bucket := os.Getenv("BUCKET_NAME")
 	s3Storage := storage.NewS3Storage(s3Client, bucket)
 
-	// ---------- Service ----------
-	uploadService := service.NewUploadService(repos, s3Storage)
+	// ---------- Service & Client ----------
+	fsURL := os.Getenv("GOVAULT_FILE_SERVICE_URL")
+	if dbURL == "" || fsURL == "" || bucket == "" {
+		log.Fatal("missing required env vars")
+	}
+
+	fc := clients.NewFileClient(fsURL)
+	uploadService := service.NewUploadService(repos, s3Storage, fc)
 
 	// ---------- Handler ----------
 	uploadHandler := handler.NewUploadHandler(uploadService)
@@ -60,4 +63,12 @@ func main() {
 
 	log.Println("Upload service running on :9002")
 	log.Fatal(server.ListenAndServe())
+}
+
+func getS3Client() *s3.Client {
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	return s3.NewFromConfig(cfg)
 }

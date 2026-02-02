@@ -2,11 +2,8 @@ package service
 
 import (
 	"upload/internal/clients"
-	"upload/internal/model"
 	"upload/internal/repository"
 	"upload/internal/storage"
-
-	"github.com/google/uuid"
 )
 
 type UploadService struct {
@@ -15,15 +12,16 @@ type UploadService struct {
 	fileClient *clients.FileClient
 }
 
-func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage) *UploadService {
+func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *UploadService {
 	return &UploadService{
-		registry: registry,
-		storage:  storage,
+		registry:   registry,
+		storage:    storage,
+		fileClient: fileClient,
 	}
 }
 
-type ServiceMethods interface {
-	UploadSession(inputs *UploadSessionInput) (*model.UploadSession, error)
-	UploadChunk(inputs *UploadChunkInput) (*model.UploadChunk, error)
-	GetUploadStatus(upload_uuid uuid.UUID) (*model.UploadSession, error)
-}
+// type ServiceMethods interface {
+// 	UploadSession(inputs *UploadSessionInput) (*model.UploadSession, error)
+// 	UploadChunk(inputs *UploadChunkInput) (*model.UploadChunk, error)
+// 	GetUploadStatus(upload_uuid uuid.UUID) (*model.UploadSession, error)
+// }
