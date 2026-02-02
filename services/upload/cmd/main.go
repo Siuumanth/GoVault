@@ -22,6 +22,8 @@ import (
 )
 
 // TODO: Make it multipart uplaod
+// TODO: add graceful shutdown
+
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
@@ -43,20 +45,20 @@ func main() {
 		log.Fatal("missing required env vars")
 	}
 
-	fc := clients.NewFileClient(fsURL)
-	uploadService := service.NewUploadService(repos, s3Storage, fc)
+	fileClient := clients.NewFileClient(fsURL)
+	uploadService := service.NewUploadService(repos, s3Storage, fileClient)
 
 	// ---------- Handler ----------
 	uploadHandler := handler.NewUploadHandler(uploadService)
 
 	// ---------- Router ----------
-	r := chi.NewRouter()
-	router.RegisterUploadRoutes(r, uploadHandler)
+	mainRouter := chi.NewRouter()
+	router.RegisterUploadRoutes(mainRouter, uploadHandler)
 
 	// ---------- Server ----------
 	server := &http.Server{
 		Addr:         ":9002",
-		Handler:      r,
+		Handler:      mainRouter,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}

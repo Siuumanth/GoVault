@@ -19,6 +19,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// TODO: add graceful shutdown
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
