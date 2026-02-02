@@ -1,2 +1,4 @@
 ./services/auth/.env
 ./services/upload/.env
+./archieve
+./archieve/
