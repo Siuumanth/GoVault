@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 	"upload/internal/clients"
 	"upload/internal/model"
 	"upload/shared"
@@ -140,18 +141,18 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		CheckSum: checksum,
 	}
 
+	// detatch context and put
+	backgroundCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 4*time.Minute)
+	defer cancel()
 	// upload to Cloud
-	err = s.storage.UploadFile(
-		ctx,
-		file.StorageKey,
-		finalPath,
-	)
+	// send a cancel without context for handlning failed uploads
+	err = s.storage.UploadFile(backgroundCtx, file.StorageKey, finalPath)
 	if err != nil {
-		return s.fail(session.ID, err)
+		return s.fail(session.ID, fmt.Errorf("s3 upload failed: %w", err))
 	}
 
 	// Create file row
-	err = s.fileClient.AddFile(ctx, &file)
+	err = s.fileClient.AddFile(backgroundCtx, &file)
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
 	if err != nil {
 		return err

@@ -73,8 +73,8 @@ func (r *FilesRepository) CheckFileOwnership(
 
 const UpdateFileNameQuery = `
 		UPDATE files
-		SET name = $2
-		WHERE id = $1
+		SET name = $1
+		WHERE file_uuid = $2
 		AND deleted_at IS NULL
 	`
 
@@ -83,8 +83,8 @@ func (r *FilesRepository) UpdateFileName(ctx context.Context, fileUUID uuid.UUID
 	result, err := r.db.ExecContext(
 		ctx,
 		UpdateFileNameQuery,
-		fileUUID,
 		newName,
+		fileUUID,
 	)
 	if err != nil {
 		return false, err
