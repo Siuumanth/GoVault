@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -57,12 +58,20 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 	if complete, _ := s.isUploadComplete(session); !complete {
 		return nil
 	}
-	//	fmt.Println("finalising upload")
-	// finalise upload by assemmblung, cloud
-	err = s.finalizeUpload(ctx, session)
-	if err != nil {
-		return err
-	}
+
+	// 1. Give the user an immediate "success" or "processing" signal
+	// 2. Process the heavy lifting in the background
+	go func() {
+		// Use Background to ensure the process doesn't die when the request ends
+		// But wrap it in a timeout so it doesn't hang forever
+		bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+		defer cancel()
+
+		if err := s.finalizeUpload(bgCtx, session); err != nil {
+			log.Printf("[ERROR] Finalization failed for session %d: %v", session.ID, err)
+		}
+	}()
+
 	return nil
 
 }
@@ -152,7 +161,9 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	}
 
 	// Create file row
-	err = s.fileClient.AddFile(backgroundCtx, &file)
+	if err := s.fileClient.AddFile(backgroundCtx, &file); err != nil {
+		return s.fail(session.ID, fmt.Errorf("failed to register file: %w", err))
+	}
 	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
 	if err != nil {
 		return err
