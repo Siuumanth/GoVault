@@ -40,13 +40,13 @@ import (
 // main func
 func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput) error {
 	// 1,2
-	session, err := s.mustAcceptChunks(input.UploadUUID)
+	session, err := s.mustAcceptChunks(ctx, input.UploadUUID)
 	if err != nil {
 		return err
 	}
 
 	// 3456
-	err = s.handleChunk(session, input)
+	err = s.handleChunk(ctx, session, input)
 	if err != nil {
 		if errors.Is(err, shared.ErrChunkAlreadyExists) {
 			return err
@@ -56,7 +56,7 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 	}
 	//fmt.Println("chunk storeds")
 	// 7. Count total chunks in chunks
-	if complete, _ := s.isUploadComplete(session); !complete {
+	if complete, _ := s.isUploadComplete(ctx, session); !complete {
 		return nil
 	}
 
@@ -79,6 +79,7 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 }
 
 func (s *UploadService) handleChunk(
+	ctx context.Context,
 	session *model.UploadSession,
 	input *UploadChunkInput,
 ) error {
@@ -92,7 +93,7 @@ func (s *UploadService) handleChunk(
 	tee := io.TeeReader(input.ChunkBytes, hasher)
 
 	// when bytes are being processed by tee, goes to two outlets at the same time
-	sizeBytes, err := storeChunk(input.ChunkID, tee, session.ID)
+	sizeBytes, err := storeChunk(ctx, input.ChunkID, tee, session.ID)
 	if err != nil {
 		return err
 	}
@@ -104,12 +105,13 @@ func (s *UploadService) handleChunk(
 	}
 
 	// Persist chunk metadata
-	err = s.registry.Chunks.CreateChunk(&model.UploadChunk{
-		SessionID:  session.ID,
-		ChunkIndex: input.ChunkID,
-		SizeBytes:  sizeBytes,
-		CheckSum:   calculatedChecksum,
-	})
+	err = s.registry.Chunks.CreateChunk(ctx,
+		&model.UploadChunk{
+			SessionID:  session.ID,
+			ChunkIndex: input.ChunkID,
+			SizeBytes:  sizeBytes,
+			CheckSum:   calculatedChecksum,
+		})
 
 	if errors.Is(err, shared.ErrChunkAlreadyExists) {
 		return err
@@ -118,6 +120,7 @@ func (s *UploadService) handleChunk(
 }
 
 func storeChunk(
+	ctx context.Context,
 	chunkID int,
 	data io.Reader,
 	sessionID int64,
@@ -148,8 +151,8 @@ func chunkPath(sessionID int64, chunkID int) string {
 	)
 }
 
-func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, error) {
-	count, err := s.registry.Chunks.CountBySession(session.ID)
+func (s *UploadService) isUploadComplete(ctx context.Context, session *model.UploadSession) (bool, error) {
+	count, err := s.registry.Chunks.CountBySession(ctx, session.ID)
 	if err != nil {
 		return false, err
 	}
@@ -157,17 +160,17 @@ func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, er
 }
 
 func (s *UploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
-	s.registry.Sessions.UpdateSessionStatus(session.ID, "assembling")
+	s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "assembling")
 
 	finalPath, err := s.assembleChunks(session.ID, session.TotalChunks)
 	if err != nil {
-		return s.fail(session.ID, err)
+		return s.fail(ctx, session.ID, err)
 	}
 	//	fmt.Println("Assenbled", finalPath)
 
-	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "uploading")
+	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "uploading")
 	if err != nil {
-		return s.fail(session.ID, err)
+		return s.fail(ctx, session.ID, err)
 	}
 	// get mimeType of final file
 	//	fileUUID := uuid.New()
@@ -175,13 +178,13 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 		finalPath,
 	)
 	if err != nil {
-		return s.fail(session.ID, err)
+		return s.fail(ctx, session.ID, err)
 	}
 	// Create File
 	// calculate checksum of final file
 	checksum, err := CalculateSHA256(finalPath)
 	if err != nil {
-		return s.fail(session.ID, err)
+		return s.fail(ctx, session.ID, err)
 	}
 	fileUUID := uuid.New()
 
@@ -208,14 +211,14 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 	// send a cancel without context for handlning failed uploads
 	err = s.storage.UploadFile(backgroundCtx, file.StorageKey, finalPath)
 	if err != nil {
-		return s.fail(session.ID, fmt.Errorf("s3 upload failed: %w", err))
+		return s.fail(ctx, session.ID, fmt.Errorf("s3 upload failed: %w", err))
 	}
 
 	// Create file row
 	if err := s.fileClient.AddFile(backgroundCtx, &file); err != nil {
-		return s.fail(session.ID, fmt.Errorf("failed to register file: %w", err))
+		return s.fail(ctx, session.ID, fmt.Errorf("failed to register file: %w", err))
 	}
-	err = s.registry.Sessions.UpdateSessionStatus(session.ID, "completed")
+	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
 	if err != nil {
 		return err
 	}
@@ -231,8 +234,8 @@ func (s *UploadService) removeSessionFolder(finalPath string) error {
 	return os.RemoveAll(filepath.Dir(finalPath))
 }
 
-func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, error) {
-	session, err := s.registry.Sessions.GetSessionByUUID(id)
+func (s *UploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*model.UploadSession, error) {
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -242,8 +245,8 @@ func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, er
 	return session, nil
 }
 
-func (s *UploadService) fail(sessionID int64, err error) error {
-	_ = s.registry.Sessions.UpdateSessionStatus(sessionID, "failed")
+func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
 
 	sessionDir := filepath.Join(
 		shared.UploadBasePath,

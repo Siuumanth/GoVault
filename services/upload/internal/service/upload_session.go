@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *UploadService) UploadSession(inputs *UploadSessionInput) (*model.UploadSession, error) {
+func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error) {
 	/*
 	   - calculate total chunks
 	   - insert session row to uploadSession table
@@ -28,7 +29,7 @@ func (s *UploadService) UploadSession(inputs *UploadSessionInput) (*model.Upload
 	session.TotalChunks = calculateTotalChunks(inputs.FileSizeBytes)
 
 	// insert session into database
-	err := s.registry.Sessions.CreateSession(&session)
+	err := s.registry.Sessions.CreateSession(ctx, &session)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,7 @@ func (s *UploadService) UploadSession(inputs *UploadSessionInput) (*model.Upload
 	_, err = createSessionDir(session.ID)
 	if err != nil {
 		// delete row if fail
-		s.registry.Sessions.UpdateSessionStatus(session.ID, "failed")
+		s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "failed")
 		return nil, err
 	}
 

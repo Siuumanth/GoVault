@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"upload/internal/model"
 
 	"github.com/google/uuid"
@@ -13,15 +14,15 @@ type FileRepository interface {
 
 // interface which stores methods for uploading chunks
 type UploadChunkRepository interface {
-	CreateChunk(chunk *model.UploadChunk) error
-	CountBySession(session_id int64) (int, error)
+	CreateChunk(ctx context.Context, chunk *model.UploadChunk) error
+	CountBySession(ctx context.Context, session_id int64) (int, error)
 }
 
 // TODO: ADD CONTEXT PROPAGRAION
 type UploadSessionRepository interface {
-	CreateSession(session *model.UploadSession) error
-	GetSessionByID(session_id int64) (*model.UploadSession, error)
-	GetSessionByUUID(upload_uuid uuid.UUID) (*model.UploadSession, error)
-	UpdateSessionStatus(session_id int64, status string) error
-	DeleteSessionChunks(session_id int64) error
+	CreateSession(ctx context.Context, session *model.UploadSession) error
+	GetSessionByID(ctx context.Context, session_id int64) (*model.UploadSession, error)
+	GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
+	UpdateSessionStatus(ctx context.Context, session_id int64, status string) error
+	DeleteSessionChunks(ctx context.Context, session_id int64) error
 }

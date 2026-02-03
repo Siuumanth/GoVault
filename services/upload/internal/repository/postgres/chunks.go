@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"upload/internal/model"
@@ -28,8 +29,9 @@ const (
 	GetSessionChunksCountQuery = `Select Count(*) from upload_chunks where session_id = $1`
 )
 
-func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {
-	err := p.db.QueryRow(
+func (p *PGChunkRepo) CreateChunk(ctx context.Context, chunk *model.UploadChunk) error {
+	err := p.db.QueryRowContext(
+		ctx,
 		CreateChunkQuery,
 		chunk.SessionID,
 		chunk.ChunkIndex,
@@ -49,8 +51,8 @@ func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {
 	return nil
 }
 
-func (p *PGChunkRepo) CountBySession(sessionID int64) (int, error) {
+func (p *PGChunkRepo) CountBySession(ctx context.Context, sessionID int64) (int, error) {
 	var total int
-	err := p.db.QueryRow(GetSessionChunksCountQuery, sessionID).Scan(&total)
+	err := p.db.QueryRowContext(ctx, GetSessionChunksCountQuery, sessionID).Scan(&total)
 	return total, err
 }

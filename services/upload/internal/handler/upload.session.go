@@ -21,11 +21,13 @@ func (h *Handler) CreateUploadSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.uploadService.UploadSession(&service.UploadSessionInput{
-		UserID:        userID,
-		FileName:      req.FileName,
-		FileSizeBytes: req.FileSizeBytes,
-	})
+	session, err := h.uploadService.UploadSession(
+		r.Context(),
+		&service.UploadSessionInput{
+			UserID:        userID,
+			FileName:      req.FileName,
+			FileSizeBytes: req.FileSizeBytes,
+		})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

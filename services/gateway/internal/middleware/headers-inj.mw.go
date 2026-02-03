@@ -23,6 +23,10 @@ get these context values and addd them to the header
 func NewHeadersInjection() Middleware {
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// delete headers for security
+			r.Header.Del("X-User-ID")
+			r.Header.Del("X-Auth-Expires")
+
 			authCtx, ok := utils.GetAuthContext(r.Context())
 			// we assume the previous MW have handled missing fields
 			if ok {

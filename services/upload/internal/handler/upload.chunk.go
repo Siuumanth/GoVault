@@ -55,13 +55,15 @@ func (h *Handler) UploadChunk(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// Call service with RAW STREAM
-	err = h.uploadService.UploadChunk(r.Context(), &service.UploadChunkInput{
-		UserID:     userID,
-		UploadUUID: uploadUUID,
-		ChunkID:    chunkID,
-		CheckSum:   checksum,
-		ChunkBytes: r.Body,
-	})
+	err = h.uploadService.UploadChunk(
+		r.Context(),
+		&service.UploadChunkInput{
+			UserID:     userID,
+			UploadUUID: uploadUUID,
+			ChunkID:    chunkID,
+			CheckSum:   checksum,
+			ChunkBytes: r.Body,
+		})
 	// io.ReadCloser is an io.Reader that returns an error after n Read calls return an error.
 	// This is useful for reading a stream that is known to be closed (e.g. HTTP response body).
 	readCloser := io.NopCloser(r.Body)

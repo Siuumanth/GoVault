@@ -26,7 +26,9 @@ func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.uploadService.GetUploadStatus(uploadUUID, userID)
+	session, err := h.uploadService.GetUploadStatus(
+		r.Context(),
+		uploadUUID, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

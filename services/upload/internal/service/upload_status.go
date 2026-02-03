@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"upload/internal/model"
 
@@ -8,9 +9,9 @@ import (
 )
 
 // Get upload status handler
-func (s *UploadService) GetUploadStatus(upload_uuid uuid.UUID, user_id uuid.UUID) (*model.UploadSession, error) {
+func (s *UploadService) GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID, user_id uuid.UUID) (*model.UploadSession, error) {
 
-	session, err := s.registry.Sessions.GetSessionByUUID(upload_uuid)
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, upload_uuid)
 	if err != nil {
 		return nil, err
 	}

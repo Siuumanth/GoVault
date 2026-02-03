@@ -21,7 +21,7 @@ func NewUploadService(registry *repository.RepoRegistry, storage storage.FileSto
 }
 
 // type ServiceMethods interface {
-// 	UploadSession(inputs *UploadSessionInput) (*model.UploadSession, error)
-// 	UploadChunk(inputs *UploadChunkInput) (*model.UploadChunk, error)
-// 	GetUploadStatus(upload_uuid uuid.UUID) (*model.UploadSession, error)
+// 	UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error)
+// 	UploadChunk(ctx context.Context, inputs *UploadChunkInput) (*model.UploadChunk, error)
+// 	GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
 // }
