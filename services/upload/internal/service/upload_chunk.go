@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 	"upload/internal/clients"
 	"upload/internal/model"
@@ -70,31 +71,77 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 		if err := s.finalizeUpload(bgCtx, session); err != nil {
 			log.Printf("[ERROR] Finalization failed for session %d: %v", session.ID, err)
 		}
+		log.Println("[INFO] Upload complete for session", session.ID)
 	}()
 
 	return nil
 
 }
 
-func (s *UploadService) handleChunk(session *model.UploadSession, input *UploadChunkInput) error {
-	if err := verifyChecksum(input.ChunkBytes, input.CheckSum); err != nil {
+func (s *UploadService) handleChunk(
+	session *model.UploadSession,
+	input *UploadChunkInput,
+) error {
+
+	// Create a hash calculator
+	hasher := sha256.New()
+
+	// TeeReader:
+	// - data goes to hasher
+	// - data continues downstream
+	tee := io.TeeReader(input.ChunkBytes, hasher)
+
+	// when bytes are being processed by tee, goes to two outlets at the same time
+	sizeBytes, err := storeChunk(input.ChunkID, tee, session.ID)
+	if err != nil {
 		return err
 	}
 
-	if err := storeChunk(input.ChunkID, input.ChunkBytes, session.ID); err != nil {
-		return err
+	// Verify checksum AFTER stream ends
+	calculatedChecksum := hex.EncodeToString(hasher.Sum(nil))
+	if input.CheckSum != "" && calculatedChecksum != input.CheckSum {
+		return errors.New("checksum mismatch")
 	}
 
-	err := s.registry.Chunks.CreateChunk(&model.UploadChunk{
+	// Persist chunk metadata
+	err = s.registry.Chunks.CreateChunk(&model.UploadChunk{
 		SessionID:  session.ID,
 		ChunkIndex: input.ChunkID,
-		SizeBytes:  int64(len(input.ChunkBytes)),
-		CheckSum:   input.CheckSum,
+		SizeBytes:  sizeBytes,
+		CheckSum:   calculatedChecksum,
 	})
+
 	if errors.Is(err, shared.ErrChunkAlreadyExists) {
 		return err
 	}
 	return err
+}
+
+func storeChunk(
+	chunkID int,
+	data io.Reader,
+	sessionID int64,
+) (int64, error) {
+
+	path := chunkPath(sessionID, chunkID)
+
+	f, err := os.Create(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	// io.Copy returns number of bytes written
+	return io.Copy(f, data)
+}
+
+func chunkPath(sessionID int64, chunkID int) string {
+
+	return filepath.Join(
+		shared.UploadBasePath,
+		strconv.FormatInt(sessionID, 10),
+		fmt.Sprintf("chunk_%d", chunkID),
+	)
 }
 
 func (s *UploadService) isUploadComplete(session *model.UploadSession) (bool, error) {
@@ -198,41 +245,9 @@ func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, er
 	return session, nil
 }
 
-func (s *UploadService) fail(sessionID int, err error) error {
+func (s *UploadService) fail(sessionID int64, err error) error {
 	_ = s.registry.Sessions.UpdateSessionStatus(sessionID, "failed")
 	return err
-}
-
-func storeChunk(chunkID int, chunk []byte, sessionID int) error {
-	dirPath := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
-
-	err := os.MkdirAll(dirPath, 0755)
-	if err != nil {
-		return err
-	}
-
-	savePath := filepath.Join(dirPath, fmt.Sprintf("%d.part", chunkID))
-
-	err = os.WriteFile(savePath, chunk, 0644)
-	if err != nil {
-		return err
-	}
-
-	//fmt.Printf("chunk %d saved to %s\n", chunkID, savePath)
-	return nil
-}
-
-// Verify that the checksum of the given data matches the expected string.
-// If the checksum does not match, returns an error with the message "checksum mismatch".
-// Otherwise, returns nil.
-func verifyChecksum(data []byte, expected string) error {
-	hash := sha256.Sum256(data)
-	calculated := hex.EncodeToString(hash[:])
-
-	if calculated != expected {
-		return fmt.Errorf("checksum mismatch")
-	}
-	return nil
 }
 
 func DetectMimeFromFile(path string) (string, error) {

@@ -14,14 +14,14 @@ type FileRepository interface {
 // interface which stores methods for uploading chunks
 type UploadChunkRepository interface {
 	CreateChunk(chunk *model.UploadChunk) error
-	CountBySession(session_id int) (int, error)
+	CountBySession(session_id int64) (int, error)
 }
 
 // TODO: ADD CONTEXT PROPAGRAION
 type UploadSessionRepository interface {
 	CreateSession(session *model.UploadSession) error
-	GetSessionByID(session_id int) (*model.UploadSession, error)
+	GetSessionByID(session_id int64) (*model.UploadSession, error)
 	GetSessionByUUID(upload_uuid uuid.UUID) (*model.UploadSession, error)
-	UpdateSessionStatus(session_id int, status string) error
-	DeleteSessionChunks(session_id int) error
+	UpdateSessionStatus(session_id int64, status string) error
+	DeleteSessionChunks(session_id int64) error
 }

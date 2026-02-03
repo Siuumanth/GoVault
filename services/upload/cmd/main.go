@@ -21,9 +21,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// TODO: Make it multipart uplaod
+// TODO: Make it raw bytes uplaod
 // TODO: add graceful shutdown
-
+// TODO: add requets validatino for all microsrvices
+// TODO: Delete session if fail or after upload
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------

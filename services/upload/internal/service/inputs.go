@@ -1,6 +1,10 @@
 package service
 
-import "github.com/google/uuid"
+import (
+	"io"
+
+	"github.com/google/uuid"
+)
 
 type UploadSessionInput struct {
 	UserID        uuid.UUID
@@ -12,7 +16,7 @@ type UploadChunkInput struct {
 	UserID     uuid.UUID
 	UploadUUID uuid.UUID
 	ChunkID    int
-	ChunkBytes []byte
+	ChunkBytes io.Reader // ✅ stream
 	CheckSum   string
 }
 

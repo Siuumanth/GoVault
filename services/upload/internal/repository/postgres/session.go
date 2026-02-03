@@ -40,7 +40,7 @@ func (p *PGUploadSessionRepo) CreateSession(session *model.UploadSession) error 
 
 const GetSesssionByIDQUery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks FROM upload_sessions WHERE id = $1`
 
-func (p *PGUploadSessionRepo) GetSessionByID(session_id int) (*model.UploadSession, error) {
+func (p *PGUploadSessionRepo) GetSessionByID(session_id int64) (*model.UploadSession, error) {
 	var session model.UploadSession
 	err := p.db.QueryRow(GetSesssionByIDQUery, session_id).Scan(
 		&session.ID,
@@ -72,14 +72,14 @@ func (p *PGUploadSessionRepo) GetSessionByUUID(upload_uuid uuid.UUID) (*model.Up
 
 const UpdateSessionStatusQuery = `UPDATE upload_sessions SET status = $1 WHERE id = $2`
 
-func (p *PGUploadSessionRepo) UpdateSessionStatus(sessionID int, status string) error {
+func (p *PGUploadSessionRepo) UpdateSessionStatus(sessionID int64, status string) error {
 	_, err := p.db.Exec(UpdateSessionStatusQuery, status, sessionID)
 	return err
 }
 
 const DeleteSessionQuery = `DELETE FROM upload_sessions WHERE id = $1`
 
-func (p *PGUploadSessionRepo) DeleteSessionChunks(sessionID int) error {
+func (p *PGUploadSessionRepo) DeleteSessionChunks(sessionID int64) error {
 	_, err := p.db.Exec(DeleteSessionQuery, sessionID)
 	return err
 }

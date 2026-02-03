@@ -49,7 +49,7 @@ func (p *PGChunkRepo) CreateChunk(chunk *model.UploadChunk) error {
 	return nil
 }
 
-func (p *PGChunkRepo) CountBySession(sessionID int) (int, error) {
+func (p *PGChunkRepo) CountBySession(sessionID int64) (int, error) {
 	var total int
 	err := p.db.QueryRow(GetSessionChunksCountQuery, sessionID).Scan(&total)
 	return total, err

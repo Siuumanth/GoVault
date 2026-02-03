@@ -48,7 +48,7 @@ func calculateTotalChunks(fileSize int64) int {
 	return int((fileSize + shared.ChunkSizeBytes - 1) / shared.ChunkSizeBytes)
 }
 
-func createSessionDir(sessionID int) (string, error) {
+func createSessionDir(sessionID int64) (string, error) {
 	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
 
 	err := os.MkdirAll(dir, 0755)

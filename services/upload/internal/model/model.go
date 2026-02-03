@@ -9,7 +9,7 @@ import (
 // these are models returned by the repository and the actual schema
 
 type UploadSession struct {
-	ID          int       // internal BIGSERIAL
+	ID          int64     // internal BIGSERIAL
 	UploadUUID  uuid.UUID // public ID
 	UserID      uuid.UUID
 	FileName    string
@@ -20,8 +20,8 @@ type UploadSession struct {
 }
 
 type UploadChunk struct {
-	ID         int
-	SessionID  int
+	ID         int64
+	SessionID  int64 // upload sessions id
 	ChunkIndex int
 	SizeBytes  int64
 	CheckSum   string
