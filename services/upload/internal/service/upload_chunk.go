@@ -125,6 +125,11 @@ func storeChunk(
 
 	path := chunkPath(sessionID, chunkID)
 
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); err != nil {
+		return 0, fmt.Errorf("session directory missing: %w", err)
+	}
+
 	f, err := os.Create(path)
 	if err != nil {
 		return 0, err
@@ -136,11 +141,10 @@ func storeChunk(
 }
 
 func chunkPath(sessionID int64, chunkID int) string {
-
 	return filepath.Join(
 		shared.UploadBasePath,
 		strconv.FormatInt(sessionID, 10),
-		fmt.Sprintf("chunk_%d", chunkID),
+		fmt.Sprintf("%d.part", chunkID),
 	)
 }
 
@@ -224,14 +228,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 }
 
 func (s *UploadService) removeSessionFolder(finalPath string) error {
-	dirPath := filepath.Join(shared.UploadBasePath, filepath.Dir(finalPath))
-
-	err := os.RemoveAll(dirPath)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.RemoveAll(filepath.Dir(finalPath))
 }
 
 func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, error) {
@@ -247,6 +244,13 @@ func (s *UploadService) mustAcceptChunks(id uuid.UUID) (*model.UploadSession, er
 
 func (s *UploadService) fail(sessionID int64, err error) error {
 	_ = s.registry.Sessions.UpdateSessionStatus(sessionID, "failed")
+
+	sessionDir := filepath.Join(
+		shared.UploadBasePath,
+		strconv.FormatInt(sessionID, 10),
+	)
+	_ = os.RemoveAll(sessionDir)
+
 	return err
 }
 

@@ -20,8 +20,6 @@ get these context values and addd them to the header
 - main thing is userID and
 */
 
-type HeaderInjectionMW struct{}
-
 func NewHeadersInjection() Middleware {
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -59,8 +59,8 @@ func createSessionDir(sessionID int64) (string, error) {
 	return dir, nil
 }
 
-func deleteSessionDir(sessionID int) error {
-	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
+// func deleteSessionDir(sessionID int) error {
+// 	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
 
-	return os.RemoveAll(dir)
-}
+// 	return os.RemoveAll(dir)
+// }
