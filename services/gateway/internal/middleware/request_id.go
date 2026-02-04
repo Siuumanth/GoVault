@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func NewRequestID(next http.Handler) Middleware {
+func NewRequestIDGenerator() Middleware {
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

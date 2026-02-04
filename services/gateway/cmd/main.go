@@ -32,12 +32,13 @@ func main() {
 	authz := MW.NewAuthZ()
 	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{
-		JWT:              MW.NewJWT(),
-		CORS:             MW.NewCORS(),
-		SecurityHeaders:  MW.NewSecurityHeaders(),
-		Logger:           MW.NewLogger(),
-		RateLimiter:      MW.NewRateLimiter(rl),
-		HeadersInjection: MW.NewHeadersInjection(),
+		JWT:                MW.NewJWT(),
+		CORS:               MW.NewCORS(),
+		SecurityHeaders:    MW.NewSecurityHeaders(),
+		Logger:             MW.NewLogger(),
+		RateLimiter:        MW.NewRateLimiter(rl),
+		HeadersInjection:   MW.NewHeadersInjection(),
+		RequestIDGenerator: MW.NewRequestIDGenerator(),
 	}
 	gw := gateway.NewGateway(gatewayDeps)
 	proxies := router.NewProxies()

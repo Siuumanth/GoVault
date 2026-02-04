@@ -27,6 +27,7 @@ type Gateway struct {
 	logging         MW.Middleware
 	rateLimiter     MW.Middleware
 	headerInjection MW.Middleware
+	requestID       MW.Middleware
 }
 
 func NewGateway(deps *GatewayDeps) *Gateway {
@@ -37,5 +38,6 @@ func NewGateway(deps *GatewayDeps) *Gateway {
 		logging:         deps.Logger,
 		rateLimiter:     deps.RateLimiter,
 		headerInjection: deps.HeadersInjection,
+		requestID:       deps.RequestIDGenerator,
 	}
 }

@@ -14,6 +14,7 @@ func (g *Gateway) BuildGateway(router http.Handler) http.Handler {
 	router = g.cors.Handle(router)
 	router = g.securityHeaders.Handle(router)
 	router = g.logging.Handle(router)
+	router = g.requestID.Handle(router) // id generation happen first
 
 	return router
 }
