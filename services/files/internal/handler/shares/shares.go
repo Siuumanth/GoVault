@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// POST /{fileID}/shares
+// POST /{fileID}/shares (private)
 func (h *Handler) AddFileShares(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -46,7 +46,7 @@ func (h *Handler) AddFileShares(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shares.AddFileShares(r.Context(), &inputs.AddFileSharesInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 		Recipients:  recipients,
 	})
 	if err != nil {
@@ -62,9 +62,9 @@ func (h *Handler) AddFileShares(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// PATCH /{fileID}/shares/{userID}
+// PATCH /{fileID}/shares/{userID} (private)
 func (h *Handler) UpdateFileShare(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -90,7 +90,7 @@ func (h *Handler) UpdateFileShare(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shares.UpdateFileShare(r.Context(), &inputs.UpdateFileShareInput{
 		FileID:          fileID,
-		ActorUserID:     actorID,
+		ActorUserID:     *actorID,
 		RecipientUserID: userID,
 		Permission:      req.Permission,
 	})
@@ -102,9 +102,9 @@ func (h *Handler) UpdateFileShare(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// DELETE /{fileID}/shares/{userID}
+// DELETE /{fileID}/shares/{userID} (private)
 func (h *Handler) RemoveFileShare(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -122,7 +122,7 @@ func (h *Handler) RemoveFileShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.shares.RemoveFileShare(r.Context(), fileID, actorID, userID)
+	err = h.shares.RemoveFileShare(r.Context(), fileID, *actorID, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -131,9 +131,9 @@ func (h *Handler) RemoveFileShare(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GET /{fileID}/shares
+// GET /{fileID}/shares (private)
 func (h *Handler) ListFileShares(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -145,7 +145,7 @@ func (h *Handler) ListFileShares(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shares, err := h.shares.ListFileShares(r.Context(), fileID, actorID)
+	shares, err := h.shares.ListFileShares(r.Context(), fileID, *actorID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return

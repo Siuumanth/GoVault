@@ -8,9 +8,9 @@ import (
 	"files/internal/service/inputs"
 )
 
-// GET /moved
+// GET /owned (private)
 func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -19,7 +19,7 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 	limit, offset := common.GetPagination(r)
 
 	files, err := h.files.ListOwnedFiles(r.Context(), &inputs.ListOwnedFilesInput{
-		UserID: actorID,
+		UserID: *actorID,
 		Limit:  limit,
 		Offset: offset,
 	})
@@ -43,9 +43,9 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 	common.RespondJSON(w, http.StatusOK, dto.ListFilesResponse{Files: resp})
 }
 
-// GET /shared
+// GET /shared (Private)
 func (h *Handler) ListSharedFiles(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -54,7 +54,7 @@ func (h *Handler) ListSharedFiles(w http.ResponseWriter, r *http.Request) {
 	limit, offset := common.GetPagination(r)
 
 	files, err := h.files.ListSharedFiles(r.Context(), &inputs.ListSharedFilesInput{
-		UserID: actorID,
+		UserID: *actorID,
 		Limit:  limit,
 		Offset: offset,
 	})

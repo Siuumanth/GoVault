@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// POST /{fileID}/public
+// POST /{fileID}/public (private)
 func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -26,7 +26,7 @@ func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shares.AddPublicAccess(r.Context(), &inputs.AddPublicAccessInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 	})
 	if err != nil {
 		switch {
@@ -41,9 +41,9 @@ func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// DELETE /{fileID}/public
+// DELETE /{fileID}/public  (private)
 func (h *Handler) RemovePublicAccess(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -57,7 +57,7 @@ func (h *Handler) RemovePublicAccess(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shares.RemovePublicAccess(r.Context(), &inputs.RemovePublicAccessInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 	})
 	if err != nil {
 		switch {

@@ -36,7 +36,7 @@ func NewShortcutService(
 func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)
-	isAllowed, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
+	isAllowed, err := s.checkFileAccess(ctx, in.FileID, &in.ActorUserID)
 	if err != nil {
 		return nil, err
 	} else if !isAllowed {
@@ -46,7 +46,7 @@ func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateS
 	return s.shortcutsRepo.CreateShortcut(
 		ctx,
 		in.FileID,
-		*in.ActorUserID,
+		in.ActorUserID,
 	)
 }
 

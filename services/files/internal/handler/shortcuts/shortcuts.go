@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// POST /{fileID}/shortcut
+// POST /{fileID}/shortcut (private)
 func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -27,7 +27,7 @@ func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
 
 	sc, err := h.shortcuts.CreateShortcut(r.Context(), &inputs.CreateShortcutInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -41,9 +41,9 @@ func (h *Handler) CreateShortcut(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// DELETE /{fileID}/shortcut
+// DELETE /{fileID}/shortcut (private)
 func (h *Handler) DeleteShortcut(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -57,7 +57,7 @@ func (h *Handler) DeleteShortcut(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shortcuts.DeleteShortcut(r.Context(), &inputs.DeleteShortcutInput{
 		FileID:      shortcutID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
