@@ -9,6 +9,7 @@ type contextKey string
 
 const (
 	AuthContextKey contextKey = "auth"
+	RequestIDKey   contextKey = "request_id"
 )
 
 // this is for claiming from the JWt
