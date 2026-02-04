@@ -18,7 +18,6 @@ type UploadChunkRepository interface {
 	CountBySession(ctx context.Context, session_id int64) (int, error)
 }
 
-// TODO: ADD CONTEXT PROPAGRAION
 type UploadSessionRepository interface {
 	CreateSession(ctx context.Context, session *model.UploadSession) error
 	GetSessionByID(ctx context.Context, session_id int64) (*model.UploadSession, error)
