@@ -22,41 +22,53 @@ func NewConfiguredChiRouter(
 
 	r := chi.NewRouter()
 
-	// inject actor id from x-user-id (non blocking)
+	// identity extraction (optional)
 	r.Use(middleware.ActorContext)
 
-	// health
+	// ---------- public ----------
 	r.Get("/health", healthH.HealthHandler)
 
-	// lists
-	r.Get("/owned", filesH.ListOwnedFiles)
-	r.Get("/shared", filesH.ListSharedFiles)
-
-	// file scoped routes
+	// public file access
 	r.Route("/{fileID}", func(r chi.Router) {
-		// files
 		r.Get("/", filesH.GetSingleFileSummary)
-		r.Patch("/", filesH.UpdateFileName)
-		r.Delete("/", filesH.SoftDeleteFile)
-		r.Post("/copy", filesH.MakeFileCopy)
+	})
+	r.Route("/{fileID}/download", func(r chi.Router) {
+		r.Get("/", filesH.GetDownload)
+	})
 
-		// shares
-		r.Route("/shares", func(r chi.Router) {
-			r.Post("/", sharesH.AddFileShares)
-			r.Get("/", sharesH.ListFileShares)
-			r.Route("/{userID}", func(r chi.Router) {
-				r.Patch("/", sharesH.UpdateFileShare)
-				r.Delete("/", sharesH.RemoveFileShare)
+	// ---------- private ----------
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires user
+
+		// lists
+		r.Get("/owned", filesH.ListOwnedFiles)
+		r.Get("/shared", filesH.ListSharedFiles)
+
+		// file scoped private ops
+		r.Route("/{fileID}", func(r chi.Router) {
+			// files
+			r.Patch("/", filesH.UpdateFileName)
+			r.Delete("/", filesH.SoftDeleteFile)
+			r.Post("/copy", filesH.MakeFileCopy)
+
+			// shares
+			r.Route("/shares", func(r chi.Router) {
+				r.Post("/", sharesH.AddFileShares)
+				r.Get("/", sharesH.ListFileShares)
+				r.Route("/{userID}", func(r chi.Router) {
+					r.Patch("/", sharesH.UpdateFileShare)
+					r.Delete("/", sharesH.RemoveFileShare)
+				})
 			})
+
+			// public access toggles (owner-only)
+			r.Post("/public", sharesH.AddPublicAccess)
+			r.Delete("/public", sharesH.RemovePublicAccess)
+
+			// shortcuts
+			r.Post("/shortcut", shortcutsH.CreateShortcut)
+			r.Delete("/shortcut", shortcutsH.DeleteShortcut)
 		})
-
-		// public access (handled by shares)
-		r.Post("/public", sharesH.AddPublicAccess)
-		r.Delete("/public", sharesH.RemovePublicAccess)
-
-		// shortcuts
-		r.Post("/shortcut", shortcutsH.CreateShortcut)
-		r.Delete("/shortcut", shortcutsH.DeleteShortcut)
 	})
 
 	return r
