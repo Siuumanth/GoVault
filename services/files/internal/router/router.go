@@ -43,6 +43,7 @@ func NewConfiguredChiRouter(
 		// lists
 		r.Get("/owned", filesH.ListOwnedFiles)
 		r.Get("/shared", filesH.ListSharedFiles)
+		r.Get("/shortcuts", shortcutsH.ListShortcuts)
 
 		// file scoped private ops
 		r.Route("/{fileID}", func(r chi.Router) {

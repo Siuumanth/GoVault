@@ -26,6 +26,12 @@ type ListSharedFilesInput struct {
 	Offset int
 }
 
+type ListUsersShortcutsWithFilesInput struct {
+	UserID uuid.UUID
+	Limit  int
+	Offset int
+}
+
 // ---------- Sharing ----------
 type AddFileSharesInput struct {
 	FileID      uuid.UUID

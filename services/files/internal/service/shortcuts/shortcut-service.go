@@ -33,6 +33,10 @@ func NewShortcutService(
 	}
 }
 
+func (s *ShortcutService) ListUsersShortcutsWithFiles(ctx context.Context, in *inputs.ListUsersShortcutsWithFilesInput) ([]*model.FileSummary, error) {
+	return s.shortcutsRepo.FetchUsersShortcutsWithFiles(ctx, in.UserID, in.Limit, in.Offset)
+}
+
 func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateShortcutInput) (*model.FileShortcut, error) {
 
 	// verify access (owner OR public OR shared)

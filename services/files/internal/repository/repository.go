@@ -41,6 +41,12 @@ type SharesRepository interface {
 }
 
 type ShortcutsRepository interface {
+	FetchUsersShortcutsWithFiles(
+		ctx context.Context,
+		userID uuid.UUID,
+		limit int, offset int,
+	) ([]*model.FileSummary, error)
+
 	CreateShortcut(ctx context.Context, fileUUID uuid.UUID, userID uuid.UUID) (*model.FileShortcut, error)
 	DeleteShortcut(ctx context.Context, fileUUID uuid.UUID, userID uuid.UUID) error
 }

@@ -22,12 +22,75 @@ DELETE FROM file_shortcuts
 WHERE file_uuid = $1 AND user_id = $2
 `
 
+const FetchUsersShortcutsWithFilesQuery = `
+SELECT
+    f.file_uuid,
+    f.user_id,
+    f.file_name,
+    f.mime_type,
+    f.size_bytes,
+    f.created_at
+FROM file_shortcuts s
+JOIN files f ON f.file_uuid = s.file_uuid
+WHERE s.user_id = $1
+  AND f.deleted_at IS NULL
+ORDER BY f.created_at DESC
+LIMIT $2 OFFSET $3;
+
+`
+
 type ShortcutsRepository struct {
 	db *sql.DB
 }
 
 func NewShortcutsRepository(db *sql.DB) *ShortcutsRepository {
 	return &ShortcutsRepository{db: db}
+}
+
+func (r *ShortcutsRepository) FetchUsersShortcutsWithFiles(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+	offset int,
+) ([]*model.FileSummary, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		FetchUsersShortcutsWithFilesQuery,
+		userID,
+		limit,
+		offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []*model.FileSummary
+
+	for rows.Next() {
+		var fs model.FileSummary
+
+		err := rows.Scan(
+			&fs.FileUUID,
+			&fs.UserID,
+			&fs.Name,
+			&fs.MimeType,
+			&fs.SizeBytes,
+			&fs.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, &fs)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (r *ShortcutsRepository) CreateShortcut(
