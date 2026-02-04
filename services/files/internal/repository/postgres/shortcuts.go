@@ -19,7 +19,7 @@ RETURNING id, created_at
 
 const DeleteShortcutQuery = `
 DELETE FROM file_shortcuts
-WHERE file_id = $1 AND user_id = $2
+WHERE file_uuid = $1 AND user_id = $2
 `
 
 type ShortcutsRepository struct {
