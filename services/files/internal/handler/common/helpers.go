@@ -11,12 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
-func GetActorID(r *http.Request) (uuid.UUID, error) {
+func GetOptionalActorID(r *http.Request) *uuid.UUID {
+	if uid, ok := r.Context().Value(shared.ActorIDKey).(uuid.UUID); ok {
+		return &uid
+	}
+	return nil
+}
+
+func GetRequiredActorID(r *http.Request) (*uuid.UUID, error) {
 	uid, ok := r.Context().Value(shared.ActorIDKey).(uuid.UUID)
 	if !ok {
-		return uuid.Nil, shared.ErrUnauthorized
+		return nil, shared.ErrUnauthorized
 	}
-	return uid, nil
+	return &uid, nil
 }
 
 func DecodeJSON(r *http.Request, dst any) error {

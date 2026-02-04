@@ -46,7 +46,7 @@ func (s *ShortcutService) CreateShortcut(ctx context.Context, in *inputs.CreateS
 	return s.shortcutsRepo.CreateShortcut(
 		ctx,
 		in.FileID,
-		in.ActorUserID,
+		*in.ActorUserID,
 	)
 }
 

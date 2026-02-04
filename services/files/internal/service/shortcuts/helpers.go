@@ -12,14 +12,8 @@ import (
 func (s *ShortcutService) checkFileAccess(
 	ctx context.Context,
 	fileID uuid.UUID,
-	actorUserID uuid.UUID,
+	actorUserID *uuid.UUID,
 ) (bool, error) {
-
-	// 1,2 owner check (existence + not deleted)
-	err := s.filesRepo.CheckFileOwnership(ctx, fileID, actorUserID)
-	if err != nil {
-		return false, err
-	}
 
 	// 3public access
 	isPublic, err := s.sharesRepo.IsFilePublic(ctx, fileID)
@@ -30,8 +24,17 @@ func (s *ShortcutService) checkFileAccess(
 		return true, nil
 	}
 
+	if actorUserID == nil {
+		return false, shared.ErrUnauthorized
+	}
+
+	// 1,2 fetch file (existence + not deleted)
+	if err := s.filesRepo.CheckFileOwnership(ctx, fileID, *actorUserID); err == nil {
+		return true, nil
+	}
+
 	// 4shared access
-	isShared, err := s.sharesRepo.IsFileSharedWithUser(ctx, fileID, actorUserID)
+	isShared, err := s.sharesRepo.IsFileSharedWithUser(ctx, fileID, *actorUserID)
 	if err != nil {
 		return false, err
 	}

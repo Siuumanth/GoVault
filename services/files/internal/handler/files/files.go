@@ -12,17 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// GET /{fileID}
+// GET /{fileID} (public)
 func (h *Handler) GetSingleFileSummary(w http.ResponseWriter, r *http.Request) {
+	actorID := common.GetOptionalActorID(r)
 	fileID, err := uuid.Parse(r.PathValue("fileID"))
 	if err != nil {
 		http.Error(w, "invalid file id", http.StatusBadRequest)
 		return
 	}
 
-	actorID, _ := r.Context().Value(shared.ActorIDKey).(uuid.UUID)
-
 	file, err := h.files.GetSingleFileSummary(r.Context(), fileID, actorID)
+
 	if err != nil {
 		switch {
 		case errors.Is(err, shared.ErrRowNotFound):
@@ -45,9 +45,9 @@ func (h *Handler) GetSingleFileSummary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PATCH /{fileID}
+// PATCH /{fileID}  (private)
 func (h *Handler) UpdateFileName(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -67,7 +67,7 @@ func (h *Handler) UpdateFileName(w http.ResponseWriter, r *http.Request) {
 
 	err = h.files.UpdateFileName(r.Context(), &inputs.UpdateFileNameInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 		NewName:     req.Name,
 	})
 	if err != nil {
@@ -78,9 +78,9 @@ func (h *Handler) UpdateFileName(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// DELETE /{fileID}
+// DELETE /{fileID} (private)
 func (h *Handler) SoftDeleteFile(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -102,7 +102,7 @@ func (h *Handler) SoftDeleteFile(w http.ResponseWriter, r *http.Request) {
 
 // POST /{fileID}/copy
 func (h *Handler) MakeFileCopy(w http.ResponseWriter, r *http.Request) {
-	actorID, err := common.GetActorID(r)
+	actorID, err := common.GetRequiredActorID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -116,7 +116,7 @@ func (h *Handler) MakeFileCopy(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.files.MakeFileCopy(r.Context(), &inputs.MakeFileCopyInput{
 		FileID:      fileID,
-		ActorUserID: actorID,
+		ActorUserID: *actorID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)

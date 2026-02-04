@@ -11,7 +11,7 @@ import (
 
 // GetMetadata returns the full model (StorageKey, Checksum, etc.)
 // used by Download/Upload services.
-func (s *FileService) GetDownloadDetails(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.DownloadResponse, error) {
+func (s *FileService) GetDownloadDetails(ctx context.Context, fileID uuid.UUID, userID *uuid.UUID) (*model.DownloadResponse, error) {
 	// first verify if user can acccess file
 	isAllowed, err := s.checkFileAccess(ctx, fileID, userID)
 	if err != nil {

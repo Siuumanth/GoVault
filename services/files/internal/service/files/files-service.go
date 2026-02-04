@@ -59,12 +59,13 @@ func (s *FileService) UpdateFileName(ctx context.Context, in *inputs.UpdateFileN
 
 }
 
-func (s *FileService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) (*model.FileSummary, error) {
+func (s *FileService) GetSingleFileSummary(ctx context.Context, fileID uuid.UUID, actorUserID *uuid.UUID) (*model.FileSummary, error) {
 	/*
 		First check if user is owner of file
 		else check if file is public
 		else check if user has access by shared
 	*/
+
 	isAllowed, err := s.checkFileAccess(ctx, fileID, actorUserID)
 
 	if err != nil {
@@ -106,7 +107,7 @@ func (s *FileService) ListSharedFiles(ctx context.Context, in *inputs.ListShared
 func (s *FileService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyInput) (*model.File, error) {
 
 	// first check if user has access to the file
-	isAllowed, err := s.checkFileAccess(ctx, in.FileID, in.ActorUserID)
+	isAllowed, err := s.checkFileAccess(ctx, in.FileID, &in.ActorUserID)
 	if err != nil {
 		return nil, err
 	} else if !isAllowed {
@@ -150,7 +151,7 @@ func (s *FileService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyI
 	return newFile, nil
 }
 
-func (s *FileService) SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID uuid.UUID) error {
+func (s *FileService) SoftDeleteFile(ctx context.Context, fileID uuid.UUID, actorUserID *uuid.UUID) error {
 
 	// first check if user has access to the file
 	file, err := s.fileRepo.FetchFileSummaryByID(ctx, fileID)
@@ -158,7 +159,7 @@ func (s *FileService) SoftDeleteFile(ctx context.Context, fileID uuid.UUID, acto
 		return err
 	}
 
-	if file.UserID != actorUserID {
+	if file.UserID != *actorUserID {
 		return shared.ErrUnauthorized
 	}
 

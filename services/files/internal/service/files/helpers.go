@@ -11,14 +11,8 @@ import (
 func (s *FileService) checkFileAccess(
 	ctx context.Context,
 	fileID uuid.UUID,
-	actorUserID uuid.UUID,
+	actorUserID *uuid.UUID,
 ) (bool, error) {
-
-	// 1,2 fetch file (existence + not deleted)
-	err := s.fileRepo.CheckFileOwnership(ctx, fileID, actorUserID)
-	if err != nil {
-		return false, err
-	}
 
 	// 3public access
 	isPublic, err := s.shareRepo.IsFilePublic(ctx, fileID)
@@ -29,8 +23,17 @@ func (s *FileService) checkFileAccess(
 		return true, nil
 	}
 
+	if actorUserID == nil {
+		return false, shared.ErrUnauthorized
+	}
+
+	// 1,2 fetch file (existence + not deleted)
+	if err := s.fileRepo.CheckFileOwnership(ctx, fileID, *actorUserID); err == nil {
+		return true, nil
+	}
+
 	// 4shared access
-	isShared, err := s.shareRepo.IsFileSharedWithUser(ctx, fileID, actorUserID)
+	isShared, err := s.shareRepo.IsFileSharedWithUser(ctx, fileID, *actorUserID)
 	if err != nil {
 		return false, err
 	}

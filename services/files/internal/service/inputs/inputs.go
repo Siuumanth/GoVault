@@ -59,7 +59,7 @@ type RemovePublicAccessInput struct {
 // ---------- Shortcuts ----------
 type CreateShortcutInput struct {
 	FileID      uuid.UUID
-	ActorUserID uuid.UUID
+	ActorUserID *uuid.UUID
 }
 
 type DeleteShortcutInput struct {
