@@ -88,6 +88,7 @@ func NewJWT() Middleware {
 
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, utils.AuthContextKey, authCtx)
+			//	fmt.Println("JWT SAYS Auth ctx is : ", authCtx)
 
 			// Call the next handler with the enriched context
 			// attaching old request with new contexrt and passing request
