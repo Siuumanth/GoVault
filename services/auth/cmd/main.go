@@ -19,7 +19,7 @@ Here we have to define all db, dao, service handlers, etc and connect them all
 func main() {
 	godotenv.Load() // loads .env from root
 	fmt.Println("Starting server...")
-	dbURL := os.Getenv("GOVAULT_POSTGRES_URL_DEV")
+	dbURL := os.Getenv("AUTH_POSTGRES_URL_DEV")
 
 	fmt.Println("DB URL:", dbURL)
 

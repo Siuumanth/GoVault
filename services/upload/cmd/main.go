@@ -27,7 +27,7 @@ import (
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
-	dbURL := os.Getenv("GOVAULT_UPLOAD_POSTGRES_URL")
+	dbURL := os.Getenv("UPLOAD_POSTGRES_URL_DEV")
 	db, err := database.Connect(dbURL)
 	if err != nil {
 		log.Fatal(err)

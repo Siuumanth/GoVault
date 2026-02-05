@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoVault Tester</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 650px; margin: 2rem auto; background-color: #f8f9fa; color: #333; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        input[type="text"], input[type="file"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #dfe3e6; border-radius: 6px; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; transition: opacity 0.2s; }
+        #uploadBtn { background-color: #238636; color: white; }
+        #healthBtn { background-color: #007bff; color: white; }
+        button:hover { opacity: 0.9; }
+        progress { width: 100%; height: 20px; margin-top: 10px; accent-color: #238636; }
+        #log { background: #161b22; color: #d1d5da; padding: 15px; font-family: 'Cascadia Code', monospace; font-size: 12px; height: 250px; overflow-y: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #30363d; }
+        .err { color: #f85149; }
+        .info { color: #79c0ff; }
+        label { font-weight: 600; font-size: 14px; color: #444; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>GoVault Interface</h2>
+        <div style="margin-bottom: 15px;">
+            <label>Access Token (JWT)</label>
+            <input type="text" id="token" placeholder="Paste token here...">
+        </div>
+        <div class="btn-group">
+            <button id="healthBtn">Check Service Health</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Select File</label>
+        <input type="file" id="fileInput">
+        <button id="uploadBtn" style="margin-top:15px; width:100%">Start Chunked Upload</button>
+        
+        <div style="margin-top: 20px;">
+            <div id="statusLabel" style="font-size: 14px; margin-bottom: 5px;">Status: Idle</div>
+            <progress id="progressBar" value="0" max="100"></progress>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Gateway Logs</label>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const CHUNK_SIZE = 5 * 1024 * 1024;
+        const BASE_URL = "http://localhost:9000/api/upload";
+
+        const logDiv = document.getElementById('log');
+        const statusLabel = document.getElementById('statusLabel');
+        const progressBar = document.getElementById('progressBar');
+
+        function logger(msg, type = 'default') {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            if (type === 'err') div.className = 'err';
+            if (type === 'info') div.className = 'info';
+            logDiv.prepend(div);
+        }
+
+        // --- HEALTH CHECK LOGIC ---
+        document.getElementById('healthBtn').onclick = async () => {
+            const token = document.getElementById('token').value;
+            logger(`Pinging ${BASE_URL}/health...`, 'info');
+            
+            try {
+                const resp = await fetch(`${BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+
+                const text = await resp.text();
+                if (resp.ok) {
+                    logger(`Health OK: ${text}`);
+                } else {
+                    logger(`Health Error (${resp.status}): ${text}`, 'err');
+                }
+            } catch (err) {
+                logger(`Connection Failed: ${err.message}`, 'err');
+            }
+        };
+
+        // --- UPLOAD LOGIC ---
+        async function calculateHash(buffer) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        document.getElementById('uploadBtn').onclick = async () => {
+            const file = document.getElementById('fileInput').files[0];
+            const token = document.getElementById('token').value;
+
+            if (!file || !token) return alert("File and Token required");
+
+            const authHeader = { 'Authorization': `Bearer ${token}` };
+
+            try {
+                statusLabel.textContent = "Status: Initializing session...";
+                const sessionResp = await fetch(`${BASE_URL}/session`, {
+                    method: 'POST',
+                    headers: { ...authHeader, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_name: file.name, file_size_bytes: file.size })
+                });
+
+                if (!sessionResp.ok) throw new Error(`Session Init Failed: ${sessionResp.status}`);
+                const { upload_uuid, total_chunks } = await sessionResp.json();
+                logger(`Session: ${upload_uuid}`);
+
+                for (let i = 0; i < total_chunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const chunkBlob = file.slice(start, end);
+                    const arrayBuffer = await chunkBlob.arrayBuffer();
+                    const checksum = await calculateHash(arrayBuffer);
+
+                    statusLabel.textContent = `Status: Chunk ${i + 1}/${total_chunks}`;
+                    
+                    const chunkResp = await fetch(`${BASE_URL}/chunk?id=${i}`, {
+                        method: 'POST',
+                        headers: {
+                            ...authHeader,
+                            'Upload-UUID': upload_uuid,
+                            'Checksum': checksum,
+                            'Content-Type': 'application/octet-stream'
+                        },
+                        body: arrayBuffer
+                    });
+
+                    if (!chunkResp.ok) throw new Error(`Chunk ${i} failed`);
+                    logger(`Chunk ${i} OK`);
+                    progressBar.value = ((i + 1) / total_chunks) * 100;
+                }
+
+                statusLabel.textContent = "Status: Complete!";
+            } catch (err) {
+                logger(err.message, 'err');
+                statusLabel.textContent = "Status: Error";
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"gateway/internal/utils"
 	"net/http"
 	"os"
@@ -15,6 +14,8 @@ func NewCORS() Middleware {
 	allowedOrigins = []string{
 		os.Getenv("FRONTEND_URL"),
 		os.Getenv("DEV_URL"),
+		"https://localhost:5500",
+		"http://127.0.0.1:5500",
 		os.Getenv("OTHER_URL"),
 	}
 	return utils.MiddlewareFunc(func(next http.Handler) http.Handler {
@@ -37,7 +38,7 @@ func NewCORS() Middleware {
 			w.Header().Set("Access-Control-Expose-Headers", "Authorization")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Max-Age", "3600")
+			w.Header().Set("Access-Control-Max-Age", "10800")
 
 			// Handle preflight request
 			if r.Method == http.MethodOptions {
@@ -45,7 +46,6 @@ func NewCORS() Middleware {
 			}
 
 			next.ServeHTTP(w, r)
-			fmt.Println("Cors Middleware ends...")
 		})
 	})
 }

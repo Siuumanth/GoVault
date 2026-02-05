@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gateway/internal/utils"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -50,6 +51,7 @@ func NewJWT() Middleware {
 				return []byte(jwtSecret), nil
 			})
 			if err != nil {
+				log.Println("JWT mW error:", err)
 				switch {
 				case errors.Is(err, jwt.ErrTokenExpired):
 					http.Error(w, "Token expired", http.StatusUnauthorized)

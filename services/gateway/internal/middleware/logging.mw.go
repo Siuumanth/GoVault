@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"gateway/internal/utils"
 	"log"
 	"net/http"
@@ -43,13 +42,4 @@ func NewLogger() Middleware {
 			)
 		})
 	})
-}
-
-func GetRequestID(ctx context.Context) string {
-	if val := ctx.Value(utils.RequestIDKey); val != nil {
-		if id, ok := val.(string); ok {
-			return id
-		}
-	}
-	return "unknown"
 }

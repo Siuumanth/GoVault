@@ -14,7 +14,7 @@ const (
 
 // this is for claiming from the JWt
 const (
-	ClaimsUidKey      string = "uid"
+	ClaimsUidKey      string = "user_id"
 	ClaimsExpKey      string = "exp"
 	ClaimsEmailKey    string = "email"
 	ClaimsUsernameKey string = "username"

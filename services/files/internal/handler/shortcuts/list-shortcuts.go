@@ -14,9 +14,7 @@ func (h *Handler) ListShortcuts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-
 	limit, offset := common.GetPagination(r)
-
 	files, err := h.shortcuts.ListUsersShortcutsWithFiles(r.Context(), &inputs.ListUsersShortcutsWithFilesInput{
 		UserID: *actorID,
 		Limit:  limit,
@@ -26,7 +24,6 @@ func (h *Handler) ListShortcuts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-
 	resp := make([]dto.FileSummaryResponse, 0, len(files))
 	for _, f := range files {
 		resp = append(resp, dto.FileSummaryResponse{

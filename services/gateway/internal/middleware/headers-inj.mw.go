@@ -31,14 +31,17 @@ func NewHeadersInjection() Middleware {
 			// we assume the previous MW have handled missing fields
 			if ok {
 				r.Header.Set("X-User-ID", authCtx.UserID)
+
+				if !authCtx.Expires.IsZero() {
+					r.Header.Set(
+						"X-Auth-Expires",
+						authCtx.Expires.UTC().Format(time.RFC3339),
+					)
+				}
 			}
 
-			// username email are not needed right now, can add later
-
-			if authCtx.Expires.IsZero() == false {
-				r.Header.Set("X-Auth-Expires", authCtx.Expires.UTC().Format(time.RFC3339))
-			}
-
+			reqID := GetRequestID(r.Context()) // from logger
+			r.Header.Set("X-Request-ID", reqID)
 			next.ServeHTTP(w, r)
 		})
 	})
