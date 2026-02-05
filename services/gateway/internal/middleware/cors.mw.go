@@ -34,7 +34,8 @@ func NewCORS() Middleware {
 			}
 
 			// Set other CORS headers
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			// this means allow these types of errors
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization, Upload-UUID, Checksum")
 			w.Header().Set("Access-Control-Expose-Headers", "Authorization")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
