@@ -7,6 +7,5 @@ archieve/downloads
 
 ./.obsidian
 .obsidian/
-docker-compose.yaml
 
 .env

@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  gateway:
+    build: ./services/gateway
+    container_name: gateway
+    ports:
+      - "9000:9000"
+    environment:
+      PORT: 9000
+      GOVAULT_AUTH_SERVICE_URL: ${GOVAULT_AUTH_SERVICE_URL}
+      GOVAULT_UPLOAD_SERVICE_URL: ${GOVAULT_UPLOAD_SERVICE_URL}
+      GOVAULT_FILES_SERVICE_URL: ${GOVAULT_FILES_SERVICE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      DEV_URL: ${DEV_URL}
+    depends_on:
+      - auth-service
+      - upload-service
+      - files-service
+
+  auth-service:
+    build: ./services/auth
+    container_name: auth-service
+    expose:
+      - "9001"
+    environment:
+      PORT: 9001
+      AUTH_POSTGRES_URL_DEV: ${AUTH_POSTGRES_URL_DEV}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+    depends_on:
+      - auth-db
+
+  upload-service:
+    build: ./services/upload
+    container_name: upload-service
+    expose:
+      - "9002"
+    environment:
+      PORT: 9002
+      UPLOAD_POSTGRES_URL_DEV: ${UPLOAD_POSTGRES_URL_DEV}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      BUCKET_NAME: ${BUCKET_NAME}
+    depends_on:
+      - upload-db
+
+  files-service:
+    build: ./services/files
+    container_name: files-service
+    expose:
+      - "9003"
+    environment:
+      PORT: 9003
+      FILES_POSTGRES_URL_DEV: ${FILES_POSTGRES_URL_DEV}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      BUCKET_NAME: ${BUCKET_NAME}
+    depends_on:
+      - files-db
+
+  # ---------- DATABASES (FIXED) ----------
+
+  auth-db:
+    image: postgres:16
+    container_name: auth-db
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB_NAME}
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+
+  upload-db:
+    image: postgres:16
+    container_name: upload-db
+    environment:
+      POSTGRES_USER: ${UPLOAD_DB_USER}
+      POSTGRES_PASSWORD: ${UPLOAD_DB_PASSWORD}
+      POSTGRES_DB: ${UPLOAD_DB_NAME}
+    volumes:
+      - upload_db_data:/var/lib/postgresql/data
+
+  files-db:
+    image: postgres:16
+    container_name: files-db
+    environment:
+      POSTGRES_USER: ${FILES_DB_USER}
+      POSTGRES_PASSWORD: ${FILES_DB_PASSWORD}
+      POSTGRES_DB: ${FILES_DB_NAME}
+    volumes:
+      - files_db_data:/var/lib/postgresql/data
+
+volumes:
+  auth_db_data:
+  upload_db_data:
+  files_db_data:
