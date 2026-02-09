@@ -3,145 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoVault Tester</title>
+    <title>GoVault 2-Stage Tester</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; max-width: 650px; margin: 2rem auto; background-color: #f8f9fa; color: #333; }
         .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         input[type="text"], input[type="file"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #dfe3e6; border-radius: 6px; box-sizing: border-box; }
+        
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; transition: opacity 0.2s; }
+        button { flex: 1; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; transition: all 0.2s; }
+        
+        #healthBtn { background-color: #47cc40; color: white; }
+        #sessionBtn { background-color: #007bff; color: white; }
         #uploadBtn { background-color: #238636; color: white; }
-        #healthBtn { background-color: #007bff; color: white; }
-        button:hover { opacity: 0.9; }
+        
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.6; }
+        button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+
         progress { width: 100%; height: 20px; margin-top: 10px; accent-color: #238636; }
-        #log { background: #161b22; color: #d1d5da; padding: 15px; font-family: 'Cascadia Code', monospace; font-size: 12px; height: 250px; overflow-y: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #30363d; }
+        #log { background: #161b22; color: #d1d5da; padding: 15px; font-family: 'Cascadia Code', monospace; font-size: 12px; height: 220px; overflow-y: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #30363d; }
         .err { color: #f85149; }
         .info { color: #79c0ff; }
+        .success { color: #51cf66; }
         label { font-weight: 600; font-size: 14px; color: #444; }
+        .step-label { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>GoVault Interface</h2>
-        <div style="margin-bottom: 15px;">
-            <label>Access Token (JWT)</label>
-            <input type="text" id="token" placeholder="Paste token here...">
-        </div>
+        <h2>GoVault Tester</h2>
+        <label>Access Token (JWT)</label>
+        <input type="text" id="token" placeholder="Bearer token...">
         <div class="btn-group">
-            <button id="healthBtn">Check Service Health</button>
+            <button id="healthBtn">Check Health</button>
         </div>
     </div>
 
     <div class="card">
+        <span class="step-label">STAGE 1</span><br>
         <label>Select File</label>
         <input type="file" id="fileInput">
-        <button id="uploadBtn" style="margin-top:15px; width:100%">Start Chunked Upload</button>
+        <button id="sessionBtn">Initialize Session</button>
+    </div>
+
+    <div class="card">
+        <span class="step-label">STAGE 2</span><br>
+        <div id="sessionInfo" style="font-size: 12px; color: #666; margin-bottom: 10px;">No active session</div>
+        <button id="uploadBtn" disabled>Start Uploading Chunks</button>
         
         <div style="margin-top: 20px;">
-            <div id="statusLabel" style="font-size: 14px; margin-bottom: 5px;">Status: Idle</div>
+            <div id="statusLabel" style="font-size: 14px; margin-bottom: 5px;">Status: Waiting...</div>
             <progress id="progressBar" value="0" max="100"></progress>
         </div>
     </div>
 
     <div class="card">
-        <label>Gateway Logs</label>
+        <label>Console Logs</label>
         <div id="log"></div>
     </div>
 
     <script>
-        const CHUNK_SIZE = 5 * 1024 * 1024;
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
         const BASE_URL = "http://localhost:9000/api/upload";
+
+        let activeSession = null; // Store session metadata here
 
         const logDiv = document.getElementById('log');
         const statusLabel = document.getElementById('statusLabel');
         const progressBar = document.getElementById('progressBar');
+        const sessionInfo = document.getElementById('sessionInfo');
+        const uploadBtn = document.getElementById('uploadBtn');
 
         function logger(msg, type = 'default') {
             const div = document.createElement('div');
             div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
             if (type === 'err') div.className = 'err';
             if (type === 'info') div.className = 'info';
+            if (type === 'success') div.className = 'success';
             logDiv.prepend(div);
         }
 
-        // --- HEALTH CHECK LOGIC ---
+        // --- HEALTH CHECK ---
         document.getElementById('healthBtn').onclick = async () => {
             const token = document.getElementById('token').value;
-            logger(`Pinging ${BASE_URL}/health...`, 'info');
-            
             try {
                 const resp = await fetch(`${BASE_URL}/health`, {
-                    method: 'GET',
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
-
                 const text = await resp.text();
-                if (resp.ok) {
-                    logger(`Health OK: ${text}`);
-                } else {
-                    logger(`Health Error (${resp.status}): ${text}`, 'err');
-                }
+                logger(`Health: ${text}`, resp.ok ? 'success' : 'err');
             } catch (err) {
-                logger(`Connection Failed: ${err.message}`, 'err');
+                logger(`Health check failed (CORS/Network error)`, 'err');
             }
         };
 
-        // --- UPLOAD LOGIC ---
-        async function calculateHash(buffer) {
-            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        document.getElementById('uploadBtn').onclick = async () => {
+        // --- STAGE 1: SESSION INIT ---
+        document.getElementById('sessionBtn').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
             const token = document.getElementById('token').value;
 
             if (!file || !token) return alert("File and Token required");
 
-            const authHeader = { 'Authorization': `Bearer ${token}` };
-
             try {
-                statusLabel.textContent = "Status: Initializing session...";
-                const sessionResp = await fetch(`${BASE_URL}/session`, {
+                logger("Initializing session...", "info");
+                const resp = await fetch(`${BASE_URL}/session`, {
                     method: 'POST',
-                    headers: { ...authHeader, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({ file_name: file.name, file_size_bytes: file.size })
                 });
 
-                if (!sessionResp.ok) throw new Error(`Session Init Failed: ${sessionResp.status}`);
-                const { upload_uuid, total_chunks } = await sessionResp.json();
-                logger(`Session: ${upload_uuid}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                
+                activeSession = await resp.json(); // { upload_uuid, total_chunks }
+                
+                logger(`Session created: ${activeSession.upload_uuid}`, 'success');
+                sessionInfo.innerHTML = `<strong>UUID:</strong> ${activeSession.upload_uuid}<br><strong>Chunks:</strong> ${activeSession.total_chunks}`;
+                
+                // Unlock Stage 2
+                uploadBtn.disabled = false;
+                statusLabel.textContent = "Status: Session Ready. Ready to upload.";
+            } catch (err) {
+                logger(`Session failed: ${err.message}`, 'err');
+                uploadBtn.disabled = true;
+            }
+        };
 
-                for (let i = 0; i < total_chunks; i++) {
+        // --- STAGE 2: CHUNK UPLOADING ---
+        uploadBtn.onclick = async () => {
+            const file = document.getElementById('fileInput').files[0];
+            const token = document.getElementById('token').value;
+
+            if (!activeSession || !file) return;
+
+            uploadBtn.disabled = true; // Prevent double clicking
+            const authHeader = { 'Authorization': `Bearer ${token}` };
+
+            try {
+                for (let i = 0; i < activeSession.total_chunks; i++) {
                     const start = i * CHUNK_SIZE;
                     const end = Math.min(start + CHUNK_SIZE, file.size);
                     const chunkBlob = file.slice(start, end);
                     const arrayBuffer = await chunkBlob.arrayBuffer();
-                    const checksum = await calculateHash(arrayBuffer);
+                    
+                    // Hash calculation
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                    const checksum = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                    statusLabel.textContent = `Status: Chunk ${i + 1}/${total_chunks}`;
+                    statusLabel.textContent = `Status: Sending chunk ${i + 1}/${activeSession.total_chunks}`;
                     
                     const chunkResp = await fetch(`${BASE_URL}/chunk?id=${i}`, {
                         method: 'POST',
                         headers: {
                             ...authHeader,
-                            'Upload-UUID': upload_uuid,
+                            'Upload-UUID': activeSession.upload_uuid,
                             'Checksum': checksum,
                             'Content-Type': 'application/octet-stream'
                         },
                         body: arrayBuffer
                     });
 
-                    if (!chunkResp.ok) throw new Error(`Chunk ${i} failed`);
-                    logger(`Chunk ${i} OK`);
-                    progressBar.value = ((i + 1) / total_chunks) * 100;
+                    if (!chunkResp.ok) throw new Error(`Chunk ${i} failed with status ${chunkResp.status}`);
+                    
+                    logger(`Chunk ${i} uploaded.`);
+                    progressBar.value = ((i + 1) / activeSession.total_chunks) * 100;
                 }
 
-                statusLabel.textContent = "Status: Complete!";
+                statusLabel.textContent = "Status: Finished!";
+                logger("All chunks sent successfully!", 'success');
             } catch (err) {
-                logger(err.message, 'err');
-                statusLabel.textContent = "Status: Error";
+                logger(`Upload error: ${err.message}`, 'err');
+                statusLabel.textContent = "Status: Upload Failed";
+                uploadBtn.disabled = false;
             }
         };
     </script>
