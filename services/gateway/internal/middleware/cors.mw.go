@@ -28,6 +28,10 @@ func NewCORS() Middleware {
 				next.ServeHTTP(w, r) // no header means continue
 				return
 			}
+			if origin != "" && !isOriginAllowed(origin) {
+				http.Error(w, "CORS blocked", http.StatusForbidden)
+				return
+			}
 
 			if isOriginAllowed(origin) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
