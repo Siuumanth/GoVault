@@ -4,6 +4,7 @@ package router
 import (
 	"gateway/internal/proxy"
 	"net/http"
+	"os"
 )
 
 type Proxies struct {
@@ -14,8 +15,8 @@ type Proxies struct {
 
 func NewProxies() *Proxies {
 	return &Proxies{
-		Auth:   proxy.NewReverseProxy("http://localhost:9001"),
-		Upload: proxy.NewReverseProxy("http://localhost:9002"),
-		Files:  proxy.NewReverseProxy("http://localhost:9003"),
+		Auth:   proxy.NewReverseProxy(os.Getenv("GOVAULT_AUTH_SERVICE_URL")),
+		Upload: proxy.NewReverseProxy(os.Getenv("GOVAULT_UPLOAD_SERVICE_URL")),
+		Files:  proxy.NewReverseProxy(os.Getenv("GOVAULT_FILES_SERVICE_URL")),
 	}
 }
