@@ -207,7 +207,7 @@ const CreateFileQuery = `
 INSERT INTO files
 (
     file_uuid,
-    session_id,
+    upload_uuid,
     user_id,
     file_name,
     mime_type,
@@ -216,7 +216,7 @@ INSERT INTO files
 	checksum
 )
 VALUES ($1,$2, $3, $4, $5, $6, $7, $8)
-RETURNING id, file_uuid, session_id, user_id, file_name,
+RETURNING id, file_uuid, upload_uuid, user_id, file_name,
           mime_type, size_bytes, storage_key, checksum,
           created_at, deleted_at
 `
@@ -269,7 +269,7 @@ func (r *FilesRepository) SoftDeleteFile(ctx context.Context, fileID uuid.UUID) 
 }
 
 const GetFullFileByIDQuery = `
-SELECT id, session_id,file_uuid, user_id, file_name, mime_type, size_bytes, storage_key, checksum, created_at, deleted_at
+SELECT id, upload_uuid,file_uuid, user_id, file_name, mime_type, size_bytes, storage_key, checksum, created_at, deleted_at
 FROM files
 WHERE file_uuid = $1
 AND deleted_at IS NULL

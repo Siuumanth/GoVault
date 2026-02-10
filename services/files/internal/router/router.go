@@ -21,14 +21,15 @@ func NewConfiguredChiRouter(
 ) http.Handler {
 
 	r := chi.NewRouter()
-	// internal
+
+	// identity extraction (optional)
+	r.Use(middleware.ActorContext)
+
 	// ---------- internal (Service-to-Service) ----------
 	r.Route("/internal", func(r chi.Router) {
 		// No ActorContext needed here usually, as this is machine-to-machine
 		r.Post("/file", filesH.RegisterFile) // This matches your existing AddFile logic
 	})
-	// identity extraction (optional)
-	r.Use(middleware.ActorContext)
 
 	// ---------- public ----------
 	r.Get("/health", healthH.HealthHandler)

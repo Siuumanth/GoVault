@@ -216,7 +216,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 
 	// Create file row
 	if err := s.fileClient.AddFile(backgroundCtx, &file); err != nil {
-		log.Printf("[ERROR] failed to register file: %v", err)
+		log.Printf("[ERROR] failed to register file: %v, \n , FILE: %v", err, file)
 		return s.fail(ctx, session.ID, fmt.Errorf("failed to register file: %w", err))
 	}
 	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
