@@ -1,0 +1,1667 @@
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\.air.toml =====
+
+#:schema https://json.schemastore.org/any.json
+
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  args_bin = []
+  bin = "tmp\\main.exe"
+  cmd = "go build -o ./tmp/main.exe ./cmd/main.go"
+  delay = 1000
+  entrypoint = ["tmp\\main.exe"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "sessions"]
+  exclude_file = []
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = false
+  follow_symlink = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  include_file = []
+  kill_delay = "0s"
+  log = "build-errors.log"
+  poll = false
+  poll_interval = 0
+  post_cmd = []
+  pre_cmd = []
+  rerun = false
+  rerun_delay = 500
+  send_interrupt = false
+  stop_on_error = false
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  main_only = false
+  silent = false
+  time = false
+
+[misc]
+  clean_on_exit = false
+
+[proxy]
+  app_port = 0
+  app_start_timeout = 0
+  enabled = false
+  proxy_port = 0
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\.dockerignore =====
+
+.obsidian/
+notes/
+docs/
+
+*.txt
+*.toml
+
+.git
+.gitignore
+
+.env
+.env.*
+
+bin/
+dist/
+out/
+tmp/
+*.log
+*.exe
+
+.vscode/
+.idea/
+
+tmp/
+coverage/
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\dockerfile =====
+
+# -------- BUILD STAGE --------
+# Contains Go compiler + build tools
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /app
+
+# Needed for downloading modules
+RUN apk add --no-cache git
+
+# Copy dependency files first for Docker cache
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the source code
+COPY . .
+
+# Compile Go code into a single static binary
+# CGO_ENABLED=0 → no C deps
+# GOOS=linux → target Linux
+# GOARCH=amd64 → target x86_64 servers
+# ./cmd → folder with main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -o upload ./cmd
+
+
+# -------- RUNTIME STAGE --------
+# Minimal Linux image (no Go installed)
+FROM alpine:3.19
+
+WORKDIR /app
+
+# Required for HTTPS calls to other services
+RUN apk add --no-cache ca-certificates
+
+# Copy ONLY the compiled binary from builder
+COPY --from=builder /app/upload ./upload
+
+# Gateway listens on 9000
+EXPOSE 9002
+
+# Configurable port (ECS / compose friendly)
+ENV PORT=9002
+
+# Start the gateway
+ENTRYPOINT ["./upload"]
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\cmd\main.go =====
+
+package main
+
+import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"upload/internal/clients"
+	"upload/internal/database"
+	"upload/internal/handler"
+	"upload/internal/repository"
+	"upload/internal/router"
+	"upload/internal/service"
+	"upload/internal/storage"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
+)
+
+// Done: Make it raw bytes uplaod
+// TODO: add sending recieved chunks info with every request
+// Done: Delete session if fail or after upload
+func main() {
+	godotenv.Load()
+	// ---------- DB ----------
+	dbURL := os.Getenv("UPLOAD_POSTGRES_URL_DEV")
+	db, err := database.Connect(dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	repos := repository.NewRegistryFromDB(db)
+	// ---------- AWS / S3 ----------
+	s3Client := getS3Client()
+	bucket := os.Getenv("BUCKET_NAME")
+	s3Storage := storage.NewS3Storage(s3Client, bucket)
+
+	// ---------- Service & Client ----------
+	fsURL := os.Getenv("GOVAULT_FILES_SERVICE_URL")
+	if dbURL == "" || fsURL == "" || bucket == "" {
+		log.Fatal("missing required env vars")
+	}
+
+	fileClient := clients.NewFileClient(fsURL)
+	uploadService := service.NewUploadService(repos, s3Storage, fileClient)
+
+	// ---------- Handler ----------
+	uploadHandler := handler.NewUploadHandler(uploadService)
+
+	// ---------- Router ----------
+	mainRouter := chi.NewRouter()
+	router.RegisterUploadRoutes(mainRouter, uploadHandler)
+
+	// ---------- Server ----------
+	server := &http.Server{
+		Addr:         ":9002",
+		Handler:      mainRouter,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
+	log.Println("Upload service running on :9002")
+	log.Fatal(server.ListenAndServe())
+}
+
+func getS3Client() *s3.Client {
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	return s3.NewFromConfig(cfg)
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\docs\openapi.yaml =====
+
+openapi: 3.0.3
+info:
+  title: GoVault Upload Service API
+  version: 1.0.0
+
+paths:
+  /upload/session:
+    post:
+      summary: Create an upload session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - file_name
+                - file_size_bytes
+              properties:
+                file_name:
+                  type: string
+                file_size_bytes:
+                  type: integer
+                  format: int64
+                chunk_size_bytes:
+                  type: integer
+      responses:
+        "200":
+          description: Upload session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_uuid:
+                    type: string
+                    format: uuid
+                  total_chunks:
+                    type: integer
+
+  /upload/chunk:
+    post:
+      summary: Upload a single chunk
+      parameters:
+        - name: upload_uuid
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: idx
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Chunk accepted
+        "400":
+          description: Invalid request or checksum mismatch
+        "409":
+          description: Duplicate chunk
+
+  /upload/status:
+    get:
+      summary: Get upload status
+      parameters:
+        - name: upload_uuid
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Upload status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - pending
+                      - uploading
+                      - assembling
+                      - uploading_s3
+                      - completed
+                      - failed
+                  total_chunks:
+                    type: integer
+                  uploaded_chunks:
+                    type: array
+                    items:
+                      type: integer
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\clients\file_client.go =====
+
+package clients
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+)
+
+type FileClient struct {
+	BaseURL string
+	client  *http.Client
+}
+
+func NewFileClient(url string) *FileClient {
+	return &FileClient{
+		BaseURL: url,
+		// timeout 2 second
+		client: &http.Client{Timeout: 2 * time.Second},
+	}
+}
+
+// functions needed:
+// 1. insert file model
+func (c *FileClient) AddFile(
+	ctx context.Context,
+	file *CreateFileRequest,
+) error {
+
+	url := fmt.Sprintf("%s/internal/file", c.BaseURL)
+
+	// encode request body
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(file); err != nil {
+		return fmt.Errorf("create file error: %w", err)
+	}
+
+	// post file
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		url,
+		&buf,
+	)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("auth request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf(
+			"file service error %d: %s",
+			resp.StatusCode,
+			string(b),
+		)
+	}
+
+	return nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\clients\file_dto.go =====
+
+package clients
+
+import "github.com/google/uuid"
+
+type CreateFileRequest struct {
+	FileUUID   uuid.UUID `json:"file_uuid"`
+	UploadUUID uuid.UUID `json:"upload_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Name       string    `json:"name"`
+	SizeBytes  int64     `json:"size_bytes"`
+	MimeType   string    `json:"mime_type"`
+	CheckSum   string    `json:"checksum"`
+	StorageKey string    `json:"storage_key"`
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\database\connect.go =====
+
+package database
+
+import (
+	"database/sql"
+	"fmt"
+)
+
+// url is sent from main
+func Connect(url string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", url)
+	if err != nil {
+		return nil, err
+	}
+
+	// ping db to see if connectin secure
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	fmt.Println("connected to database")
+
+	return db, nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\dto.go =====
+
+package handler
+
+import "github.com/google/uuid"
+
+type UploadChunkRequest struct {
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+	CheckSum   string    `json:"checksum"`
+	ChunkBytes []byte    `json:"chunk_bytes"`
+}
+
+// stores dto to communicate from handler to service layer
+type CreateUploadSessionRequest struct {
+	FileName      string `json:"file_name"`
+	FileSizeBytes int64  `json:"file_size_bytes"`
+}
+
+// handler/dto/create_upload_session_response.go
+type CreateUploadSessionResponse struct {
+	UploadUUID  uuid.UUID `json:"upload_uuid"`
+	TotalChunks int       `json:"total_chunks"`
+}
+
+type UploadStatusResponse struct {
+	UploadUUID  string `json:"upload_uuid"`
+	Status      string `json:"status"`
+	TotalChunks int    `json:"total_chunks"`
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\handler.go =====
+
+package handler
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"upload/internal/service"
+
+	"github.com/google/uuid"
+)
+
+type Handler struct {
+	uploadService *service.UploadService
+}
+
+func NewUploadHandler(uploadService *service.UploadService) *Handler {
+	return &Handler{uploadService: uploadService}
+}
+
+// helpers
+func userIDFromHeader(r *http.Request) (uuid.UUID, error) {
+	id := r.Header.Get("X-User-ID")
+	if id == "" {
+		return uuid.Nil, fmt.Errorf("missing X-User-ID")
+	}
+	return uuid.Parse(id)
+}
+
+func decodeJSON(r *http.Request, dst any) error {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+
+	// ensure only ONE JSON object
+	if dec.More() {
+		return errors.New("multiple JSON objects not allowed")
+	}
+
+	return nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\health.go =====
+
+package handler
+
+import (
+	"log"
+	"net/http"
+)
+
+func HealthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Upload service Working"))
+	log.Printf("Health check")
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\upload.chunk.go =====
+
+package handler
+
+import (
+	"errors"
+	"io"
+	"net/http"
+	"strconv"
+	"upload/internal/service"
+	"upload/shared"
+
+	"github.com/google/uuid"
+)
+
+/*
+Headers:
+- Upload-UUID
+- Checksum
+- ChunkID  // in query parameter
+- X-User-ID
+*/
+
+func (h *Handler) UploadChunk(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromHeader(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Read metadata (NOT from body)
+	uploadUUIDStr := r.Header.Get("Upload-UUID")
+	if uploadUUIDStr == "" {
+		http.Error(w, "missing Upload-UUID header", http.StatusBadRequest)
+		return
+	}
+
+	uploadUUID, err := uuid.Parse(uploadUUIDStr)
+	if err != nil {
+		http.Error(w, "missing Upload-UUID", http.StatusBadRequest)
+		return
+	}
+
+	checksum := r.Header.Get("Checksum")
+
+	// Chunk index from query
+	chunkIDStr := r.URL.Query().Get("id")
+	chunkID, err := strconv.Atoi(chunkIDStr)
+	if err != nil || chunkID < 0 {
+		http.Error(w, "invalid chunk id", http.StatusBadRequest)
+		return
+	}
+
+	// limit chunk size
+	const maxChunkSize = shared.ChunkSizeBytes
+	r.Body = http.MaxBytesReader(w, r.Body, maxChunkSize)
+	defer r.Body.Close()
+
+	// Call service with RAW STREAM
+	err = h.uploadService.UploadChunk(
+		r.Context(),
+		&service.UploadChunkInput{
+			UserID:     userID,
+			UploadUUID: uploadUUID,
+			ChunkID:    chunkID,
+			CheckSum:   checksum,
+			ChunkBytes: r.Body,
+		})
+	// io.ReadCloser is an io.Reader that returns an error after n Read calls return an error.
+	// This is useful for reading a stream that is known to be closed (e.g. HTTP response body).
+	readCloser := io.NopCloser(r.Body)
+	defer readCloser.Close()
+
+	// idempotency handling
+	if errors.Is(err, shared.ErrChunkAlreadyExists) {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\upload.session.go =====
+
+package handler
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"upload/internal/service"
+)
+
+// methods to be implemented
+func (h *Handler) CreateUploadSession(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromHeader(r)
+	if err != nil {
+		fmt.Println("UserID error: ", err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var req CreateUploadSessionRequest
+
+	if err := decodeJSON(r, &req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	session, err := h.uploadService.UploadSession(
+		r.Context(),
+		&service.UploadSessionInput{
+			UserID:        userID,
+			FileName:      req.FileName,
+			FileSizeBytes: req.FileSizeBytes,
+		})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := CreateUploadSessionResponse{
+		UploadUUID:  session.UploadUUID,
+		TotalChunks: session.TotalChunks,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\handler\upload.status.go =====
+
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/google/uuid"
+)
+
+func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromHeader(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	uploadIDStr := r.URL.Query().Get("upload_uuid")
+	if uploadIDStr == "" {
+		http.Error(w, "missing upload_uuid", http.StatusBadRequest)
+		return
+	}
+
+	uploadUUID, err := uuid.Parse(uploadIDStr)
+	if err != nil {
+		http.Error(w, "invalid upload_uuid", http.StatusBadRequest)
+		return
+	}
+
+	session, err := h.uploadService.GetUploadStatus(
+		r.Context(),
+		uploadUUID, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	res := UploadStatusResponse{
+		UploadUUID:  session.UploadUUID.String(),
+		Status:      string(session.Status),
+		TotalChunks: session.TotalChunks,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(res)
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\middleware\logging.go =====
+
+package middleware
+
+import (
+	"log"
+	"net/http"
+)
+
+// extracts x-user-id and puts it into context if present
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		log.Printf("[REQUEST] id=%s path=%s", r.Header.Get("X-Request-ID"), r.URL.Path)
+	})
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\model\model.go =====
+
+package model
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// these are models returned by the repository and the actual schema
+
+type UploadSession struct {
+	ID          int64     // internal BIGSERIAL
+	UploadUUID  uuid.UUID // public ID
+	UserID      uuid.UUID
+	FileName    string
+	FileSize    int64
+	TotalChunks int
+	Status      string
+	CreatedAt   time.Time
+}
+
+type UploadChunk struct {
+	ID         int64
+	SessionID  int64 // upload sessions id
+	ChunkIndex int
+	SizeBytes  int64
+	CheckSum   string
+	UploadedAt time.Time
+}
+
+// type File struct {
+// 	ID         int
+// 	FileUUID   uuid.UUID
+// 	UserID     uuid.UUID
+// 	SessionID  int
+// 	Name       string
+// 	MimeType   string
+// 	SizeBytes  int64
+// 	CheckSum   *string
+// 	StorageKey string
+// 	CreatedAt  time.Time
+// }
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\repository\registry.go =====
+
+package repository
+
+import (
+	"database/sql"
+	"upload/internal/repository/postgres"
+)
+
+type RepoRegistry struct {
+	Sessions UploadSessionRepository
+	Chunks   UploadChunkRepository
+}
+
+func NewRegistry(
+	sessions UploadSessionRepository,
+	chunks UploadChunkRepository,
+) *RepoRegistry {
+	return &RepoRegistry{
+		Sessions: sessions,
+		Chunks:   chunks,
+	}
+}
+
+func NewRegistryFromDB(db *sql.DB) *RepoRegistry {
+	return &RepoRegistry{
+		Sessions: postgres.NewUploadSessionRepo(db),
+		Chunks:   postgres.NewChunkRepo(db),
+	}
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\repository\repository.go =====
+
+package repository
+
+import (
+	"context"
+	"upload/internal/model"
+
+	"github.com/google/uuid"
+)
+
+type FileRepository interface {
+	//CreateFile(file *model.File) error
+	//GetByID(fileID uuid.UUID) (*model.File, error)
+}
+
+// interface which stores methods for uploading chunks
+type UploadChunkRepository interface {
+	CreateChunk(ctx context.Context, chunk *model.UploadChunk) error
+	CountBySession(ctx context.Context, session_id int64) (int, error)
+}
+
+type UploadSessionRepository interface {
+	CreateSession(ctx context.Context, session *model.UploadSession) error
+	GetSessionByID(ctx context.Context, session_id int64) (*model.UploadSession, error)
+	GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
+	UpdateSessionStatus(ctx context.Context, session_id int64, status string) error
+	DeleteSessionChunks(ctx context.Context, session_id int64) error
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\repository\postgres\chunks.go =====
+
+package postgres
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"upload/internal/model"
+	"upload/shared"
+
+	"github.com/lib/pq"
+)
+
+// type UploadChunkRepository interface {
+// 	CreateChunk(chunk *model.UploadChunk) error
+// 	GetSessionChunksCount(session_id int) (int, error)
+// }
+
+type PGChunkRepo struct {
+	db *sql.DB
+}
+
+func NewChunkRepo(db *sql.DB) *PGChunkRepo {
+	return &PGChunkRepo{db: db}
+}
+
+// queries
+const (
+	CreateChunkQuery           = `INSERT INTO upload_chunks (session_id, chunk_index, size_bytes, checksum) VALUES ($1, $2, $3, $4) RETURNING id`
+	GetSessionChunksCountQuery = `Select Count(*) from upload_chunks where session_id = $1`
+)
+
+func (p *PGChunkRepo) CreateChunk(ctx context.Context, chunk *model.UploadChunk) error {
+	err := p.db.QueryRowContext(
+		ctx,
+		CreateChunkQuery,
+		chunk.SessionID,
+		chunk.ChunkIndex,
+		chunk.SizeBytes,
+		chunk.CheckSum,
+	).Scan(&chunk.ID)
+
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			// duplicate chunk (idempotent retry)
+			return shared.ErrChunkAlreadyExists
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (p *PGChunkRepo) CountBySession(ctx context.Context, sessionID int64) (int, error) {
+	var total int
+	err := p.db.QueryRowContext(ctx, GetSessionChunksCountQuery, sessionID).Scan(&total)
+	return total, err
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\repository\postgres\session.go =====
+
+package postgres
+
+import (
+	"context"
+	"database/sql"
+	"upload/internal/model"
+
+	"github.com/google/uuid"
+)
+
+/*
+type UploadSessionRepository interface {
+	CreateUploadSession(session *model.UploadSession) error
+	GetSessionByID(session_id int) (*model.UploadSession, error)
+	GetSessionByUUID(upload_uuid uuid.UUID) (*model.UploadSession, error)
+	UpdateUploadStatus(session_id int, status string) error
+}
+*/
+
+type PGUploadSessionRepo struct {
+	db *sql.DB
+}
+
+func NewUploadSessionRepo(db *sql.DB) *PGUploadSessionRepo {
+	return &PGUploadSessionRepo{db: db}
+}
+
+const CreateSessionQuery = `INSERT INTO upload_sessions (upload_uuid, user_id, file_name, file_size_bytes, total_chunks) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+
+func (p *PGUploadSessionRepo) CreateSession(ctx context.Context, session *model.UploadSession) error {
+	err := p.db.QueryRowContext(
+		ctx,
+		CreateSessionQuery,
+		session.UploadUUID,
+		session.UserID,
+		session.FileName,
+		session.FileSize,
+		session.TotalChunks,
+	).Scan(&session.ID)
+	return err
+}
+
+const GetSesssionByIDQUery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks FROM upload_sessions WHERE id = $1`
+
+func (p *PGUploadSessionRepo) GetSessionByID(ctx context.Context, session_id int64) (*model.UploadSession, error) {
+	var session model.UploadSession
+	err := p.db.QueryRowContext(
+		ctx, GetSesssionByIDQUery, session_id).Scan(
+		&session.ID,
+		&session.UploadUUID,
+		&session.UserID,
+		&session.FileName,
+		&session.FileSize,
+		&session.TotalChunks,
+	)
+	return &session, err
+}
+
+const GetSesionByUUIDQuery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, created_at FROM upload_sessions WHERE upload_uuid = $1`
+
+func (p *PGUploadSessionRepo) GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error) {
+	var session model.UploadSession
+	err := p.db.QueryRowContext(
+		ctx, GetSesionByUUIDQuery, upload_uuid).Scan(
+		&session.ID,
+		&session.UploadUUID,
+		&session.UserID,
+		&session.FileName,
+		&session.FileSize,
+		&session.TotalChunks,
+		&session.Status,
+		&session.CreatedAt,
+	)
+	return &session, err
+}
+
+const UpdateSessionStatusQuery = `UPDATE upload_sessions SET status = $1 WHERE id = $2`
+
+func (p *PGUploadSessionRepo) UpdateSessionStatus(ctx context.Context, sessionID int64, status string) error {
+	_, err := p.db.ExecContext(ctx, UpdateSessionStatusQuery, status, sessionID)
+	return err
+}
+
+const DeleteSessionQuery = `DELETE FROM upload_sessions WHERE id = $1`
+
+func (p *PGUploadSessionRepo) DeleteSessionChunks(ctx context.Context, sessionID int64) error {
+	_, err := p.db.ExecContext(ctx, DeleteSessionQuery, sessionID)
+	return err
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\router\router.go =====
+
+package router
+
+import (
+	"log"
+	"net/http"
+	"upload/internal/handler"
+	"upload/internal/middleware"
+
+	"github.com/go-chi/chi/v5"
+)
+
+func RegisterUploadRoutes(r chi.Router, h *handler.Handler) {
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.Logger)
+		//r.Use(AfterStripLogger)
+		r.Get("/health", handler.HealthHandler)
+		r.Post("/session", h.CreateUploadSession)
+		r.Post("/chunk", h.UploadChunk)
+		r.Get("/status", h.GetUploadStatus)
+	})
+}
+
+func AfterStripLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		next.ServeHTTP(w, r)
+
+		log.Printf("[AFTER] path=%s", r.URL.Path)
+	})
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\assemble.go =====
+
+package service
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"upload/shared"
+)
+
+func (s *UploadService) assembleChunks(sessionID int64, totalChunks int) (string, error) {
+	sessionDir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
+	finalPath := filepath.Join(sessionDir, "final")
+
+	out, err := os.Create(finalPath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	// copy all individual chunks into the final file
+	for i := 0; i < totalChunks; i++ {
+		partPath := filepath.Join(sessionDir, fmt.Sprintf("%d.part", i))
+
+		in, err := os.Open(partPath)
+		if err != nil {
+			return "", err
+		}
+
+		_, err = io.Copy(out, in)
+		in.Close()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return finalPath, nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\inputs.go =====
+
+package service
+
+import (
+	"io"
+
+	"github.com/google/uuid"
+)
+
+type UploadSessionInput struct {
+	UserID        uuid.UUID
+	FileName      string
+	FileSizeBytes int64
+}
+
+type UploadChunkInput struct {
+	UserID     uuid.UUID
+	UploadUUID uuid.UUID
+	ChunkID    int
+	ChunkBytes io.Reader // ✅ stream
+	CheckSum   string
+}
+
+// type CreateFileCommand struct {
+// 	UploadUUID uuid.UUID
+// 	UserID     uuid.UUID
+// 	Name       string
+// 	SizeBytes  int64
+// 	MimeType   string
+// 	CheckSum   string
+// 	StorageKey string
+// }
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\service.go =====
+
+package service
+
+import (
+	"upload/internal/clients"
+	"upload/internal/repository"
+	"upload/internal/storage"
+)
+
+type UploadService struct {
+	registry   *repository.RepoRegistry
+	storage    storage.FileStorage
+	fileClient *clients.FileClient
+}
+
+func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *UploadService {
+	return &UploadService{
+		registry:   registry,
+		storage:    storage,
+		fileClient: fileClient,
+	}
+}
+
+// type ServiceMethods interface {
+// 	UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error)
+// 	UploadChunk(ctx context.Context, inputs *UploadChunkInput) (*model.UploadChunk, error)
+// 	GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
+// }
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\upload_chunk.go =====
+
+package service
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+	"upload/internal/clients"
+	"upload/internal/model"
+	"upload/shared"
+
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/google/uuid"
+)
+
+/*
+1. Resolve session
+2. Validate status
+3. Verify checksum
+4. Write chunk to disk
+5. INSERT chunk row (handle duplicate)
+6. COUNT chunks
+7. If complete:
+  - update status → assembling
+  - assemble
+  - upload to S3
+  - create file row
+  - update status → completed
+
+8. return nil
+*/
+
+// main func
+func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput) error {
+	// 1,2
+	session, err := s.mustAcceptChunks(ctx, input.UploadUUID)
+	if err != nil {
+		return err
+	}
+
+	// 3456
+	err = s.handleChunk(ctx, session, input)
+	if err != nil {
+		if errors.Is(err, shared.ErrChunkAlreadyExists) {
+			return err
+		} else {
+			return err
+		}
+	}
+	//fmt.Println("chunk storeds")
+	// 7. Count total chunks in chunks
+	if complete, _ := s.isUploadComplete(ctx, session); !complete {
+		return nil
+	}
+
+	// 1. Give the user an immediate "success" or "processing" signal
+	// 2. Process the heavy lifting in the background
+	go func() {
+		// Use Background to ensure the process doesn't die when the request ends
+		// But wrap it in a timeout so it doesn't hang forever
+		bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+		defer cancel()
+
+		if err := s.finalizeUpload(bgCtx, session); err != nil {
+			log.Printf("[ERROR] Finalization failed for session %d: %v", session.ID, err)
+		}
+		log.Println("[INFO] Upload complete for session", session.ID)
+	}()
+
+	return nil
+
+}
+
+func (s *UploadService) handleChunk(
+	ctx context.Context,
+	session *model.UploadSession,
+	input *UploadChunkInput,
+) error {
+
+	// Create a hash calculator
+	hasher := sha256.New()
+
+	// TeeReader:
+	// - data goes to hasher
+	// - data continues downstream
+	tee := io.TeeReader(input.ChunkBytes, hasher)
+
+	// when bytes are being processed by tee, goes to two outlets at the same time
+	sizeBytes, err := storeChunk(ctx, input.ChunkID, tee, session.ID)
+	if err != nil {
+		return err
+	}
+
+	// Verify checksum AFTER stream ends
+	calculatedChecksum := hex.EncodeToString(hasher.Sum(nil))
+	if input.CheckSum != "" && calculatedChecksum != input.CheckSum {
+		return errors.New("checksum mismatch")
+	}
+
+	// Persist chunk metadata
+	err = s.registry.Chunks.CreateChunk(ctx,
+		&model.UploadChunk{
+			SessionID:  session.ID,
+			ChunkIndex: input.ChunkID,
+			SizeBytes:  sizeBytes,
+			CheckSum:   calculatedChecksum,
+		})
+
+	if errors.Is(err, shared.ErrChunkAlreadyExists) {
+		return err
+	}
+	return err
+}
+
+func storeChunk(
+	ctx context.Context,
+	chunkID int,
+	data io.Reader,
+	sessionID int64,
+) (int64, error) {
+
+	path := chunkPath(sessionID, chunkID)
+
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); err != nil {
+		return 0, fmt.Errorf("session directory missing: %w", err)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	// io.Copy returns number of bytes written
+	return io.Copy(f, data)
+}
+
+func chunkPath(sessionID int64, chunkID int) string {
+	return filepath.Join(
+		shared.UploadBasePath,
+		strconv.FormatInt(sessionID, 10),
+		fmt.Sprintf("%d.part", chunkID),
+	)
+}
+
+func (s *UploadService) isUploadComplete(ctx context.Context, session *model.UploadSession) (bool, error) {
+	count, err := s.registry.Chunks.CountBySession(ctx, session.ID)
+	if err != nil {
+		return false, err
+	}
+	return count == session.TotalChunks, nil
+}
+
+func (s *UploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
+	s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "assembling")
+
+	finalPath, err := s.assembleChunks(session.ID, session.TotalChunks)
+	if err != nil {
+		return s.fail(ctx, session.ID, err)
+	}
+	//	fmt.Println("Assenbled", finalPath)
+
+	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "uploading")
+	if err != nil {
+		return s.fail(ctx, session.ID, err)
+	}
+	// get mimeType of final file
+	//	fileUUID := uuid.New()
+	mimeType, err := DetectMimeFromFile(
+		finalPath,
+	)
+	if err != nil {
+		return s.fail(ctx, session.ID, err)
+	}
+	// Create File
+	// calculate checksum of final file
+	checksum, err := CalculateSHA256(finalPath)
+	if err != nil {
+		return s.fail(ctx, session.ID, err)
+	}
+	fileUUID := uuid.New()
+
+	file := clients.CreateFileRequest{
+		FileUUID:   fileUUID,
+		UserID:     session.UserID,
+		UploadUUID: session.UploadUUID,
+		Name:       session.FileName,
+		MimeType:   mimeType,
+		SizeBytes:  session.FileSize,
+		StorageKey: fmt.Sprintf(
+			"%s%s/%s",
+			shared.S3UsersPrefix,
+			session.UserID,
+			fileUUID,
+		),
+		CheckSum: checksum,
+	}
+
+	// detatch context and put
+	backgroundCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 4*time.Minute)
+	defer cancel()
+	// upload to Cloud
+	// send a cancel without context for handlning failed uploads
+	err = s.storage.UploadFile(backgroundCtx, file.StorageKey, finalPath)
+	if err != nil {
+		return s.fail(ctx, session.ID, fmt.Errorf("s3 upload failed: %w", err))
+	}
+
+	// Create file row
+	if err := s.fileClient.AddFile(backgroundCtx, &file); err != nil {
+		log.Printf("[ERROR] failed to register file: %v", err)
+		return s.fail(ctx, session.ID, fmt.Errorf("failed to register file: %w", err))
+	}
+	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
+	if err != nil {
+		return err
+	}
+	err = s.removeSessionFolder(finalPath)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (s *UploadService) removeSessionFolder(finalPath string) error {
+	return os.RemoveAll(filepath.Dir(finalPath))
+}
+
+func (s *UploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*model.UploadSession, error) {
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if session.Status != "pending" {
+		return nil, fmt.Errorf("session not accepting chunks")
+	}
+	return session, nil
+}
+
+func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
+	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
+
+	sessionDir := filepath.Join(
+		shared.UploadBasePath,
+		strconv.FormatInt(sessionID, 10),
+	)
+	_ = os.RemoveAll(sessionDir)
+
+	return err
+}
+
+func DetectMimeFromFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	mime, err := mimetype.DetectReader(f)
+	if err != nil {
+		return "", err
+	}
+
+	return mime.String(), nil
+}
+
+func CalculateSHA256(filePath string) (string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	hasher := sha256.New()
+
+	if _, err := io.Copy(hasher, f); err != nil {
+		return "", err
+	}
+
+	sum := hasher.Sum(nil)
+	return hex.EncodeToString(sum), nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\upload_session.go =====
+
+package service
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"upload/internal/model"
+	"upload/shared"
+
+	"github.com/google/uuid"
+)
+
+func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error) {
+	/*
+	   - calculate total chunks
+	   - insert session row to uploadSession table
+	   - get session ID , make folder for tat session
+	   - return UUID, 200, saying that session is created
+	*/
+
+	var session model.UploadSession
+	// assume there are no missing fields
+	// fill upload session model
+	session.UploadUUID = uuid.New()
+	session.FileName = inputs.FileName
+	session.FileSize = inputs.FileSizeBytes
+	session.UserID = inputs.UserID
+	session.TotalChunks = calculateTotalChunks(inputs.FileSizeBytes)
+
+	// insert session into database
+	err := s.registry.Sessions.CreateSession(ctx, &session)
+	if err != nil {
+		return nil, err
+	}
+
+	// create session folder
+	_, err = createSessionDir(session.ID)
+	if err != nil {
+		// delete row if fail
+		s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "failed")
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+func calculateTotalChunks(fileSize int64) int {
+	return int((fileSize + shared.ChunkSizeBytes - 1) / shared.ChunkSizeBytes)
+}
+
+func createSessionDir(sessionID int64) (string, error) {
+	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
+
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
+}
+
+// func deleteSessionDir(sessionID int) error {
+// 	dir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
+
+// 	return os.RemoveAll(dir)
+// }
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\service\upload_status.go =====
+
+package service
+
+import (
+	"context"
+	"errors"
+	"upload/internal/model"
+
+	"github.com/google/uuid"
+)
+
+// Get upload status handler
+func (s *UploadService) GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID, user_id uuid.UUID) (*model.UploadSession, error) {
+
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, upload_uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	if session.UserID != user_id {
+		return nil, errors.New("Unauthorized")
+	}
+
+	return session, nil
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\storage\s3.go =====
+
+package storage
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+type S3Storage struct {
+	Client *s3.Client
+	Bucket string
+}
+
+func NewS3Storage(client *s3.Client, bucket string) *S3Storage {
+	return &S3Storage{
+		Client: client,
+		Bucket: bucket,
+	}
+}
+
+// UploadFile reads from a file and puts the data into an object in a bucket.
+func (s *S3Storage) UploadFile(ctx context.Context, objectKey string, localPath string) error {
+	file, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("open file %s: %w", localPath, err)
+
+	}
+	defer file.Close()
+
+	_, err = s.Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.Bucket),
+		Key:    aws.String(objectKey),
+		Body:   file,
+	})
+
+	return err
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\internal\storage\storage.go =====
+
+package storage
+
+import (
+	"context"
+)
+
+type FileStorage interface {
+	UploadFile(ctx context.Context, key string, localPath string) error
+	//	GenerateDownloadURL(ctx context.Context, key string) (string, error)
+}
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\migrations\001_init.sql =====
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TYPE upload_status AS ENUM (
+    'pending',
+    'assembling',
+    'uploading',
+    'completed',
+    'failed'
+);
+
+CREATE TABLE upload_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    upload_uuid UUID NOT NULL UNIQUE,
+    user_id UUID NOT NULL,
+
+    file_name TEXT NOT NULL,
+    file_size_bytes BIGINT NOT NULL,
+    total_chunks INT NOT NULL,
+
+    status upload_status NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_upload_sessions_uuid
+ON upload_sessions(upload_uuid);
+
+CREATE TABLE upload_chunks (
+    id BIGSERIAL PRIMARY KEY,
+    session_id BIGINT NOT NULL
+        REFERENCES upload_sessions(id)
+        ON DELETE CASCADE,
+
+    chunk_index INT NOT NULL,
+    size_bytes INT NOT NULL,
+    checksum TEXT,
+
+    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (session_id, chunk_index)
+);
+
+CREATE INDEX idx_upload_chunks_session
+ON upload_chunks(session_id);
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\shared\constants.go =====
+
+package shared
+
+const ChunkSizeBytes int64 = 5 * 1024 * 1024 // 5 MB
+const UploadBasePath = "./sessions"
+
+const S3UsersURI = "s3://govault-files/users/"
+const S3UsersPrefix = "users/"
+
+
+===== FILE: D:/code/Golang/GoVault/services/upload\shared\errors.go =====
+
+package shared
+
+import "errors"
+
+var ErrChunkAlreadyExists error = errors.New("chunk already exists")
+var ErrAcceptedAsync = errors.New("accepted for async processing")

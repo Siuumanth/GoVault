@@ -17,7 +17,7 @@ type FileShare struct {
 type File struct {
 	ID         int64
 	FileUUID   uuid.UUID
-	SessionID  *int64
+	UploadUUID *uuid.UUID
 	UserID     uuid.UUID
 	FileName   string
 	MimeType   string

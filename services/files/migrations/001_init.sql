@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE files (
     id BIGSERIAL PRIMARY KEY,
     file_uuid UUID NOT NULL UNIQUE,
+    upload_uuid UUID ,
 
     user_id UUID NOT NULL,
 

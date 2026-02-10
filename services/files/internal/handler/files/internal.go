@@ -33,7 +33,7 @@ func (h *Handler) RegisterFile(w http.ResponseWriter, r *http.Request) {
 		Name:       req.Name,
 		SizeBytes:  req.SizeBytes,
 		MimeType:   req.MimeType,
-		Checksum:   req.CheckSum,
+		Checksum:   &req.CheckSum,
 		StorageKey: req.StorageKey,
 	})
 

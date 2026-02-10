@@ -228,7 +228,7 @@ func (r *FilesRepository) CreateFile(ctx context.Context, p *model.CreateFilePar
 		ctx,
 		CreateFileQuery,
 		p.FileUUID,
-		p.SessionID,
+		p.UploadUUID,
 		p.UserID,
 		p.Name,
 		p.MimeType,
@@ -238,7 +238,7 @@ func (r *FilesRepository) CreateFile(ctx context.Context, p *model.CreateFilePar
 	).Scan(
 		&file.ID,
 		&file.FileUUID,
-		&file.SessionID,
+		&file.UploadUUID,
 		&file.UserID,
 		&file.FileName,
 		&file.MimeType,
@@ -284,7 +284,7 @@ func (r *FilesRepository) FetchFullFileByID(ctx context.Context, fileID uuid.UUI
 		fileID,
 	).Scan(
 		&file.ID,
-		&file.SessionID,
+		&file.UploadUUID,
 		&file.FileUUID,
 		&file.UserID,
 		&file.FileName,

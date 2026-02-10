@@ -56,7 +56,7 @@ func (c *FileClient) AddFile(
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf(
 			"file service error %d: %s",
