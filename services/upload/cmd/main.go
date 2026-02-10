@@ -40,7 +40,7 @@ func main() {
 	s3Storage := storage.NewS3Storage(s3Client, bucket)
 
 	// ---------- Service & Client ----------
-	fsURL := os.Getenv("GOVAULT_FILE_SERVICE_URL")
+	fsURL := os.Getenv("GOVAULT_FILES_SERVICE_URL")
 	if dbURL == "" || fsURL == "" || bucket == "" {
 		log.Fatal("missing required env vars")
 	}

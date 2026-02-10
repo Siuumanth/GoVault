@@ -42,6 +42,7 @@ services:
       - "9002"
     environment:
       PORT: 9002
+      GOVAULT_FILES_SERVICE_URL: ${GOVAULT_FILES_SERVICE_URL}
       UPLOAD_POSTGRES_URL_DEV: ${UPLOAD_POSTGRES_URL_DEV}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -58,6 +59,7 @@ services:
     environment:
       PORT: 9003
       FILES_POSTGRES_URL_DEV: ${FILES_POSTGRES_URL_DEV}
+      GOVAULT_AUTH_SERVICE_URL: ${GOVAULT_AUTH_SERVICE_URL}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
@@ -65,7 +67,7 @@ services:
     depends_on:
       - files-db
 
-  # ---------- DATABASES (FIXED) ----------
+  # ---------- DATABASES ----------
 
   auth-db:
     image: postgres:16
@@ -75,7 +77,7 @@ services:
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
       POSTGRES_DB: ${AUTH_DB_NAME}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -d ${AUTH_DB_NAME} -U ${AUTH_DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
