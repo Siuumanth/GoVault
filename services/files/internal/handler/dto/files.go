@@ -6,6 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type DownloadResponse struct {
+	StorageKey string    `json:"storage_key"`
+	ExpiresAt  time.Time `json:"expires_at"`
+}
+
 type CreateFileRequest struct {
 	FileUUID   uuid.UUID `json:"file_uuid"`
 	UploadUUID uuid.UUID `json:"upload_uuid"`

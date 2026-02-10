@@ -38,9 +38,9 @@ func NewFileShareRepository(db *sql.DB) *FileShareRepository {
 }
 
 const FetchUserFileShareQuery = `
-SELECT id, file_id, shared_with_user_id, permission, created_at
+SELECT id, file_uuid, shared_with_user_id, permission, created_at
 FROM file_shares
-WHERE file_id = $1 AND shared_with_user_id = $2`
+WHERE file_uuid = $1 AND shared_with_user_id = $2`
 
 func (r *FileShareRepository) FetchUserFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (*model.FileShare, error) {
 
@@ -69,7 +69,7 @@ func (r *FileShareRepository) FetchUserFileShare(ctx context.Context, fileID uui
 }
 
 const CreateFileShareQuery = `
-INSERT INTO file_shares (file_id, shared_with_user_id, permission) VALUES ($1, $2, $3) RETURNING id, created_at
+INSERT INTO file_shares (file_uuid, shared_with_user_id, permission) VALUES ($1, $2, $3) RETURNING id, created_at
 `
 
 func (r *FileShareRepository) CreateFileShare(ctx context.Context, p *model.FileShareParams) (*model.FileShare, error) {
@@ -96,7 +96,7 @@ func (r *FileShareRepository) CreateFileShare(ctx context.Context, p *model.File
 	return &share, nil
 }
 
-const DeleteFileShareQuery = `DELETE from file_shares WHERE file_id = $1 AND shared_with_user_id = $2`
+const DeleteFileShareQuery = `DELETE from file_shares WHERE file_uuid = $1 AND shared_with_user_id = $2`
 
 func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) error {
 	rows := r.db.QueryRowContext(
@@ -111,8 +111,8 @@ func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uuid.U
 
 // FetchFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error)
 const FetchFileSharesQuery = `
-SELECT file_id, shared_with_user_id, permission from file_shares
-WHERE file_id = $1
+SELECT file_uuid, shared_with_user_id, permission from file_shares
+WHERE file_uuid = $1
 `
 
 func (r *FileShareRepository) FetchAllFileShares(ctx context.Context, fileID uuid.UUID) ([]*model.FileShare, error) {
@@ -146,7 +146,7 @@ const UpdateFileShareQuery = `
 UPDATE file_shares 
 SET permission = $1
 WHERE 
-    file_id = $2 AND
+    file_uuid = $2 AND
 	shared_with_user_id = $3
 `
 
@@ -165,7 +165,7 @@ const IsFileSharedWithUserQuery = `
 SELECT EXISTS (
 	SELECT 1
 	FROM file_shares
-	WHERE file_id = $1 AND shared_with_user_id = $2
+	WHERE file_uuid = $1 AND shared_with_user_id = $2
 )
 `
 
@@ -185,7 +185,7 @@ const FetchPublicAccessQuery = `
 SELECT EXISTS (
     SELECT 1
     FROM public_files
-    WHERE file_id = $1
+    WHERE file_uuid = $1
 )
 `
 
@@ -200,7 +200,7 @@ func (r *FileShareRepository) IsFilePublic(ctx context.Context, fileID uuid.UUID
 }
 
 const CreatePublicAccessQuery = `
-INSERT INTO public_files(file_id) 
+INSERT INTO public_files(file_uuid) 
 VALUES($1)
 `
 
@@ -215,7 +215,7 @@ func (r *FileShareRepository) CreatePublicAccess(ctx context.Context, fileID uui
 
 const DeletePublicAccessQuery = `
 DELETE from file_shortcuts
-WHERE file_id = $1
+WHERE file_uuid = $1
 `
 
 func (r *FileShareRepository) DeletePublicAccess(ctx context.Context, fileID uuid.UUID) error {
@@ -232,7 +232,7 @@ func (r *FileShareRepository) DeletePublicAccess(ctx context.Context, fileID uui
 const FetchUserPermissionQuery = `
 SELECT permission
 FROM file_shares
-WHERE file_id = $1 AND shared_with_user_id = $2
+WHERE file_uuid = $1 AND shared_with_user_id = $2
 `
 
 func (r *FileShareRepository) IsFileEditableByUser(ctx context.Context, fileID uuid.UUID, userID uuid.UUID) (bool, error) {

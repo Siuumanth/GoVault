@@ -57,12 +57,12 @@
         <h3>Download Flow</h3>
         <span class="step-label">STAGE 1</span><br>
         <label>File UUID</label>
-        <input type="text" id="downloadFileId" placeholder="Enter File UUID (e.g. 550e8400-e29b...)">
-        <button id="getDownloadUrlBtn">Get S3 Download URL</button>
+        <input type="text" id="downloadFileId" placeholder="Enter File UUID">
+        <button id="getDownloadUrlBtn">Get Download Info</button>
         <hr>
         <span class="step-label">STAGE 2</span><br>
-        <div id="downloadUrlInfo" style="font-size: 11px; color: #666; word-break: break-all; margin-bottom: 10px;">URL not generated yet</div>
-        <button id="executeDownloadBtn" disabled>Download from S3</button>
+        <div id="downloadUrlInfo" style="font-size: 11px; color: #666; word-break: break-all; margin-bottom: 10px;">Metadata not fetched yet</div>
+        <button id="executeDownloadBtn" disabled>Execute S3 Download</button>
     </div>
 
     <div class="card">
@@ -72,7 +72,9 @@
 
     <script>
         const CHUNK_SIZE = 5 * 1024 * 1024;
-        const BASE_URL = "http://localhost:9000/api/upload"; // Gateway URL
+        const GATEWAY_URL = "http://localhost:9000/api";
+        const UPLOAD_URL = `${GATEWAY_URL}/upload`;
+        const FILES_URL = `${GATEWAY_URL}/files`;
 
         let activeSession = null;
         let presignedUrl = null;
@@ -95,7 +97,7 @@
         document.getElementById('healthBtn').onclick = async () => {
             const token = document.getElementById('token').value;
             try {
-                const resp = await fetch(`${BASE_URL}/health`, {
+                const resp = await fetch(`${UPLOAD_URL}/health`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
                 const text = await resp.text();
@@ -110,7 +112,7 @@
             if (!file || !token) return alert("File and Token required");
 
             try {
-                const resp = await fetch(`${BASE_URL}/session`, {
+                const resp = await fetch(`${UPLOAD_URL}/session`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ file_name: file.name, file_size_bytes: file.size })
@@ -135,7 +137,7 @@
                     const hash = await crypto.subtle.digest('SHA-256', buffer);
                     const checksum = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                    const resp = await fetch(`${BASE_URL}/chunk?id=${i}`, {
+                    const resp = await fetch(`${UPLOAD_URL}/chunk?id=${i}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -147,55 +149,62 @@
                     });
                     if (!resp.ok) throw new Error(`Chunk ${i} failed`);
                     progressBar.value = ((i + 1) / activeSession.total_chunks) * 100;
+                    logger(`Chunk ${i} uploaded`);
                 }
                 logger("Upload Complete!", 'success');
-            } catch (err) { logger(err.message, 'err'); uploadBtn.disabled = false; }
+            } catch (err) { 
+                logger(`Upload Failed: ${err.message}`, 'err'); 
+                uploadBtn.disabled = false; 
+            }
         };
 
-        // --- DOWNLOAD STAGE 1: GET URL ---
+        // --- DOWNLOAD STAGE 1: GET DOWNLOAD INFO ---
         document.getElementById('getDownloadUrlBtn').onclick = async () => {
             const fileId = document.getElementById('downloadFileId').value;
             const token = document.getElementById('token').value;
             if (!fileId || !token) return alert("File UUID and Token required");
 
             try {
-                logger("Requesting S3 Download URL...", "info");
-                // Calling /{fileID}/download as requested
-                const resp = await fetch(`${BASE_URL}/${fileId}/download`, {
+                logger("Fetching download metadata from Files Service...", "info");
+                
+                // Matches Handler: GET /api/files/{fileID}/download
+                const resp = await fetch(`${FILES_URL}/${fileId}/download`, {
                     method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
 
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 
-                const data = await resp.json(); // Assuming response: { "download_url": "s3-presigned-link..." }
-                presignedUrl = data.download_url;
+                const data = await resp.json(); 
                 
-                document.getElementById('downloadUrlInfo').textContent = presignedUrl;
+                // If your service generates a URL, use data.download_url
+                // If it just gives key, use data.storage_key (browser can't download key directly without signing)
+                presignedUrl = data.download_url || data.storage_key; 
+                
+                document.getElementById('downloadUrlInfo').innerHTML = `
+                    <strong>Target:</strong> ${presignedUrl}<br>
+                    <strong>Expires:</strong> ${data.expires_at || 'N/A'}
+                `;
+                
                 executeDownloadBtn.disabled = false;
-                logger("Presigned URL generated.", "success");
+                logger("Download metadata received.", "success");
             } catch (err) {
-                logger(`Download Init Error: ${err.message}`, "err");
+                logger(`Download Meta Error: ${err.message}`, "err");
             }
         };
 
-        // --- DOWNLOAD STAGE 2: EXECUTE DOWNLOAD ---
+        // --- DOWNLOAD STAGE 2: EXECUTE ---
         executeDownloadBtn.onclick = async () => {
             if (!presignedUrl) return;
-            logger("Starting direct download from S3...", "info");
+            logger("Redirecting to S3 Source...", "info");
             
             try {
-                // Using a traditional anchor link approach to force browser download
-                const a = document.createElement('a');
-                a.href = presignedUrl;
-                // Note: 'download' attribute doesn't work cross-origin unless S3 headers allow it,
-                // but the S3 presigned URL usually handles Content-Disposition anyway.
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                logger("Download triggered in browser.", "success");
+                // If presignedUrl is a valid HTTPS link, this triggers the download
+                window.open(presignedUrl, '_blank');
+                logger("Download triggered.", "success");
             } catch (err) {
                 logger(`Execution error: ${err.message}`, "err");
             }

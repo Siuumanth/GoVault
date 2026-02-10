@@ -12,7 +12,7 @@ import (
 )
 
 const CreateShortcutQuery = `
-INSERT INTO file_shortcuts (file_id, user_id)
+INSERT INTO file_shortcuts (file_uuid, user_id)
 VALUES ($1, $2)
 RETURNING id, created_at
 `
