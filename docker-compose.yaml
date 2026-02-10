@@ -33,6 +33,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
     depends_on:
       - auth-db
+  
 
   upload-service:
     build: ./services/upload
@@ -73,6 +74,11 @@ services:
       POSTGRES_USER: ${AUTH_DB_USER}
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
       POSTGRES_DB: ${AUTH_DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - auth_db_data:/var/lib/postgresql/data
 
@@ -95,6 +101,25 @@ services:
       POSTGRES_DB: ${FILES_DB_NAME}
     volumes:
       - files_db_data:/var/lib/postgresql/data
+  smoke-tests:
+    image: curlimages/curl
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      upload-service:
+        condition: service_healthy
+      files-service:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    command: >
+      sh -c "
+      curl -f http://gateway:9000/health &&
+      curl -f http://auth-service:9001/health &&
+      curl -f http://upload-service:9002/health &&
+      curl -f http://files-service:9003/health
+      "
+
 
 volumes:
   auth_db_data:

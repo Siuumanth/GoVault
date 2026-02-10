@@ -23,7 +23,7 @@ import (
 func main() {
 	godotenv.Load()
 	// ---------- DB ----------
-	dbURL := os.Getenv("GOVAULT_FILES_POSTGRES_URL")
+	dbURL := os.Getenv("FILES_POSTGRES_URL_DEV")
 	if dbURL == "" {
 		log.Fatal("Database URL is not set")
 	}
