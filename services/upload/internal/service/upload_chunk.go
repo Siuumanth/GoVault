@@ -216,6 +216,7 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 
 	// Create file row
 	if err := s.fileClient.AddFile(backgroundCtx, &file); err != nil {
+		log.Printf("[ERROR] failed to register file: %v", err)
 		return s.fail(ctx, session.ID, fmt.Errorf("failed to register file: %w", err))
 	}
 	err = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
@@ -246,6 +247,7 @@ func (s *UploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*mo
 }
 
 func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
 	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
 
 	sessionDir := filepath.Join(

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoVault 2-Stage Tester</title>
+    <title>GoVault Multi-Stage Tester</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; max-width: 650px; margin: 2rem auto; background-color: #f8f9fa; color: #333; }
         .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -13,8 +13,8 @@
         button { flex: 1; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; transition: all 0.2s; }
         
         #healthBtn { background-color: #47cc40; color: white; }
-        #sessionBtn { background-color: #007bff; color: white; }
-        #uploadBtn { background-color: #238636; color: white; }
+        #sessionBtn, #getDownloadUrlBtn { background-color: #007bff; color: white; }
+        #uploadBtn, #executeDownloadBtn { background-color: #238636; color: white; }
         
         button:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.6; }
         button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
@@ -26,12 +26,13 @@
         .success { color: #51cf66; }
         label { font-weight: 600; font-size: 14px; color: #444; }
         .step-label { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 5px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>GoVault Tester</h2>
+        <h2>GoVault Credentials</h2>
         <label>Access Token (JWT)</label>
         <input type="text" id="token" placeholder="Bearer token...">
         <div class="btn-group">
@@ -40,21 +41,28 @@
     </div>
 
     <div class="card">
+        <h3>Upload Flow</h3>
         <span class="step-label">STAGE 1</span><br>
         <label>Select File</label>
         <input type="file" id="fileInput">
         <button id="sessionBtn">Initialize Session</button>
-    </div>
-
-    <div class="card">
+        <hr>
         <span class="step-label">STAGE 2</span><br>
         <div id="sessionInfo" style="font-size: 12px; color: #666; margin-bottom: 10px;">No active session</div>
         <button id="uploadBtn" disabled>Start Uploading Chunks</button>
-        
-        <div style="margin-top: 20px;">
-            <div id="statusLabel" style="font-size: 14px; margin-bottom: 5px;">Status: Waiting...</div>
-            <progress id="progressBar" value="0" max="100"></progress>
-        </div>
+        <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+
+    <div class="card">
+        <h3>Download Flow</h3>
+        <span class="step-label">STAGE 1</span><br>
+        <label>File UUID</label>
+        <input type="text" id="downloadFileId" placeholder="Enter File UUID (e.g. 550e8400-e29b...)">
+        <button id="getDownloadUrlBtn">Get S3 Download URL</button>
+        <hr>
+        <span class="step-label">STAGE 2</span><br>
+        <div id="downloadUrlInfo" style="font-size: 11px; color: #666; word-break: break-all; margin-bottom: 10px;">URL not generated yet</div>
+        <button id="executeDownloadBtn" disabled>Download from S3</button>
     </div>
 
     <div class="card">
@@ -63,16 +71,16 @@
     </div>
 
     <script>
-        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-        const BASE_URL = "http://localhost:9000/api/upload";
+        const CHUNK_SIZE = 5 * 1024 * 1024;
+        const BASE_URL = "http://localhost:9000/api/upload"; // Gateway URL
 
-        let activeSession = null; // Store session metadata here
+        let activeSession = null;
+        let presignedUrl = null;
 
         const logDiv = document.getElementById('log');
-        const statusLabel = document.getElementById('statusLabel');
         const progressBar = document.getElementById('progressBar');
-        const sessionInfo = document.getElementById('sessionInfo');
         const uploadBtn = document.getElementById('uploadBtn');
+        const executeDownloadBtn = document.getElementById('executeDownloadBtn');
 
         function logger(msg, type = 'default') {
             const div = document.createElement('div');
@@ -92,91 +100,104 @@
                 });
                 const text = await resp.text();
                 logger(`Health: ${text}`, resp.ok ? 'success' : 'err');
-            } catch (err) {
-                logger(`Health check failed (CORS/Network error)`, 'err');
-            }
+            } catch (err) { logger(`Health check failed`, 'err'); }
         };
 
-        // --- STAGE 1: SESSION INIT ---
+        // --- UPLOAD STAGE 1 ---
         document.getElementById('sessionBtn').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
             const token = document.getElementById('token').value;
-
             if (!file || !token) return alert("File and Token required");
 
             try {
-                logger("Initializing session...", "info");
                 const resp = await fetch(`${BASE_URL}/session`, {
                     method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json' 
-                    },
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ file_name: file.name, file_size_bytes: file.size })
                 });
-
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                
-                activeSession = await resp.json(); // { upload_uuid, total_chunks }
-                
-                logger(`Session created: ${activeSession.upload_uuid}`, 'success');
-                sessionInfo.innerHTML = `<strong>UUID:</strong> ${activeSession.upload_uuid}<br><strong>Chunks:</strong> ${activeSession.total_chunks}`;
-                
-                // Unlock Stage 2
+                if (!resp.ok) throw new Error(`Status ${resp.status}`);
+                activeSession = await resp.json();
+                document.getElementById('sessionInfo').innerHTML = `Session ID: ${activeSession.upload_uuid}`;
                 uploadBtn.disabled = false;
-                statusLabel.textContent = "Status: Session Ready. Ready to upload.";
-            } catch (err) {
-                logger(`Session failed: ${err.message}`, 'err');
-                uploadBtn.disabled = true;
-            }
+                logger(`Session Initialized: ${activeSession.upload_uuid}`, 'success');
+            } catch (err) { logger(`Session error: ${err.message}`, 'err'); }
         };
 
-        // --- STAGE 2: CHUNK UPLOADING ---
+        // --- UPLOAD STAGE 2 ---
         uploadBtn.onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
             const token = document.getElementById('token').value;
-
-            if (!activeSession || !file) return;
-
-            uploadBtn.disabled = true; // Prevent double clicking
-            const authHeader = { 'Authorization': `Bearer ${token}` };
-
+            uploadBtn.disabled = true;
             try {
                 for (let i = 0; i < activeSession.total_chunks; i++) {
-                    const start = i * CHUNK_SIZE;
-                    const end = Math.min(start + CHUNK_SIZE, file.size);
-                    const chunkBlob = file.slice(start, end);
-                    const arrayBuffer = await chunkBlob.arrayBuffer();
-                    
-                    // Hash calculation
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-                    const checksum = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    const buffer = await chunk.arrayBuffer();
+                    const hash = await crypto.subtle.digest('SHA-256', buffer);
+                    const checksum = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                    statusLabel.textContent = `Status: Sending chunk ${i + 1}/${activeSession.total_chunks}`;
-                    
-                    const chunkResp = await fetch(`${BASE_URL}/chunk?id=${i}`, {
+                    const resp = await fetch(`${BASE_URL}/chunk?id=${i}`, {
                         method: 'POST',
                         headers: {
-                            ...authHeader,
+                            'Authorization': `Bearer ${token}`,
                             'Upload-UUID': activeSession.upload_uuid,
                             'Checksum': checksum,
                             'Content-Type': 'application/octet-stream'
                         },
-                        body: arrayBuffer
+                        body: buffer
                     });
-
-                    if (!chunkResp.ok) throw new Error(`Chunk ${i} failed with status ${chunkResp.status}`);
-                    
-                    logger(`Chunk ${i} uploaded.`);
+                    if (!resp.ok) throw new Error(`Chunk ${i} failed`);
                     progressBar.value = ((i + 1) / activeSession.total_chunks) * 100;
                 }
+                logger("Upload Complete!", 'success');
+            } catch (err) { logger(err.message, 'err'); uploadBtn.disabled = false; }
+        };
 
-                statusLabel.textContent = "Status: Finished!";
-                logger("All chunks sent successfully!", 'success');
+        // --- DOWNLOAD STAGE 1: GET URL ---
+        document.getElementById('getDownloadUrlBtn').onclick = async () => {
+            const fileId = document.getElementById('downloadFileId').value;
+            const token = document.getElementById('token').value;
+            if (!fileId || !token) return alert("File UUID and Token required");
+
+            try {
+                logger("Requesting S3 Download URL...", "info");
+                // Calling /{fileID}/download as requested
+                const resp = await fetch(`${BASE_URL}/${fileId}/download`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                
+                const data = await resp.json(); // Assuming response: { "download_url": "s3-presigned-link..." }
+                presignedUrl = data.download_url;
+                
+                document.getElementById('downloadUrlInfo').textContent = presignedUrl;
+                executeDownloadBtn.disabled = false;
+                logger("Presigned URL generated.", "success");
             } catch (err) {
-                logger(`Upload error: ${err.message}`, 'err');
-                statusLabel.textContent = "Status: Upload Failed";
-                uploadBtn.disabled = false;
+                logger(`Download Init Error: ${err.message}`, "err");
+            }
+        };
+
+        // --- DOWNLOAD STAGE 2: EXECUTE DOWNLOAD ---
+        executeDownloadBtn.onclick = async () => {
+            if (!presignedUrl) return;
+            logger("Starting direct download from S3...", "info");
+            
+            try {
+                // Using a traditional anchor link approach to force browser download
+                const a = document.createElement('a');
+                a.href = presignedUrl;
+                // Note: 'download' attribute doesn't work cross-origin unless S3 headers allow it,
+                // but the S3 presigned URL usually handles Content-Disposition anyway.
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                logger("Download triggered in browser.", "success");
+            } catch (err) {
+                logger(`Execution error: ${err.message}`, "err");
             }
         };
     </script>

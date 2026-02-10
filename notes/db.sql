@@ -154,7 +154,17 @@ CREATE TABLE public_files (
 
 
 
+-- 1️⃣ Auth service DB
+-- docker compose exec auth-service \
+--   psql "$AUTH_POSTGRES_URL_DEV" -f migrations/001_init.sql
 
+-- 2️⃣ Upload service DB
+-- docker compose exec upload-service \
+--   psql "$UPLOAD_POSTGRES_URL_DEV" -f migrations/001_init.sql
+
+-- 3️⃣ Files service DB
+-- docker compose exec files-service \
+--   psql "$FILES_POSTGRES_URL_DEV" -f migrations/001_init.sql
 
 
 

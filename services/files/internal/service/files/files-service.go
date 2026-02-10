@@ -133,13 +133,13 @@ func (s *FileService) MakeFileCopy(ctx context.Context, in *inputs.MakeFileCopyI
 	}
 
 	params := &model.CreateFileParams{
-		SessionID:  nil,
+		SessionID:  0, // lets keep it 0 for copied files
 		FileUUID:   newUUID,
 		UserID:     in.ActorUserID,
 		Name:       src.FileName,
 		MimeType:   src.MimeType,
 		SizeBytes:  src.SizeBytes,
-		Checksum:   src.Checksum,
+		Checksum:   *src.Checksum,
 		StorageKey: storageKey,
 	}
 
