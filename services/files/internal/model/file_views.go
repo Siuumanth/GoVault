@@ -29,8 +29,10 @@ type CreateFileParams struct {
 
 type DownloadRow struct {
 	StorageKey string
+	FileName   string
 }
 type DownloadResponse struct {
-	StorageKey string
-	ExpiresAt  time.Time
+	DownloadURL string    `json:"download_url"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	FileName    string    `json:"file_name"`
 }
