@@ -10,7 +10,6 @@ const (
 	PAGE_LIMIT          = 20
 	PAGE_NO_DEFAULT     = 1
 
-	// TODO: add correct URL in env
-	DOWNLOAD_LINK_TTL         = 300 * time.Second
+	DOWNLOAD_LINK_TTL         = 600 * time.Second
 	AUTH_SERVICE_INTERNAL_URL = "temp"
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"files/internal/model"
 	"files/internal/shared"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,7 +38,10 @@ func (s *FileService) GetDownloadDetails(
 		ctx,
 		d.StorageKey,
 		shared.DOWNLOAD_LINK_TTL,
+		d.FileName,
+		d.MimeType,
 	)
+	log.Println("Download URL for File ID", fileID, "is", downloadURL)
 	if err != nil {
 		return nil, err
 	}

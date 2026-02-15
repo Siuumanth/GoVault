@@ -26,11 +26,17 @@ func (s *S3Storage) GenerateDownloadURL(
 	ctx context.Context,
 	key string,
 	expiry time.Duration,
+	fileName string,
+	mimeType string,
 ) (string, error) {
 
+	disposition := fmt.Sprintf(`attachment; filename="%s"`, fileName)
+
 	req, err := s.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: &s.bucket,
-		Key:    &key,
+		Bucket:                     &s.bucket,
+		Key:                        &key,
+		ResponseContentDisposition: &disposition,
+		ResponseContentType:        &mimeType,
 	}, s3.WithPresignExpires(expiry))
 
 	if err != nil {

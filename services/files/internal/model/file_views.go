@@ -30,6 +30,7 @@ type CreateFileParams struct {
 type DownloadRow struct {
 	StorageKey string
 	FileName   string
+	MimeType   string
 }
 type DownloadResponse struct {
 	DownloadURL string    `json:"download_url"`

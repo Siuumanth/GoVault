@@ -54,12 +54,14 @@ func (r ChiRouter) ConfigureRoutes(proxies *Proxies, authz MW.Middleware) {
 		r.Mount("/", http.StripPrefix("/auth", proxies.Auth))
 	})
 
-	// Protected routes (JWT applied at gateway level or here)
 	r.mux.Route("/api", func(r chi.Router) {
-		r.Use(authz.Handle) // middleware to authorize secure routes
-		//	log.Printf("Protected routes")
-		r.Mount("/upload", http.StripPrefix("/api/upload", proxies.Upload))
+		// ---------- PUBLIC ----------
 		r.Mount("/files", http.StripPrefix("/api/files", proxies.Files))
-	})
 
+		// ---------- PROTECTED ----------
+		r.Group(func(r chi.Router) {
+			r.Use(authz.Handle)
+			r.Mount("/upload", http.StripPrefix("/api/upload", proxies.Upload))
+		})
+	})
 }
