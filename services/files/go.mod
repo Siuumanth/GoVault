@@ -10,6 +10,7 @@ require (
 	github.com/jackc/pgconn v1.14.3
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.0
+	github.com/sony/gobreaker v1.0.0
 )
 
 require (
