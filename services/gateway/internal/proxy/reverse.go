@@ -40,9 +40,9 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 				return false
 			}
 			ratio := float64(counts.TotalFailures) / float64(counts.Requests)
-			return ratio >= 0.6
+			return ratio >= 0.6 // trip when 60 percent of requests fail
 		},
-		// trip when 60 percent of requests fail
+
 		OnStateChange: func(name string, from, to gobreaker.State) {
 			log.Printf("[CB:%s] %s → %s", name, from.String(), to.String())
 		}, // log wen state change
@@ -56,18 +56,10 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		reqID := middleware.GetRequestID(r.Context())
 		log.Printf("[req_id=%s] [CB:%s] upstream error: %v", reqID, serviceName, err)
-
-		fmt.Fprintf(w, "Upstream error")
+		fmt.Fprintf(w, "Upstream error") // to user
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		// Fail fast if breaker is OPEN
-		if cb.State() == gobreaker.StateOpen {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			fmt.Fprintf(w, "%s unavailable (circuit open)", serviceName)
-			return
-		}
 
 		rw := &statusRecorder{
 			ResponseWriter: w,
