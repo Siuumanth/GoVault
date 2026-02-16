@@ -4,9 +4,9 @@ export const ENDPOINTS = {
     SIGNUP: '/auth/signup',
   },
   FILES: {
-    OWNED: '/api/files/owned',
-    SHARED: '/api/files/shared',
-    SHORTCUTS: '/api/files/shortcuts',
+    OWNED: '/api/files/me/owned',
+    SHARED: '/api/files/me/shared',
+    SHORTCUTS: '/api/files/me/shortcuts',
     DETAILS: (id) => `/api/files/${id}`,
     DOWNLOAD: (id) => `/api/files/${id}/download`,
   },

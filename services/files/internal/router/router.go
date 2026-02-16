@@ -25,6 +25,16 @@ func NewConfiguredChiRouter(
 	// identity extraction middleware
 	r.Use(middleware.ActorContext)
 
+	// ---------- private ----------
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires auth
+
+		// lists
+		r.Get("/me/owned", filesH.ListOwnedFiles)
+		r.Get("/me/shared", filesH.ListSharedFiles)
+		r.Get("/me/shortcuts", shortcutsH.ListShortcuts)
+	})
+
 	// ---------- internal (Service-to-Service) ----------
 	r.Route("/internal", func(r chi.Router) {
 		// No ActorContext needed here usually, as this is machine-to-machine
@@ -35,7 +45,8 @@ func NewConfiguredChiRouter(
 	r.Get("/health", healthH.HealthHandler)
 
 	// ---------- files ----------
-	r.Route("/{fileID}", func(r chi.Router) {
+	// add at last or it will cause collision
+	r.Route("/f/{fileID}", func(r chi.Router) {
 
 		// public file access
 		r.Get("/", filesH.GetSingleFileSummary)
@@ -68,16 +79,6 @@ func NewConfiguredChiRouter(
 			r.Post("/shortcut", shortcutsH.CreateShortcut)
 			r.Delete("/shortcut", shortcutsH.DeleteShortcut)
 		})
-	})
-
-	// ---------- private ----------
-	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires auth
-
-		// lists
-		r.Get("/me/owned", filesH.ListOwnedFiles)
-		r.Get("/me/shared", filesH.ListSharedFiles)
-		r.Get("/me/shortcuts", shortcutsH.ListShortcuts)
 	})
 
 	return r

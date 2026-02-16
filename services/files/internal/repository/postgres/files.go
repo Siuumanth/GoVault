@@ -73,7 +73,7 @@ func (r *FilesRepository) CheckFileOwnership(
 
 const UpdateFileNameQuery = `
 		UPDATE files
-		SET name = $1
+		SET file_name = $1
 		WHERE file_uuid = $2
 		AND deleted_at IS NULL
 	`
@@ -103,7 +103,7 @@ func (r *FilesRepository) UpdateFileName(ctx context.Context, fileUUID uuid.UUID
 }
 
 const GetSingleFileQuery = `
-SELECT file_uuid, user_id, name, mime_type, size, created_at
+SELECT file_uuid, user_id, file_name, mime_type, size_bytes, created_at
 FROM files
 WHERE file_uuid = $1
 AND deleted_at IS NULL`
@@ -134,7 +134,7 @@ func (r *FilesRepository) FetchFileSummaryByID(ctx context.Context, fileID uuid.
 }
 
 const ListOwnedFilesQuery = ` 
-SELECT file_uuid, user_id, name, mime_type, size, created_at
+SELECT file_uuid, user_id, file_name, mime_type, size_bytes, created_at
 FROM files
 WHERE user_id = $1
 AND deleted_at IS NULL
@@ -168,7 +168,7 @@ func (r *FilesRepository) FetchOwnedFiles(ctx context.Context, userID uuid.UUID,
 }
 
 const ListSharedFilesQuery = `
-SELECT file_uuid, user_id, name, mime_type, size, created_at
+SELECT file_uuid, user_id, file_name, mime_type, size_bytes, created_at
 FROM files
 JOIN file_shares FS ON
 FS.file_uuid = files.file_uuid
