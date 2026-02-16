@@ -1,4 +1,5 @@
 @theme {
-  /* Your custom theme variables go here in v4 */
+  --color-gv-blue: #007bff;
+  --color-gv-dark: #0d1117;
 }
 @import "tailwindcss";
