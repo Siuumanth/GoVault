@@ -22,37 +22,29 @@ func NewConfiguredChiRouter(
 
 	r := chi.NewRouter()
 
-	// identity extraction (optional)
+	// identity extraction middleware
 	r.Use(middleware.ActorContext)
 
 	// ---------- internal (Service-to-Service) ----------
 	r.Route("/internal", func(r chi.Router) {
 		// No ActorContext needed here usually, as this is machine-to-machine
-		r.Post("/file", filesH.RegisterFile) // This matches your existing AddFile logic
+		r.Post("/file", filesH.RegisterFile)
 	})
 
 	// ---------- public ----------
 	r.Get("/health", healthH.HealthHandler)
 
-	// public file access
+	// ---------- files ----------
 	r.Route("/{fileID}", func(r chi.Router) {
+
+		// public file access
 		r.Get("/", filesH.GetSingleFileSummary)
-	})
-	r.Route("/{fileID}/download", func(r chi.Router) {
-		r.Get("/", filesH.GetDownload)
-	})
+		r.Get("/download", filesH.GetDownload)
 
-	// ---------- private ----------
-	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires user
+		// ---------- private ----------
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires user
 
-		// lists
-		r.Get("/owned", filesH.ListOwnedFiles)
-		r.Get("/shared", filesH.ListSharedFiles)
-		r.Get("/shortcuts", shortcutsH.ListShortcuts)
-
-		// file scoped private ops
-		r.Route("/{fileID}", func(r chi.Router) {
 			// files
 			r.Patch("/", filesH.UpdateFileName)
 			r.Delete("/", filesH.SoftDeleteFile)
@@ -76,6 +68,16 @@ func NewConfiguredChiRouter(
 			r.Post("/shortcut", shortcutsH.CreateShortcut)
 			r.Delete("/shortcut", shortcutsH.DeleteShortcut)
 		})
+	})
+
+	// ---------- private ----------
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.RequireActor) // 🔒 EVERYTHING inside requires auth
+
+		// lists
+		r.Get("/me/owned", filesH.ListOwnedFiles)
+		r.Get("/me/shared", filesH.ListSharedFiles)
+		r.Get("/me/shortcuts", shortcutsH.ListShortcuts)
 	})
 
 	return r
