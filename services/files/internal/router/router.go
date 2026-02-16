@@ -45,7 +45,6 @@ func NewConfiguredChiRouter(
 	r.Get("/health", healthH.HealthHandler)
 
 	// ---------- files ----------
-	// add at last or it will cause collision
 	r.Route("/f/{fileID}", func(r chi.Router) {
 
 		// public file access

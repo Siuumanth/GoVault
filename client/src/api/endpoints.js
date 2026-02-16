@@ -7,8 +7,8 @@ export const ENDPOINTS = {
     OWNED: '/api/files/me/owned',
     SHARED: '/api/files/me/shared',
     SHORTCUTS: '/api/files/me/shortcuts',
-    DETAILS: (id) => `/api/files/${id}`,
-    DOWNLOAD: (id) => `/api/files/${id}/download`,
+    DETAILS: (id) => `/api/files/f/${id}`,
+    DOWNLOAD: (id) => `/api/files/f/${id}/download`,
   },
   UPLOAD: {
     SESSION: '/api/upload/session',
