@@ -28,5 +28,18 @@ export const ENDPOINTS = {
     SESSION: '/api/upload/session',
     CHUNK: (id) => `/api/upload/chunk?id=${id}`,
     STATUS: '/api/upload/status',
-  }
+  },
+  SHARING: {
+    LIST: (fileId) => `/api/files/f/${fileId}/shares`,
+    ADD: (fileId) => `/api/files/f/${fileId}/shares`,
+    REMOVE: (fileId, userId) => `/api/files/f/${fileId}/shares/${userId}`,
+  },
+  PUBLIC: {
+    CREATE: (fileId) => `/api/files/f/${fileId}/public`,
+    DELETE: (fileId) => `/api/files/f/${fileId}/public`,
+  },
+  SHORTCUT: {
+    ADD: (fileId) => `/api/files/f/${fileId}/shortcut`,
+    DELETE: (fileId) => `/api/files/f/${fileId}/shortcut`,
+  },
 };
