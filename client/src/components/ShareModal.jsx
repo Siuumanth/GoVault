@@ -116,29 +116,12 @@ export default function ShareModal({ file, onClose }) {
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">People with access</label>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {shares.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No one has access yet</p>
-              ) : (
-                shares.map(share => (
-                  <div key={share.user_id || share.email || share.id} className="flex justify-between items-center bg-[#0d1117] p-2 rounded-lg border border-[#30363d]">
-                    <span className="text-sm text-gray-300 truncate mr-2">
-                      {share.email || share.user_id || share.user_email || 'Unknown'}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase bg-gray-800 px-2 py-1 rounded text-gray-400">
-                        {share.permission || 'viewer'}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveShare(share.user_id || share.id)}
-                        className="text-red-400 hover:text-red-300 text-xs"
-                        title="Remove access"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
+              {shares.map(share => (
+                <div key={share.user_id} className="flex justify-between items-center bg-[#0d1117] p-2 rounded-lg border border-[#30363d]">
+                  <span className="text-sm text-gray-300 truncate mr-2">{share.user_id}</span>
+                  <span className="text-[10px] uppercase bg-gray-800 px-2 py-1 rounded text-gray-400">{share.permission}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
