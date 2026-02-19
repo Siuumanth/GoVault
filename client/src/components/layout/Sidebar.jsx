@@ -3,10 +3,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'owned', label: 'My Vault', icon: '📂' },
     { id: 'shared', label: 'Shared with Me', icon: '🤝' },
     { id: 'shortcuts', label: 'Shortcuts', icon: '⭐' },
+    { id: 'upload', label: 'Upload Manager', icon: '🚀' }, // New Tab
   ];
 
   return (
-    <aside className="w-64 border-r border-[#30363d] bg-[#161b22] flex flex-col">
+    <aside className="w-64 border-r border-[#30363d] bg-[#161b22] flex flex-col shrink-0">
       <div className="p-6 text-xl font-bold text-white border-b border-[#30363d]">
         GoVault <span className="text-blue-500 text-sm">v4</span>
       </div>

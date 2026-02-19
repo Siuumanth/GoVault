@@ -4,11 +4,25 @@ export const ENDPOINTS = {
     SIGNUP: '/auth/signup',
   },
   FILES: {
+    // These match r.Route("/", ...) with r.Get("/me/...")
     OWNED: '/api/files/me/owned',
     SHARED: '/api/files/me/shared',
     SHORTCUTS: '/api/files/me/shortcuts',
+    
+    // These match r.Route("/f/{fileID}", ...)
     DETAILS: (id) => `/api/files/f/${id}`,
     DOWNLOAD: (id) => `/api/files/f/${id}/download`,
+    COPY: (id) => `/api/files/f/${id}/copy`,
+    
+    // Public/Private Toggles (owner only)
+    PUBLIC: (id) => `/api/files/f/${id}/public`,
+
+    // Shares - matches r.Route("/shares", ...) inside /f/{fileID}
+    SHARES: (id) => `/api/files/f/${id}/shares`,
+    MANAGE_USER: (fileId, userId) => `/api/files/f/${fileId}/shares/${userId}`,
+
+    // Shortcuts - matches /f/{fileID}/shortcut
+    SHORTCUT: (id) => `/api/files/f/${id}/shortcut`,
   },
   UPLOAD: {
     SESSION: '/api/upload/session',
