@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import FileCard from '../components/FileCard';
+import ShareModal from '../components/ShareModal';
+import RenameModal from '../components/RenameModal';
 import { filesApi } from '../api/files';
 import { useUpload } from '../hooks/useUpload';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +11,11 @@ import { useAuth } from '../context/AuthContext';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('owned');
   const [files, setFiles] = useState([]);
+  const [shortcutIds, setShortcutIds] = useState(new Set());
+  const [publicFileIds, setPublicFileIds] = useState(new Set());
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
   const { uploadFile, progress, isUploading } = useUpload();
   const { logout } = useAuth();
 
@@ -20,7 +27,40 @@ export default function Dashboard() {
       else if (activeTab === 'shared') data = await filesApi.getShared();
       else if (activeTab === 'shortcuts') data = await filesApi.getShortcuts();
       
-      setFiles(data?.files || []);
+      let fileList = data?.files || [];
+      
+      // Sort by date (newest first) - assuming created_at or updated_at field exists
+      fileList.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.updated_at || 0);
+        const dateB = new Date(b.created_at || b.updated_at || 0);
+        return dateB - dateA; // newest first
+      });
+      
+      setFiles(fileList);
+      
+      // Update shortcut IDs set
+      if (activeTab === 'shortcuts') {
+        setShortcutIds(new Set(fileList.map(f => f.file_id)));
+      } else {
+        // Load shortcuts separately to check which files are shortcuts
+        try {
+          const shortcutsData = await filesApi.getShortcuts();
+          const shortcutFileIds = (shortcutsData?.files || []).map(f => f.file_id);
+          setShortcutIds(new Set(shortcutFileIds));
+        } catch (err) {
+          console.error('Failed to load shortcuts:', err);
+        }
+      }
+      
+      // TODO: Load public file IDs if backend provides this info
+      // For now, check is_public field if it exists in file object
+      const publicIds = new Set();
+      fileList.forEach(f => {
+        if (f.is_public || f.public_url) {
+          publicIds.add(f.file_id);
+        }
+      });
+      setPublicFileIds(publicIds);
     } catch (err) {
       console.error("Failed to fetch:", err);
       setFiles([]);
@@ -70,6 +110,53 @@ export default function Dashboard() {
       } catch (err) {
         alert("Delete failed: " + err.message);
       }
+    }
+  };
+
+  const handleShare = (file) => {
+    setSelectedFile(file);
+    setShowShareModal(true);
+  };
+
+  const handleRename = (file) => {
+    setSelectedFile(file);
+    setShowRenameModal(true);
+  };
+
+  const handleShortcut = async (fileId) => {
+    try {
+      const isShortcut = shortcutIds.has(fileId);
+      if (isShortcut) {
+        await filesApi.removeShortcut(fileId);
+      } else {
+        await filesApi.addShortcut(fileId);
+      }
+      loadData(); // Reload to update shortcut status
+    } catch (err) {
+      alert("Shortcut operation failed: " + err.message);
+    }
+  };
+
+  const handleTogglePublic = async (file) => {
+    try {
+      const isPublic = publicFileIds.has(file.file_id);
+      if (isPublic) {
+        await filesApi.removePublic(file.file_id);
+        setPublicFileIds(prev => {
+          const next = new Set(prev);
+          next.delete(file.file_id);
+          return next;
+        });
+      } else {
+        const result = await filesApi.makePublic(file.file_id);
+        setPublicFileIds(prev => new Set(prev).add(file.file_id));
+        if (result?.public_url) {
+          alert(`File is now public!\nPublic URL: ${result.public_url}`);
+        }
+      }
+      loadData();
+    } catch (err) {
+      alert("Public access operation failed: " + err.message);
     }
   };
 
@@ -141,9 +228,38 @@ export default function Dashboard() {
                 file={file} 
                 onDownload={handleDownload}
                 onDelete={handleDelete}
+                onShare={handleShare}
+                onRename={handleRename}
+                onShortcut={handleShortcut}
+                onTogglePublic={handleTogglePublic}
+                isShortcut={shortcutIds.has(file.file_id)}
+                isPublic={publicFileIds.has(file.file_id)}
               />
             ))}
           </div>
+
+          {/* Modals */}
+          {showShareModal && selectedFile && (
+            <ShareModal 
+              file={selectedFile} 
+              onClose={() => {
+                setShowShareModal(false);
+                setSelectedFile(null);
+                loadData();
+              }} 
+            />
+          )}
+          
+          {showRenameModal && selectedFile && (
+            <RenameModal 
+              file={selectedFile} 
+              onClose={() => {
+                setShowRenameModal(false);
+                setSelectedFile(null);
+              }}
+              onSuccess={loadData}
+            />
+          )}
 
           {/* Empty State */}
           {files.length === 0 && !isUploading && (

@@ -27,5 +27,11 @@ export const request = async (endpoint, options = {}) => {
     throw new Error(error || response.statusText);
   }
 
-  return response.json();
+  const text = await response.text();
+  if (!text || text.trim() === '') return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 };

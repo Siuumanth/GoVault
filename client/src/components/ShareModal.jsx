@@ -10,27 +10,54 @@ export default function ShareModal({ file, onClose }) {
   const fetchShares = async () => {
     try {
       const data = await request(ENDPOINTS.SHARING.LIST(file.file_id));
-      setShares(data || []);
-    } catch (err) { console.error(err); }
+      setShares(data?.shares || data || []);
+    } catch (err) { 
+      console.error('Failed to fetch shares:', err);
+      setShares([]);
+    }
   };
 
-  useEffect(() => { fetchShares(); }, [file]);
+  useEffect(() => { 
+    if (file?.file_id) {
+      fetchShares(); 
+    }
+  }, [file?.file_id]);
 
   const handleAddShares = async (e) => {
     e.preventDefault();
+    if (!emails.trim()) return;
+
     const recipientList = emails.split(',').map(email => ({
       email: email.trim(),
       permission: 'viewer'
-    }));
+    })).filter(r => r.email);
+
+    if (recipientList.length === 0) {
+      alert('Please enter at least one valid email');
+      return;
+    }
 
     try {
-      await request(ENDPOINTS.SHARING.LIST(file.file_id), {
+      await request(ENDPOINTS.SHARING.ADD(file.file_id), {
         method: 'POST',
         body: JSON.stringify({ recipients: recipientList })
       });
       setEmails('');
       fetchShares();
-    } catch (err) { alert(err.message); }
+    } catch (err) { 
+      alert('Failed to share: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleRemoveShare = async (userId) => {
+    try {
+      await request(ENDPOINTS.SHARING.REMOVE(file.file_id, userId), {
+        method: 'DELETE',
+      });
+      fetchShares();
+    } catch (err) {
+      alert('Failed to remove share: ' + err.message);
+    }
   };
 
   return (
@@ -57,12 +84,29 @@ export default function ShareModal({ file, onClose }) {
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">People with access</label>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {shares.map(share => (
-                <div key={share.user_id} className="flex justify-between items-center bg-[#0d1117] p-2 rounded-lg border border-[#30363d]">
-                  <span className="text-sm text-gray-300 truncate mr-2">{share.user_id}</span>
-                  <span className="text-[10px] uppercase bg-gray-800 px-2 py-1 rounded text-gray-400">{share.permission}</span>
-                </div>
-              ))}
+              {shares.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No one has access yet</p>
+              ) : (
+                shares.map(share => (
+                  <div key={share.user_id || share.email || share.id} className="flex justify-between items-center bg-[#0d1117] p-2 rounded-lg border border-[#30363d]">
+                    <span className="text-sm text-gray-300 truncate mr-2">
+                      {share.email || share.user_id || share.user_email || 'Unknown'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase bg-gray-800 px-2 py-1 rounded text-gray-400">
+                        {share.permission || 'viewer'}
+                      </span>
+                      <button
+                        onClick={() => handleRemoveShare(share.user_id || share.id)}
+                        className="text-red-400 hover:text-red-300 text-xs"
+                        title="Remove access"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
