@@ -10,8 +10,13 @@ import (
 type responseWriter struct {
 	http.ResponseWriter
 	status int
+	body   []byte
 }
 
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	rw.body = append(rw.body, b...)
+	return rw.ResponseWriter.Write(b)
+}
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
@@ -32,14 +37,27 @@ func NewLogger() Middleware {
 
 			reqID := GetRequestID(r.Context())
 
-			log.Printf(
-				"request_id=%s method=%s path=%s status=%d duration=%s",
-				reqID,
-				r.Method,
-				r.URL.Path,
-				rw.status,
-				time.Since(start),
-			)
+			if rw.status >= 400 {
+				log.Printf(
+					"request_id=%s method=%s path=%s status=%d duration=%s error=%s",
+					reqID,
+					r.Method,
+					r.URL.Path,
+					rw.status,
+					time.Since(start),
+					string(rw.body),
+				)
+			} else {
+				log.Printf(
+					"request_id=%s method=%s path=%s status=%d duration=%s",
+					reqID,
+					r.Method,
+					r.URL.Path,
+					rw.status,
+					time.Since(start),
+				)
+			}
+
 		})
 	})
 }
