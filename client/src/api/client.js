@@ -3,8 +3,26 @@ import { BASE_URL } from './constants';
 export const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('gv_token');
 
-  // Public Paths Check: Don't add Auth if accessing a specific file resource
-  const isPublicFileEndpoint = /^\/api\/files\/f\/[^/]+(\/download)?$/.test(endpoint);
+  // Only skip auth for these two specific GET endpoints:
+  // 1. GET /api/files/f/{id} (file details)
+  // 2. GET /api/files/f/{id}/download (download)
+  const method = (options.method || 'GET').toUpperCase();
+  let isPublicFileEndpoint = false;
+  
+  if (method === 'GET') {
+    if (endpoint.startsWith('/api/files/f/')) {
+      const afterPrefix = endpoint.slice('/api/files/f/'.length);
+      const parts = afterPrefix.split('/');
+      // Check if it's exactly /api/files/f/{id} or /api/files/f/{id}/download
+      if (parts.length === 1) {
+        // /api/files/f/{id} - public
+        isPublicFileEndpoint = true;
+      } else if (parts.length === 2 && parts[1] === 'download') {
+        // /api/files/f/{id}/download - public
+        isPublicFileEndpoint = true;
+      }
+    }
+  }
   
   const headers = { ...options.headers };
 
@@ -12,7 +30,6 @@ export const request = async (endpoint, options = {}) => {
     headers['Content-Type'] = 'application/json';
   }
 
-  // Only add token if it's NOT a public file endpoint and token exists
   if (token && !isPublicFileEndpoint) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -20,7 +37,6 @@ export const request = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
 
-    // Handle Token Expiry / Unauthorized
     if (response.status === 401 && !isPublicFileEndpoint) {
       localStorage.clear();
       alert("Session expired. Please login again.");
@@ -35,11 +51,16 @@ export const request = async (endpoint, options = {}) => {
       throw new Error(errorData || `Error: ${response.status} ${response.statusText}`);
     }
 
-  const text = await response.text();
-  if (!text || text.trim() === '') return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
+    const text = await response.text();
+    if (!text || text.trim() === '') return null;
+    
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  } catch (error) {
+    console.error("API Request Failed:", error);
+    throw error;
   }
 };

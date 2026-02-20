@@ -9,6 +9,8 @@ export const filesApi = {
   
   getShortcuts: () => request(ENDPOINTS.FILES.SHORTCUTS),
 
+  getDetails: (fileId) => request(ENDPOINTS.FILES.DETAILS(fileId)),
+
   getDownloadUrl: (fileId) => request(ENDPOINTS.FILES.DOWNLOAD(fileId)),
 
   rename: (fileId, newName) => 

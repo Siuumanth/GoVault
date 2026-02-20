@@ -9,28 +9,20 @@ export default function FileCard({ file, onDownload, onDelete, onShare, onShortc
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    
-    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
-    if (diffDays < 7) return `${diffDays} days ago`;
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+    const day = date.getDate();
+    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const handleFileNameClick = (e) => {
+    e.preventDefault();
+    const previewUrl = `/f/${file.file_id}`;
+    window.open(previewUrl, '_blank');
   };
 
   return (
     <div className="bg-[#161b22] border border-[#30363d] p-4 rounded-xl hover:border-blue-500/50 transition-all group relative">
-      {/* Date Header */}
-      {file.created_at && (
-        <div className="text-[10px] text-gray-500 mb-2 font-mono">
-          {formatDate(file.created_at)}
-        </div>
-      )}
-      
       <div className="flex justify-between items-start mb-3">
         <div className="text-4xl">📄</div>
         <div className="flex gap-1">
@@ -47,7 +39,13 @@ export default function FileCard({ file, onDownload, onDelete, onShare, onShortc
         </div>
       </div>
       
-      <h3 className="font-medium truncate text-white mb-1" title={file.name}>{file.name}</h3>
+      <h3 
+        className="font-medium truncate text-white mb-1 cursor-pointer hover:text-blue-400 transition-colors" 
+        title={file.name}
+        onClick={handleFileNameClick}
+      >
+        {file.name}
+      </h3>
       <p className="text-[10px] text-gray-500 font-mono tracking-tighter uppercase">{file.mime_type || 'Unknown Type'}</p>
       <p className="text-xs text-gray-500 mt-1">{formatSize(file.size_bytes)}</p>
       
