@@ -112,7 +112,12 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
+<<<<<<< HEAD
+        {/* Sub-Header */}
+        <header className="h-14 border-b border-[#30363d] bg-gv-dark flex items-center justify-between px-8 shrink-0">
+=======
         <header className="h-14 border-b border-[#30363d] bg-[#0d1117] flex items-center justify-between px-8 shrink-0">
+>>>>>>> client
           <h2 className="text-white font-semibold text-lg capitalize">{activeTab}</h2>
         </header>
 
@@ -166,6 +171,8 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+<<<<<<< HEAD
+=======
 
       {/* --- Unified Modals --- */}
       {selectedFile && modalType === 'share' && (
@@ -179,6 +186,7 @@ export default function Dashboard() {
           onSuccess={() => { loadData(); closeModal(); }}
         />
       )}
+>>>>>>> client
     </div>
   );
 }
