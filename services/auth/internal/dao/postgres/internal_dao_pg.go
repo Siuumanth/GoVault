@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const ResolveUserIDsByEmailsQuery = `SELECT id, email FROM users WHERE email = ANY($1)`
@@ -16,7 +17,7 @@ func (r *PGUserDAO) ResolveUserIDsByEmails(
 	rows, err := r.db.QueryContext(
 		ctx,
 		ResolveUserIDsByEmailsQuery,
-		emails,
+		pq.Array(emails),
 	)
 	if err != nil {
 		return nil, err

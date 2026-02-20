@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -12,12 +13,17 @@ func (h *AuthHandler) ResolveUserIDsHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	//log.Println("ResolveUserIDsHandler started... good request")
+	//	fmt.Println("emails: ", emails)
 
 	result, err := h.service.ResolveUserIDs(r.Context(), emails)
+	fmt.Println("result: ", result)
 	if err != nil {
-		http.Error(w, "failed", http.StatusInternalServerError)
+		http.Error(w, "failed, error : "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	//log.Println("ResolveUserIDsHandler finished...")
 
 	json.NewEncoder(w).Encode(result)
 }

@@ -7,6 +7,7 @@ import (
 	"files/internal/repository"
 	"files/internal/service/inputs"
 	"files/internal/shared"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -71,10 +72,12 @@ func (s *ShareService) AddFileShares(ctx context.Context, in *inputs.AddFileShar
 	}
 	// Done: user Auth microservice for this
 	// bulk resolve emails to userIDs to insert shares
+	log.Println("Resolving emails to userID")
 	emailToUserID, err := s.authClient.ResolveEmails(ctx, emails)
 	if err != nil {
 		return err
 	}
+	log.Println("Emails resolved to userID ", emailToUserID)
 
 	// TODO: make tis a transaction
 	// create shares
