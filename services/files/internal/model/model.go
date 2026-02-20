@@ -8,7 +8,7 @@ import (
 
 type FileShare struct {
 	ID               int64
-	FileID           int64
+	FileID           uuid.UUID
 	SharedWithUserID uuid.UUID
 	Permission       string
 	CreatedAt        time.Time
