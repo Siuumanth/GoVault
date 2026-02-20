@@ -2,18 +2,19 @@ import { BASE_URL } from './constants';
 
 export const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('gv_token');
-  
+
   // Public Paths Check: Don't add Auth if accessing a specific file resource
-  // Regex matches: /api/files/f/[uuid] or /api/files/f/[uuid]/download
   const isPublicFileEndpoint = /^\/api\/files\/f\/[^/]+(\/download)?$/.test(endpoint);
   
-  const headers = { ...options.headers };
+  const headers = {
+    ...options.headers,
+  };
 
+  // Only add JSON content type if not sending raw binary/buffer
   if (!(options.body instanceof ArrayBuffer) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
 
-  // Only add token if it's NOT a public file endpoint and token exists
   if (token && !isPublicFileEndpoint) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -25,21 +26,27 @@ export const request = async (endpoint, options = {}) => {
     if (response.status === 401 && !isPublicFileEndpoint) {
       localStorage.clear();
       alert("Session expired. Please login again.");
-      window.location.href = '/'; // Force redirect to login
-      return;
+      window.location.href = '/'; 
+      return null;
     }
 
     if (response.status === 204) return null;
+
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || response.statusText);
+      const errorData = await response.text();
+      throw new Error(errorData || `Error: ${response.status} ${response.statusText}`);
     }
 
-  const text = await response.text();
-  if (!text || text.trim() === '') return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
+    const text = await response.text();
+    if (!text || text.trim() === '') return null;
+
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      return text; 
+    }
+  } catch (error) {
+    console.error("API Request Failed:", error);
+    throw error;
   }
 };
