@@ -54,7 +54,7 @@ SELECT
 FROM files f
 JOIN file_shares FS ON FS.file_uuid = f.file_uuid
 LEFT JOIN public_files p ON f.file_uuid = p.file_uuid
-WHERE FS.user_id = $1
+WHERE f.user_id = $1
 AND f.deleted_at IS NULL
 LIMIT $2 OFFSET $3
 `
