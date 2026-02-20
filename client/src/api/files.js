@@ -33,6 +33,12 @@ export const filesApi = {
       body: JSON.stringify({ recipients }),
     }),
 
+  updateShare: (fileId, userId, permission) =>
+    request(ENDPOINTS.SHARING.UPDATE(fileId, userId), {
+      method: 'PATCH',
+      body: JSON.stringify({ permission }),
+    }),
+
   removeShare: (fileId, userId) => 
     request(ENDPOINTS.SHARING.REMOVE(fileId, userId), {
       method: 'DELETE',

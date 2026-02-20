@@ -1,23 +1,33 @@
 import { useState, useEffect } from 'react';
 import { request } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
+import { filesApi } from '../api/files';
 
 export default function ShareModal({ file, onClose }) {
   const [emailInput, setEmailInput] = useState('');
   const [selectedPermission, setSelectedPermission] = useState('viewer');
   const [pendingRecipients, setPendingRecipients] = useState([]);
   const [existingShares, setExistingShares] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const fetchShares = async () => {
     try {
-      const data = await request(ENDPOINTS.FILES.SHARES(file.file_id));
-      setExistingShares(data || []);
+      setLoading(true);
+      const data = await filesApi.getShares(file.file_id);
+      setExistingShares(data?.shares || data || []);
     } catch (err) {
       console.error("Error fetching shares:", err);
+      setExistingShares([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => { if (file?.file_id) fetchShares(); }, [file?.file_id]);
+  useEffect(() => { 
+    if (file?.file_id) {
+      fetchShares(); 
+    }
+  }, [file?.file_id]);
 
   const addRecipientToList = () => {
     if (!emailInput.includes('@')) return;
@@ -28,11 +38,7 @@ export default function ShareModal({ file, onClose }) {
 
   const handleBatchShare = async () => {
     try {
-      // WRAPPING IN THE 'recipients' KEY FOR GO DTO
-      await request(ENDPOINTS.FILES.SHARES(file.file_id), {
-        method: 'POST',
-        body: JSON.stringify({ recipients: pendingRecipients })
-      });
+      await filesApi.addShares(file.file_id, pendingRecipients);
       setPendingRecipients([]);
       fetchShares();
       alert("Invites sent successfully");
@@ -41,11 +47,23 @@ export default function ShareModal({ file, onClose }) {
     }
   };
 
-  const handleRemove = async (userId) => {
+  const handleUpdatePermission = async (userId, newPermission) => {
     try {
-      await request(ENDPOINTS.FILES.MANAGE_USER(file.file_id, userId), { method: 'DELETE' });
+      await filesApi.updateShare(file.file_id, userId, newPermission);
+      fetchShares(); // Refresh the list
+    } catch (err) {
+      alert("Failed to update permission: " + err.message);
+    }
+  };
+
+  const handleRemove = async (userId) => {
+    if (!confirm('Remove access for this user?')) return;
+    try {
+      await filesApi.removeShare(file.file_id, userId);
       fetchShares();
-    } catch (err) { alert(err.message); }
+    } catch (err) {
+      alert("Failed to remove share: " + err.message);
+    }
   };
 
   return (
@@ -61,12 +79,12 @@ export default function ShareModal({ file, onClose }) {
             <input 
               type="email" placeholder="user@example.com" value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+              className="flex-1 bg-gv-dark border border-[#30363d] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
             />
             <select 
               value={selectedPermission}
               onChange={(e) => setSelectedPermission(e.target.value)}
-              className="bg-[#0d1117] border border-[#30363d] rounded-lg px-2 text-xs text-white"
+              className="bg-gv-dark border border-[#30363d] rounded-lg px-2 text-xs text-white"
             >
               <option value="viewer">Viewer</option>
               <option value="editor">Editor</option>
@@ -89,14 +107,40 @@ export default function ShareModal({ file, onClose }) {
 
           <div className="space-y-3">
             <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">People with access</h4>
-            <div className="max-h-48 overflow-y-auto space-y-2">
-              {existingShares.map(share => (
-                <div key={share.user_id} className="flex justify-between items-center bg-[#0d1117] p-3 rounded-xl border border-[#30363d]">
-                  <span className="text-xs text-gray-300 truncate w-48">{share.user_id}</span>
-                  <button onClick={() => handleRemove(share.user_id)} className="text-red-500 hover:text-red-400 text-xs px-2">Revoke</button>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center py-4 text-gray-400 text-sm">Loading shares...</div>
+            ) : existingShares.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 text-sm">No one has access yet</div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {existingShares.map(share => {
+                  const userId = share.user_id || share.id || share.email;
+                  const currentPermission = share.permission || 'viewer';
+                  return (
+                    <div key={userId} className="flex items-center gap-2 bg-gv-dark p-3 rounded-xl border border-[#30363d]">
+                      <span className="text-xs text-gray-300 truncate flex-1">
+                        {share.email || share.user_email || share.user_id || userId}
+                      </span>
+                      <select
+                        value={currentPermission}
+                        onChange={(e) => handleUpdatePermission(userId, e.target.value)}
+                        className="bg-[#161b22] border border-[#30363d] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-500 outline-none"
+                      >
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                      </select>
+                      <button
+                        onClick={() => handleRemove(userId)}
+                        className="text-red-500 hover:text-red-400 text-sm px-2 py-1 transition-colors"
+                        title="Remove access"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
