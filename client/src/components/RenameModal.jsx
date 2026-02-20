@@ -15,6 +15,7 @@ export default function RenameModal({ file, onClose, onSuccess }) {
     setIsLoading(true);
     try {
       await filesApi.rename(file.file_id, newName.trim());
+      alert('File renamed');
       onSuccess?.();
       onClose();
     } catch (err) {

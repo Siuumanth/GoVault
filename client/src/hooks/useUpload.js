@@ -58,6 +58,7 @@ export const useUpload = () => {
       }
 
       addLog("All chunks uploaded. Server is assembling...", 'success');
+      alert('Upload successful. It might take some time before download is possible.');
       return true;
     } catch (err) {
       addLog(`Error: ${err.message}`, 'error');

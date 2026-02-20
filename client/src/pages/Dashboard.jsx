@@ -189,7 +189,16 @@ export default function Dashboard() {
                           isShortcut={shortcutIds.has(file.file_id)}
                           isPublic={publicFileIds.has(file.file_id)}
                           onDownload={handleDownload}
-                          onDelete={(id) => filesApi.delete(id).then(loadData)}
+                          onDelete={async (id) => {
+                              if (!window.confirm('Move this file to trash?')) return;
+                              try {
+                                await filesApi.delete(id);
+                                alert('File deleted');
+                                loadData();
+                              } catch (err) {
+                                alert('Delete failed: ' + err.message);
+                              }
+                            }}
                           onShare={(f) => openModal(f, 'share')}
                           onRename={(f) => openModal(f, 'rename')}
                           onShortcut={async (id) => {
@@ -197,8 +206,10 @@ export default function Dashboard() {
                               const isShortcut = shortcutIds.has(id);
                               if (isShortcut) {
                                 await filesApi.removeShortcut(id);
+                                alert('Removed from shortcuts');
                               } else {
                                 await filesApi.addShortcut(id);
+                                alert('Added to shortcuts');
                               }
                               loadData();
                             } catch (err) {
