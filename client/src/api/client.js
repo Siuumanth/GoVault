@@ -3,14 +3,32 @@ import { BASE_URL } from './constants';
 export const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('gv_token');
 
-  // Public Paths Check: Don't add Auth if accessing a specific file resource
-  const isPublicFileEndpoint = /^\/api\/files\/f\/[^/]+(\/download)?$/.test(endpoint);
+  // Only skip auth for these two specific GET endpoints:
+  // 1. GET /api/files/f/{id} (file details)
+  // 2. GET /api/files/f/{id}/download (download)
+  const method = (options.method || 'GET').toUpperCase();
+  let isPublicFileEndpoint = false;
   
-  const headers = {
-    ...options.headers,
-    // If sending an ArrayBuffer (like a file upload), let fetch set the boundary automatically
-    'Content-Type': options.body instanceof ArrayBuffer ? undefined : 'application/json',
-  };
+  if (method === 'GET') {
+    if (endpoint.startsWith('/api/files/f/')) {
+      const afterPrefix = endpoint.slice('/api/files/f/'.length);
+      const parts = afterPrefix.split('/');
+      // Check if it's exactly /api/files/f/{id} or /api/files/f/{id}/download
+      if (parts.length === 1) {
+        // /api/files/f/{id} - public
+        isPublicFileEndpoint = true;
+      } else if (parts.length === 2 && parts[1] === 'download') {
+        // /api/files/f/{id}/download - public
+        isPublicFileEndpoint = true;
+      }
+    }
+  }
+  
+  const headers = { ...options.headers };
+
+  if (!(options.body instanceof ArrayBuffer) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token && !isPublicFileEndpoint) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -19,7 +37,6 @@ export const request = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
 
-    // Handle Token Expiry / Unauthorized
     if (response.status === 401 && !isPublicFileEndpoint) {
       localStorage.clear();
       alert("Session expired. Please login again.");
@@ -36,11 +53,11 @@ export const request = async (endpoint, options = {}) => {
 
     const text = await response.text();
     if (!text || text.trim() === '') return null;
-
+    
     try {
       return JSON.parse(text);
-    } catch (parseError) {
-      return text; // Return as plain text if it's not JSON
+    } catch {
+      return text;
     }
   } catch (error) {
     console.error("API Request Failed:", error);
