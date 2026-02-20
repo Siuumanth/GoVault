@@ -33,6 +33,7 @@ type FileSummaryResponse struct {
 	MimeType  string    `json:"mime_type"`
 	SizeBytes int64     `json:"size_bytes"`
 	CreatedAt time.Time `json:"created_at"`
+	IsPublic  bool      `json:"is_public"`
 }
 
 type DownloadInfoResponse struct {

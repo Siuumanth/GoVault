@@ -30,6 +30,7 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]dto.FileSummaryResponse, 0, len(files))
 	for _, f := range files {
+
 		resp = append(resp, dto.FileSummaryResponse{
 			FileID:    f.FileUUID.String(),
 			OwnerID:   f.UserID.String(),
@@ -37,6 +38,7 @@ func (h *Handler) ListOwnedFiles(w http.ResponseWriter, r *http.Request) {
 			MimeType:  f.MimeType,
 			SizeBytes: f.SizeBytes,
 			CreatedAt: f.CreatedAt,
+			IsPublic:  f.IsPublic, // Pass the value here
 		})
 	}
 

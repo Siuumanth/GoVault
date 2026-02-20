@@ -20,7 +20,7 @@ func (h *Handler) AddPublicAccess(w http.ResponseWriter, r *http.Request) {
 
 	fileID, err := uuid.Parse(r.PathValue("fileID"))
 	if err != nil {
-		http.Error(w, "invalid file id", http.StatusBadRequest)
+		http.Error(w, "missing file id", http.StatusBadRequest)
 		return
 	}
 

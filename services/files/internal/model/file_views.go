@@ -14,6 +14,7 @@ type FileSummary struct {
 	MimeType  string
 	SizeBytes int64
 	CreatedAt time.Time
+	IsPublic  bool
 }
 
 type CreateFileParams struct {
