@@ -52,10 +52,10 @@ SELECT
     f.created_at,
     (p.file_uuid IS NOT NULL) as is_public
 FROM files f
-JOIN file_shares FS ON FS.file_uuid = f.file_uuid
+JOIN file_shares fs ON fs.file_uuid = f.file_uuid
 LEFT JOIN public_files p ON f.file_uuid = p.file_uuid
-WHERE f.user_id = $1
-AND f.deleted_at IS NULL
+WHERE fs.shared_with_user_id = $1
+  AND f.deleted_at IS NULL
 LIMIT $2 OFFSET $3
 `
 
@@ -77,7 +77,7 @@ func (r *FilesRepository) FetchSharedFiles(ctx context.Context, userID uuid.UUID
 			&f.MimeType,
 			&f.SizeBytes,
 			&f.CreatedAt,
-			&f.IsPublic, // Added scan for public status
+			&f.IsPublic,
 		); err != nil {
 			return nil, err
 		}
