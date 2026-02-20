@@ -103,10 +103,18 @@ func (r *FilesRepository) UpdateFileName(ctx context.Context, fileUUID uuid.UUID
 }
 
 const GetSingleFileQuery = `
-SELECT file_uuid, user_id, file_name, mime_type, size_bytes, created_at
-FROM files
-WHERE file_uuid = $1
-AND deleted_at IS NULL`
+SELECT 
+    f.file_uuid, 
+    f.user_id, 
+    f.file_name, 
+    f.mime_type, 
+    f.size_bytes, 
+    f.created_at,
+    (p.file_uuid IS NOT NULL) as is_public
+FROM files f
+LEFT JOIN public_files p ON f.file_uuid = p.file_uuid
+WHERE f.file_uuid = $1
+AND f.deleted_at IS NULL`
 
 func (r *FilesRepository) FetchFileSummaryByID(ctx context.Context, fileID uuid.UUID) (*model.FileSummary, error) {
 	var fs model.FileSummary
@@ -122,14 +130,13 @@ func (r *FilesRepository) FetchFileSummaryByID(ctx context.Context, fileID uuid.
 		&fs.MimeType,
 		&fs.SizeBytes,
 		&fs.CreatedAt,
+		&fs.IsPublic,
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // not founnd or no access
-		}
 		return nil, err
 	}
+
 	return &fs, nil
 }
 
