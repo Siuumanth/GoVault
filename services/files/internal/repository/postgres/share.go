@@ -202,28 +202,21 @@ func (r *FileShareRepository) IsFilePublic(ctx context.Context, fileID uuid.UUID
 const CreatePublicAccessQuery = `
 INSERT INTO public_files(file_uuid) 
 VALUES($1)
+ON CONFLICT (file_uuid) DO NOTHING
 `
 
-func (r *FileShareRepository) CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error {
-	_, err := r.db.ExecContext(
-		ctx,
-		CreatePublicAccessQuery,
-		fileID,
-	)
-	return err
-}
-
 const DeletePublicAccessQuery = `
-DELETE from file_shortcuts
+DELETE FROM public_files
 WHERE file_uuid = $1
 `
 
+func (r *FileShareRepository) CreatePublicAccess(ctx context.Context, fileID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx, CreatePublicAccessQuery, fileID)
+	return err
+}
+
 func (r *FileShareRepository) DeletePublicAccess(ctx context.Context, fileID uuid.UUID) error {
-	_, err := r.db.ExecContext(
-		ctx,
-		DeletePublicAccessQuery,
-		fileID,
-	)
+	_, err := r.db.ExecContext(ctx, DeletePublicAccessQuery, fileID)
 	return err
 }
 

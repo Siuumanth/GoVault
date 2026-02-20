@@ -54,7 +54,7 @@ func (h *Handler) AddFileShares(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, shared.ErrTooManyShares):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		default:
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			http.Error(w, "internal error : "+err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
