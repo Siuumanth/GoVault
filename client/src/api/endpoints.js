@@ -31,6 +31,7 @@ export const ENDPOINTS = {
     STATUS: '/api/upload/status',
   },
   SHARING: {
+    LIST: (fileId) => `/api/files/f/${fileId}/shares`,  // get all shares for a file
     ADD: (fileId) => `/api/files/f/${fileId}/shares`,
     // Handles PATCH (Update) and DELETE (Remove)
     UPDATE: (fileId, userId) => `/api/files/f/${fileId}/shares/${userId}`,

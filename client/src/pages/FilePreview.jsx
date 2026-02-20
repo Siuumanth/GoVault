@@ -4,9 +4,9 @@ import { filesApi } from '../api/files';
 export default function FilePreview() {
   const fileId = window.location.pathname.replace(/^\/f\//, '').split('/')[0];
   const [file, setFile] = useState(null);
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!fileId) {
@@ -19,14 +19,9 @@ export default function FilePreview() {
 
     async function load() {
       try {
-        const [detailsRes, downloadRes] = await Promise.all([
-          filesApi.getDetails(fileId),
-          filesApi.getDownloadUrl(fileId),
-        ]);
+        const detailsRes = await filesApi.getDetails(fileId);
         if (cancelled) return;
         setFile(detailsRes);
-        const url = downloadRes?.download_url ?? downloadRes?.url;
-        if (url) setDownloadUrl(url);
       } catch (err) {
         if (!cancelled) {
           setError(err.message || 'File not found or not public');
@@ -39,6 +34,29 @@ export default function FilePreview() {
     load();
     return () => { cancelled = true; };
   }, [fileId]);
+
+  const handleDownload = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const downloadRes = await filesApi.getDownloadUrl(fileId);
+      const url = downloadRes?.download_url ?? downloadRes?.url;
+      if (url) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', file?.name || 'file');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert('Download URL not available');
+      }
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const formatSize = (bytes) => {
     if (!bytes) return 'Unknown size';
@@ -79,23 +97,15 @@ export default function FilePreview() {
         </div>
 
         <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
-          {downloadUrl ? (
-            <div className="text-center">
-              <a
-                href={downloadUrl}
-                download={name}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
-              >
-                Download
-              </a>
-            </div>
-          ) : (
-            <div className="text-center text-gray-400">
-              <p>Download not available</p>
-            </div>
-          )}
+          <div className="text-center">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="inline-block px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+            >
+              {downloading ? 'Preparing download...' : 'Download'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

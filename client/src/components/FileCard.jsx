@@ -53,6 +53,19 @@ export default function FileCard({ file, onDownload, onDelete, onShare, onShortc
         <button onClick={() => onDownload(file.file_id, file.name)} className="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white text-[10px] font-bold py-2 rounded-lg transition-colors">
           Download
         </button>
+        {onShortcut && (
+          <button 
+            onClick={() => onShortcut(file.file_id)} 
+            className={`px-2 text-[10px] py-2 rounded-lg transition-colors ${
+              isShortcut 
+                ? 'bg-yellow-600/10 hover:bg-yellow-600 text-yellow-400 hover:text-white' 
+                : 'bg-gray-600/10 hover:bg-gray-600 text-gray-400 hover:text-white'
+            }`}
+            title={isShortcut ? 'Remove from shortcuts' : 'Add to shortcuts'}
+          >
+            ⭐
+          </button>
+        )}
         {onRename && (
           <button onClick={() => onRename(file)} className="px-2 bg-gray-600/10 hover:bg-gray-600 text-gray-400 hover:text-white text-[10px] py-2 rounded-lg transition-colors" title="Rename">
             ✏️

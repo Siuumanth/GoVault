@@ -142,7 +142,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
-        <header className="h-14 border-b border-[#30363d] bg-[#0d1117] flex items-center justify-between px-8 shrink-0">
+        <header className="h-14 border-b border-[#30363d] bg-gv-dark flex items-center justify-between px-8 shrink-0">
           <h2 className="text-white font-semibold text-lg capitalize">{activeTab}</h2>
         </header>
 
@@ -192,7 +192,19 @@ export default function Dashboard() {
                           onDelete={(id) => filesApi.delete(id).then(loadData)}
                           onShare={(f) => openModal(f, 'share')}
                           onRename={(f) => openModal(f, 'rename')}
-                          onShortcut={(id) => filesApi.addShortcut(id).then(loadData)}
+                          onShortcut={async (id) => {
+                            try {
+                              const isShortcut = shortcutIds.has(id);
+                              if (isShortcut) {
+                                await filesApi.removeShortcut(id);
+                              } else {
+                                await filesApi.addShortcut(id);
+                              }
+                              loadData();
+                            } catch (err) {
+                              alert("Shortcut operation failed: " + err.message);
+                            }
+                          }}
                           onTogglePublic={handleTogglePublic}
                         />
                       ))}
