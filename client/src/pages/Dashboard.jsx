@@ -152,14 +152,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0d1117] text-gray-200 overflow-hidden">
+    <div className="flex h-screen bg-gv-dark text-gray-200 overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
         {/* Sub-Header */}
-        <header className="h-14 border-b border-[#30363d] bg-[#0d1117] flex items-center justify-between px-8 shrink-0">
+        <header className="h-14 border-b border-[#30363d] bg-gv-dark flex items-center justify-between px-8 shrink-0">
           <h2 className="text-white font-semibold text-lg capitalize">{activeTab}</h2>
           {/* Quick upload button removed from header since we have a dedicated page now */}
         </header>
@@ -236,10 +236,6 @@ export default function Dashboard() {
           )}
         </section>
       </div>
-
-      {selectedFileForShare && (
-        <ShareModal file={selectedFileForShare} onClose={() => setSelectedFileForShare(null)} />
-      )}
     </div>
   );
 }
