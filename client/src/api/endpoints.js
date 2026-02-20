@@ -5,6 +5,7 @@ export const ENDPOINTS = {
   },
   FILES: {
     // These match r.Route("/", ...) with r.Get("/me/...")
+    // listing files in each tab
     OWNED: '/api/files/me/owned',
     SHARED: '/api/files/me/shared',
     SHORTCUTS: '/api/files/me/shortcuts',
@@ -30,8 +31,9 @@ export const ENDPOINTS = {
     STATUS: '/api/upload/status',
   },
   SHARING: {
-    LIST: (fileId) => `/api/files/f/${fileId}/shares`,
     ADD: (fileId) => `/api/files/f/${fileId}/shares`,
+    // Handles PATCH (Update) and DELETE (Remove)
+    UPDATE: (fileId, userId) => `/api/files/f/${fileId}/shares/${userId}`,
     REMOVE: (fileId, userId) => `/api/files/f/${fileId}/shares/${userId}`,
   },
   PUBLIC: {
