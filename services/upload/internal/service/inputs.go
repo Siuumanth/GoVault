@@ -16,7 +16,7 @@ type UploadChunkInput struct {
 	UserID     uuid.UUID
 	UploadUUID uuid.UUID
 	ChunkID    int
-	ChunkBytes io.Reader // ✅ stream
+	ChunkBytes io.Reader
 	CheckSum   string
 }
 
