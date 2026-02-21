@@ -11,6 +11,7 @@ type UploadSessionInput struct {
 	FileName      string
 	FileSizeBytes int64
 	UploadMethod  string
+	PartSize      int64
 }
 
 type UploadChunkInput struct {
@@ -21,12 +22,9 @@ type UploadChunkInput struct {
 	CheckSum   string
 }
 
-// type CreateFileCommand struct {
-// 	UploadUUID uuid.UUID
-// 	UserID     uuid.UUID
-// 	Name       string
-// 	SizeBytes  int64
-// 	MimeType   string
-// 	CheckSum   string
-// 	StorageKey string
-// }
+type S3UploadChunkInput struct {
+	UserID     uuid.UUID
+	UploadUUID uuid.UUID
+	ChunkID    int
+	CheckSum   string
+}

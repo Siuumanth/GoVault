@@ -35,9 +35,9 @@ func (h *Handler) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := UploadStatusResponse{
-		UploadUUID:  session.UploadUUID.String(),
-		Status:      string(session.Status),
-		TotalChunks: session.TotalChunks,
+		UploadUUID: session.UploadUUID.String(),
+		Status:     string(session.Status),
+		TotalParts: session.TotalParts,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

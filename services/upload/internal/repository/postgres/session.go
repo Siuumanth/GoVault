@@ -44,14 +44,14 @@ func (p *PGUploadSessionRepo) CreateSession(
 		session.UserID,
 		session.FileName,
 		session.FileSize,
-		session.TotalChunks,
+		session.TotalParts,
 	).Scan(
 		&session.ID,
 		&session.UploadUUID,
 		&session.UserID,
 		&session.FileName,
 		&session.FileSize,
-		&session.TotalChunks,
+		&session.TotalParts,
 		&session.Status,
 		&session.CreatedAt,
 	)
@@ -74,7 +74,7 @@ func (p *PGUploadSessionRepo) GetSessionByID(ctx context.Context, session_id int
 		&session.UserID,
 		&session.FileName,
 		&session.FileSize,
-		&session.TotalChunks,
+		&session.TotalParts,
 	)
 	return &session, err
 }
@@ -90,7 +90,7 @@ func (p *PGUploadSessionRepo) GetSessionByUUID(ctx context.Context, upload_uuid 
 		&session.UserID,
 		&session.FileName,
 		&session.FileSize,
-		&session.TotalChunks,
+		&session.TotalParts,
 		&session.Status,
 		&session.CreatedAt,
 	)

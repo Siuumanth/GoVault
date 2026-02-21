@@ -16,12 +16,12 @@ type CreateUploadSessionRequest struct {
 
 // handler/dto/create_upload_session_response.go
 type CreateUploadSessionResponse struct {
-	UploadUUID  uuid.UUID `json:"upload_uuid"`
-	TotalChunks int       `json:"total_chunks"`
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+	TotalParts int64     `json:"total_chunks"`
 }
 
 type UploadStatusResponse struct {
-	UploadUUID  string `json:"upload_uuid"`
-	Status      string `json:"status"`
-	TotalChunks int    `json:"total_chunks"`
+	UploadUUID string `json:"upload_uuid"`
+	Status     string `json:"status"`
+	TotalParts int64  `json:"total_chunks"`
 }

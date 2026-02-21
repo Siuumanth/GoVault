@@ -157,13 +157,13 @@ func (s *UploadService) isUploadComplete(ctx context.Context, session *model.Upl
 	if err != nil {
 		return false, err
 	}
-	return count == session.TotalChunks, nil
+	return count == int(session.TotalParts), nil
 }
 
 func (s *UploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
 	s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "assembling")
 
-	finalPath, err := s.assembleChunks(session.ID, session.TotalChunks)
+	finalPath, err := s.assembleChunks(session.ID, session.TotalParts)
 	if err != nil {
 		return s.fail(ctx, session.ID, err)
 	}

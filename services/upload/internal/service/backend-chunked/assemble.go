@@ -8,7 +8,7 @@ import (
 	"upload/shared"
 )
 
-func (s *UploadService) assembleChunks(sessionID int64, totalChunks int) (string, error) {
+func (s *UploadService) assembleChunks(sessionID int64, totalChunks int64) (string, error) {
 	sessionDir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
 	finalPath := filepath.Join(sessionDir, "final")
 
@@ -19,7 +19,7 @@ func (s *UploadService) assembleChunks(sessionID int64, totalChunks int) (string
 	defer out.Close()
 
 	// copy all individual chunks into the final file
-	for i := 0; i < totalChunks; i++ {
+	for i := 0; i < int(totalChunks); i++ {
 		partPath := filepath.Join(sessionDir, fmt.Sprintf("%d.part", i))
 
 		in, err := os.Open(partPath)

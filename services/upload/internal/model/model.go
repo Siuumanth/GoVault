@@ -14,7 +14,7 @@ type UploadSession struct {
 	UserID          uuid.UUID
 	FileName        string
 	FileSize        int64
-	TotalChunks     int
+	TotalParts      int64 // TODO: Change to total parts
 	Status          string
 	UploadMethod    string
 	StorageUploadID string

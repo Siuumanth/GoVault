@@ -36,8 +36,8 @@ func (h *Handler) CreateUploadSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := CreateUploadSessionResponse{
-		UploadUUID:  session.UploadUUID,
-		TotalChunks: session.TotalChunks,
+		UploadUUID: session.UploadUUID,
+		TotalParts: session.TotalParts,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
