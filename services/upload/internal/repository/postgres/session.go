@@ -25,11 +25,12 @@ func NewUploadSessionRepo(db *sql.DB) *PGUploadSessionRepo {
 	return &PGUploadSessionRepo{db: db}
 }
 
+// v2
 const CreateSessionQuery = `
 INSERT INTO upload_sessions 
-(upload_uuid, user_id, file_name, file_size_bytes, total_chunks) 
-VALUES ($1, $2, $3, $4, $5) 
-RETURNING id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, created_at
+(upload_uuid, user_id, file_name, file_size_bytes, total_chunks, upload_method, storage_upload_id) 
+VALUES ($1, $2, $3, $4, $5, $6, $7) 
+RETURNING id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, upload_method , storage_upload_id,created_at
 `
 
 func (p *PGUploadSessionRepo) CreateSession(
@@ -45,6 +46,8 @@ func (p *PGUploadSessionRepo) CreateSession(
 		session.FileName,
 		session.FileSize,
 		session.TotalParts,
+		session.UploadMethod,
+		session.StorageUploadID,
 	).Scan(
 		&session.ID,
 		&session.UploadUUID,
@@ -52,7 +55,10 @@ func (p *PGUploadSessionRepo) CreateSession(
 		&session.FileName,
 		&session.FileSize,
 		&session.TotalParts,
+
 		&session.Status,
+		&session.UploadMethod,
+		&session.StorageUploadID,
 		&session.CreatedAt,
 	)
 

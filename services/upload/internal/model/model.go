@@ -16,8 +16,8 @@ type UploadSession struct {
 	FileSize        int64
 	TotalParts      int64 // TODO: Change to total parts
 	Status          string
-	UploadMethod    string
-	StorageUploadID string
+	UploadMethod    string  // proxy or multipart
+	StorageUploadID *string // nullable so ptr
 	CreatedAt       time.Time
 }
 

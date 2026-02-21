@@ -38,3 +38,14 @@ func (s *S3Storage) UploadFile(ctx context.Context, objectKey string, localPath 
 
 	return err
 }
+
+func (s *S3Storage) InitiateMultipart(ctx context.Context, key string) (string, error) {
+	output, err := s.Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(s.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return "", err
+	}
+	return *output.UploadId, nil
+}

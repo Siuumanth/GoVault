@@ -27,6 +27,7 @@ func (s *UploadService) UploadSession(ctx context.Context, in *inputs.UploadSess
 	session.FileName = in.FileName
 	session.FileSize = in.FileSizeBytes
 	session.UserID = in.UserID
+	session.UploadMethod = "proxy" // backend chunked
 	session.TotalParts = calculateTotalParts(in.FileSizeBytes)
 
 	// insert session into database

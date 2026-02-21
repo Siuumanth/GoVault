@@ -24,4 +24,6 @@ type UploadSessionRepository interface {
 	GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
 	UpdateSessionStatus(ctx context.Context, session_id int64, status string) error
 	DeleteSessionChunks(ctx context.Context, session_id int64) error
+
+	// S3
 }
