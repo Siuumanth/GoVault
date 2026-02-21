@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"upload/internal/service"
+	"upload/internal/service/inputs"
 )
 
 // methods to be implemented
@@ -25,7 +25,7 @@ func (h *Handler) CreateUploadSession(w http.ResponseWriter, r *http.Request) {
 
 	session, err := h.uploadService.UploadSession(
 		r.Context(),
-		&service.UploadSessionInput{
+		&inputs.UploadSessionInput{
 			UserID:        userID,
 			FileName:      req.FileName,
 			FileSizeBytes: req.FileSizeBytes,

@@ -1,4 +1,4 @@
-package service
+package inputs
 
 import (
 	"io"
@@ -10,6 +10,7 @@ type UploadSessionInput struct {
 	UserID        uuid.UUID
 	FileName      string
 	FileSizeBytes int64
+	UploadMethod  string
 }
 
 type UploadChunkInput struct {

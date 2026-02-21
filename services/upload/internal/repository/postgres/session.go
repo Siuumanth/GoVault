@@ -10,7 +10,7 @@ import (
 
 /*
 type UploadSessionRepository interface {
-	CreateUploadSession(session *model.UploadSession) error
+	CreateSession(session *model.UploadSession) error
 	GetSessionByID(session_id int) (*model.UploadSession, error)
 	GetSessionByUUID(upload_uuid uuid.UUID) (*model.UploadSession, error)
 	UpdateUploadStatus(session_id int, status string) error
@@ -25,9 +25,18 @@ func NewUploadSessionRepo(db *sql.DB) *PGUploadSessionRepo {
 	return &PGUploadSessionRepo{db: db}
 }
 
-const CreateSessionQuery = `INSERT INTO upload_sessions (upload_uuid, user_id, file_name, file_size_bytes, total_chunks) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+const CreateSessionQuery = `
+INSERT INTO upload_sessions 
+(upload_uuid, user_id, file_name, file_size_bytes, total_chunks) 
+VALUES ($1, $2, $3, $4, $5) 
+RETURNING id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, created_at
+`
 
-func (p *PGUploadSessionRepo) CreateSession(ctx context.Context, session *model.UploadSession) error {
+func (p *PGUploadSessionRepo) CreateSession(
+	ctx context.Context,
+	session *model.UploadSession,
+) (*model.UploadSession, error) {
+
 	err := p.db.QueryRowContext(
 		ctx,
 		CreateSessionQuery,
@@ -36,8 +45,22 @@ func (p *PGUploadSessionRepo) CreateSession(ctx context.Context, session *model.
 		session.FileName,
 		session.FileSize,
 		session.TotalChunks,
-	).Scan(&session.ID)
-	return err
+	).Scan(
+		&session.ID,
+		&session.UploadUUID,
+		&session.UserID,
+		&session.FileName,
+		&session.FileSize,
+		&session.TotalChunks,
+		&session.Status,
+		&session.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
 }
 
 const GetSesssionByIDQUery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks FROM upload_sessions WHERE id = $1`

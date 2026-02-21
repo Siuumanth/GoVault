@@ -1,4 +1,4 @@
-package service
+package backend
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"time"
 	"upload/internal/clients"
 	"upload/internal/model"
+	"upload/internal/service/inputs"
 	"upload/shared"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -38,7 +39,7 @@ import (
 */
 
 // main func
-func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput) error {
+func (s *UploadService) UploadChunk(ctx context.Context, input *inputs.UploadChunkInput) error {
 	// 1,2
 	session, err := s.mustAcceptChunks(ctx, input.UploadUUID)
 	if err != nil {
@@ -81,7 +82,7 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *UploadChunkInput
 func (s *UploadService) handleChunk(
 	ctx context.Context,
 	session *model.UploadSession,
-	input *UploadChunkInput,
+	input *inputs.UploadChunkInput,
 ) error {
 
 	// Create a hash calculator

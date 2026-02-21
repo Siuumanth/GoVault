@@ -1,4 +1,4 @@
-package service
+package backend
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"upload/internal/model"
+	"upload/internal/service/inputs"
 	"upload/shared"
 
 	"github.com/google/uuid"
 )
 
-func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error) {
+func (s *UploadService) UploadSession(ctx context.Context, inputs *inputs.UploadSessionInput) (*model.UploadSession, error) {
 	/*
 	   - calculate total chunks
 	   - insert session row to uploadSession table
@@ -29,7 +30,7 @@ func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSession
 	session.TotalChunks = calculateTotalChunks(inputs.FileSizeBytes)
 
 	// insert session into database
-	err := s.registry.Sessions.CreateSession(ctx, &session)
+	_, err := s.registry.Sessions.CreateSession(ctx, &session)
 	if err != nil {
 		return nil, err
 	}

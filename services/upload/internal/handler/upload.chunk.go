@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"upload/internal/service"
+	"upload/internal/service/inputs"
 	"upload/shared"
 
 	"github.com/google/uuid"
@@ -57,7 +57,7 @@ func (h *Handler) UploadChunk(w http.ResponseWriter, r *http.Request) {
 	// Call service with RAW STREAM
 	err = h.uploadService.UploadChunk(
 		r.Context(),
-		&service.UploadChunkInput{
+		&inputs.UploadChunkInput{
 			UserID:     userID,
 			UploadUUID: uploadUUID,
 			ChunkID:    chunkID,

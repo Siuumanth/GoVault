@@ -12,7 +12,7 @@ import (
 	"upload/internal/handler"
 	"upload/internal/repository"
 	"upload/internal/router"
-	"upload/internal/service"
+	"upload/internal/service/backend-chunked"
 	"upload/internal/storage"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -44,9 +44,9 @@ func main() {
 	if dbURL == "" || fsURL == "" || bucket == "" {
 		log.Fatal("missing required env vars")
 	}
-
+	// TODO: implement multiple methods
 	fileClient := clients.NewFileClient(fsURL)
-	uploadService := service.NewUploadService(repos, s3Storage, fileClient)
+	uploadService := backend.NewUploadService(repos, s3Storage, fileClient)
 
 	// ---------- Handler ----------
 	uploadHandler := handler.NewUploadHandler(uploadService)

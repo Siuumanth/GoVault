@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"upload/internal/service"
+	"upload/internal/service/backend-chunked"
 
 	"github.com/google/uuid"
 )
 
+// tempoerory
+// TODO: Change
 type Handler struct {
-	uploadService *service.UploadService
+	uploadService *backend.UploadService
 }
 
-func NewUploadHandler(uploadService *service.UploadService) *Handler {
+func NewUploadHandler(uploadService *backend.UploadService) *Handler {
 	return &Handler{uploadService: uploadService}
 }
 
