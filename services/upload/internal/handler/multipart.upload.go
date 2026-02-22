@@ -27,8 +27,9 @@ func (h *Handler) CreateMultipartSession(w http.ResponseWriter, r *http.Request)
 	}
 
 	respondJSON(w, http.StatusOK, CreateUploadSessionResponse{
-		UploadUUID: session.UploadUUID,
-		TotalParts: session.TotalParts,
+		UploadUUID:      session.UploadUUID,
+		TotalParts:      session.TotalParts,
+		StorageUploadID: session.StorageUploadID,
 	})
 }
 

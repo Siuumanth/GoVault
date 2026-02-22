@@ -9,13 +9,13 @@ import (
 )
 
 type ServiceRegistry struct {
-	chunked   *backend.ProxyUploadService
-	multipart *multipart.MultipartUploadService
+	Proxy     *backend.ProxyUploadService
+	Multipart *multipart.MultipartUploadService
 }
 
 func NewServiceRegistry(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *ServiceRegistry {
 	return &ServiceRegistry{
-		chunked:   backend.NewProxyUploadService(registry, storage, fileClient),
-		multipart: multipart.NewMultipartUploadService(registry, storage, fileClient),
+		Proxy:     backend.NewProxyUploadService(registry, storage, fileClient),
+		Multipart: multipart.NewMultipartUploadService(registry, storage, fileClient),
 	}
 }

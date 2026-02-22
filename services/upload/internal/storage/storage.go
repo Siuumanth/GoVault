@@ -11,4 +11,5 @@ type FileStorage interface {
 	// New Methods for Multipart
 	InitiateMultipart(ctx context.Context, key string) (string, error)
 	CompleteMultipart(ctx context.Context, key string, uploadID string, parts []types.CompletedPart) (string, error)
+	AbortMultipart(ctx context.Context, key string, uploadID string) error
 }

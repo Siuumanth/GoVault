@@ -48,10 +48,20 @@ func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.U
 	}
 	session.StorageUploadID = &uploadID
 
+	// 4. Save to Database
 	_, err = s.registry.Sessions.CreateSession(ctx, &session)
 	if err != nil {
-		// TODO: If DB fails, you should technically call s.storage.AbortMultipart
-		return nil, err
+		// If DB fails, abort S3 upload to prevent orphan sessions and storage costs
+		log.Printf("[CLEANUP] DB failed, aborting S3 multipart for key: %s", objectKey)
+
+		// We use a background context or a copy of the context to ensure
+		// the abort attempt finishes even if the original request times out
+		abortErr := s.storage.AbortMultipart(context.Background(), objectKey, uploadID)
+		if abortErr != nil {
+			log.Printf("[ERROR] Critical: Failed to abort S3 multipart after DB error: %v", abortErr)
+		}
+
+		return nil, fmt.Errorf("failed to create session in DB: %w", err)
 	}
 
 	return &session, nil

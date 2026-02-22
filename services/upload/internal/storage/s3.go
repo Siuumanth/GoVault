@@ -70,3 +70,12 @@ func (s *S3Storage) CompleteMultipart(ctx context.Context, key string, uploadID 
 	}
 	return key, nil // Fallback to key if location is nil
 }
+
+func (s *S3Storage) AbortMultipart(ctx context.Context, key string, uploadID string) error {
+	_, err := s.Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(s.Bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadID),
+	})
+	return err
+}

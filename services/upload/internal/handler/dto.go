@@ -16,8 +16,9 @@ type CreateUploadSessionRequest struct {
 
 // handler/dto/create_upload_session_response.go
 type CreateUploadSessionResponse struct {
-	UploadUUID uuid.UUID `json:"upload_uuid"`
-	TotalParts int64     `json:"total_chunks"`
+	UploadUUID      uuid.UUID `json:"upload_uuid"`
+	TotalParts      int64     `json:"total_chunks"`
+	StorageUploadID *string   `json:"storage_upload_id,omitempty"` // S3's ID for Multipart
 }
 
 type UploadStatusResponse struct {
