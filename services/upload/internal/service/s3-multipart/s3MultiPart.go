@@ -2,11 +2,21 @@ package multipart
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"mime"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+	"upload/internal/clients"
 	"upload/internal/model"
 	"upload/internal/service/inputs"
 	"upload/shared"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
 )
 
@@ -49,4 +59,132 @@ func (s *UploadService) UploadSession(ctx context.Context, in *inputs.UploadSess
 	}
 
 	return &session, nil
+}
+
+// AddS3Part records the ETag received from the frontend after a direct S3 upload
+func (s *UploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, input *inputs.AddPartInput) error {
+	// 1. resolve Session and validate status
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
+	if err != nil {
+		return err
+	}
+
+	if session.UploadMethod != "multipart" {
+		return errors.New("invalid upload method: session is not multipart")
+	}
+
+	if session.Status != "pending" && session.Status != "uploading" {
+		return errors.New("session not accepting parts")
+	}
+
+	// 2. If this is the first part, move status to 'uploading'
+	if session.Status == "pending" {
+		_ = s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "uploading")
+	}
+
+	// 3. Persist the part metadata
+	// Using the internal session.ID (int64) as the foreign key
+	part := &model.UploadPart{
+		SessionID:  session.ID,
+		PartNumber: input.PartNumber,
+		SizeBytes:  input.SizeBytes,
+		Etag:       input.Etag,
+	}
+
+	err = s.registry.Parts.CreatePart(ctx, part)
+	if err != nil {
+		if errors.Is(err, shared.ErrPartAlreadyExists) {
+			return err
+		}
+		return fmt.Errorf("failed to store part metadata: %w", err)
+	}
+
+	// check ing if all part uppoaded wil be init by frontned
+
+	return nil
+}
+func (s *UploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid.UUID) error {
+	// 1. Get session
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
+	if err != nil {
+		return err
+	}
+
+	if session.UploadMethod != "multipart" || session.StorageUploadID == nil {
+		return errors.New("invalid upload method or missing S3 session")
+	}
+
+	// 2. Fetch parts from DB
+	parts, err := s.registry.Parts.GetPartsBySession(ctx, session.ID)
+	if err != nil {
+		return err
+	}
+
+	// 3. Check if all parts have been uploaded
+	if len(parts) != int(session.TotalParts) {
+		return fmt.Errorf("missing parts: have %d, want %d", len(parts), session.TotalParts)
+	}
+
+	// 4. Assemble parts request for AWS
+	var completedParts []types.CompletedPart
+	for _, p := range parts {
+		completedParts = append(completedParts, types.CompletedPart{
+			ETag:       aws.String(p.Etag),
+			PartNumber: aws.Int32(int32(p.PartNumber)),
+		})
+	}
+
+	fileUUID := uuid.New()
+	storageKey := fmt.Sprintf("%s%s/%s", shared.S3UsersPrefix, session.UserID, fileUUID)
+
+	// Detach context for finalization
+	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	// FIX: Capturing both the location string and the error
+	location, err := s.storage.CompleteMultipart(bgCtx, storageKey, *session.StorageUploadID, completedParts)
+	if err != nil {
+		return s.fail(ctx, session.ID, fmt.Errorf("s3 assembly failed: %w", err))
+	}
+
+	// Optional: Log the final S3 location for debugging
+	log.Printf("[INFO] S3 assembly complete: %s", location)
+
+	// 5. Detect MimeType
+	mimeType := mime.TypeByExtension(filepath.Ext(session.FileName))
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+
+	// 6. Request file client to save file
+	err = s.fileClient.AddFile(bgCtx, &clients.CreateFileRequest{
+		FileUUID:   fileUUID,
+		UserID:     session.UserID,
+		UploadUUID: session.UploadUUID,
+		Name:       session.FileName,
+		SizeBytes:  session.FileSize,
+		MimeType:   mimeType,
+		StorageKey: storageKey,
+		CheckSum:   "s3-verified",
+	})
+
+	if err != nil {
+		return s.fail(ctx, session.ID, err)
+	}
+
+	// 7. Mark as completed
+	return s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
+}
+
+func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
+	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
+
+	sessionDir := filepath.Join(
+		shared.UploadBasePath,
+		strconv.FormatInt(sessionID, 10),
+	)
+	_ = os.RemoveAll(sessionDir)
+
+	return err
 }

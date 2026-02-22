@@ -1,6 +1,9 @@
 ALTER TABLE upload_sessions
-ADD COLUMN upload_method TEXT NOT NULL DEFAULT 'stream',
+ADD COLUMN upload_method TEXT NOT NULL DEFAULT 'proxy',
 ADD COLUMN storage_upload_id TEXT;
+
+-- Session for multipart upload:
+-- pending (no parts gathered yet)  -> uploading -> completed/failed
 
 CREATE TABLE s3_multipart_parts (
     id BIGSERIAL PRIMARY KEY,

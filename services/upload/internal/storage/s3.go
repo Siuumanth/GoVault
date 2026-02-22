@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type S3Storage struct {
@@ -48,4 +49,25 @@ func (s *S3Storage) InitiateMultipart(ctx context.Context, key string) (string, 
 		return "", err
 	}
 	return *output.UploadId, nil
+}
+
+// Upload Part
+
+func (s *S3Storage) CompleteMultipart(ctx context.Context, key string, uploadID string, parts []types.CompletedPart) (string, error) {
+	input := &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(s.Bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: parts,
+		},
+	}
+
+	result, err := s.Client.CompleteMultipartUpload(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to complete multipart: %w", err)
+	}
+
+	// return the final location of the file
+	return *result.Location, nil
 }

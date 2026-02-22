@@ -30,6 +30,15 @@ type UploadChunk struct {
 	UploadedAt time.Time
 }
 
+type UploadPart struct {
+	ID         int64
+	SessionID  int64 // upload sessions id
+	PartNumber int
+	SizeBytes  int64
+	Etag       string
+	UploadedAt time.Time
+}
+
 // type File struct {
 // 	ID         int
 // 	FileUUID   uuid.UUID

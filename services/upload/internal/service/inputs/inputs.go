@@ -22,9 +22,9 @@ type UploadChunkInput struct {
 	CheckSum   string
 }
 
-type S3UploadChunkInput struct {
-	UserID     uuid.UUID
+type AddPartInput struct {
 	UploadUUID uuid.UUID
-	ChunkID    int
-	CheckSum   string
+	PartNumber int
+	SizeBytes  int64
+	Etag       string
 }
