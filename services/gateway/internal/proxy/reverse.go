@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/json"
 	"fmt"
 	"gateway/internal/middleware"
 	"log"
@@ -18,10 +19,11 @@ type statusRecorder struct {
 }
 
 func (rw *statusRecorder) WriteHeader(code int) {
-	rw.status = code
+	if rw.status == 0 || rw.status == http.StatusOK {
+		rw.status = code
+	}
 	rw.ResponseWriter.WriteHeader(code)
 }
-
 func NewReverseProxy(target string, serviceName string) http.Handler {
 	u, err := url.Parse(target)
 	if err != nil {
@@ -61,21 +63,22 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 
 		// Explicitly set the status code before writing the message
 		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, "Upstream error: Service unreachable")
+		json.NewEncoder(w).Encode(struct {
+			Error string `json:"error"`
+		}{
+			Error: "Upstream error: Service unreachable",
+		})
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		rw := &statusRecorder{
 			ResponseWriter: w,
-			status:         http.StatusOK,
+			status:         0, // Start at 0 to detect if it's been set
 		}
 
-		// execute forwarding logic
 		_, err := cb.Execute(func() (interface{}, error) {
 			proxy.ServeHTTP(rw, r)
 
-			// Trip breaker only on 5xx
 			if rw.status >= 500 {
 				return nil, fmt.Errorf("upstream failure: %d", rw.status)
 			}
@@ -83,17 +86,20 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 		})
 
 		if err != nil {
+			// If headers are already written by proxy.ErrorHandler, just return
+			// We check this by seeing if our statusRecorder was touched
 			if err == gobreaker.ErrOpenState {
 				w.WriteHeader(http.StatusServiceUnavailable)
-				fmt.Fprintf(w, "%s unavailable (circuit open)", serviceName)
+				json.NewEncoder(w).Encode(map[string]string{"error": "Circuit open"})
 				return
 			}
-			// If the ErrorHandler already ran, the status is already set to 502.
-			// If the CB just tripped now, it might need a status.
-			if rw.status < 400 {
+
+			// Only write if the proxy hasn't already sent a response
+			// This prevents the "200 OK" default behavior
+			if rw.status == 0 {
 				w.WriteHeader(http.StatusBadGateway)
+				json.NewEncoder(w).Encode(map[string]string{"error": "Upstream unreachable"})
 			}
-			fmt.Fprintf(w, "Upstream error: %v", err)
 			return
 		}
 	})

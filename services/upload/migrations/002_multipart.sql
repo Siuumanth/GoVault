@@ -22,3 +22,21 @@ CREATE TABLE s3_multipart_parts (
 
 CREATE INDEX idx_s3_parts_session
 ON s3_multipart_parts(session_id);
+
+
+-- add enum
+CREATE TYPE upload_method_enum AS ENUM (
+    'proxy',
+    'multipart'
+);
+ALTER TABLE upload_sessions
+    ALTER COLUMN upload_method DROP DEFAULT;
+
+ALTER TABLE upload_sessions
+    ALTER COLUMN upload_method
+    TYPE upload_method_enum
+    USING upload_method::upload_method_enum;
+
+ALTER TABLE upload_sessions
+    ALTER COLUMN upload_method
+    SET DEFAULT 'proxy';

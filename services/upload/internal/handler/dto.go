@@ -9,7 +9,7 @@ type UploadChunkRequest struct {
 }
 
 // stores dto to communicate from handler to service layer
-type CreateUploadSessionRequest struct {
+type CreateProxyUploadSessionRequest struct {
 	FileName      string `json:"file_name"`
 	FileSizeBytes int64  `json:"file_size_bytes"`
 }
@@ -44,4 +44,18 @@ type AddS3PartRequest struct {
 // POST /multipart/complete
 type CompleteMultipartRequest struct {
 	UploadUUID uuid.UUID `json:"upload_uuid"`
+}
+
+type GeneratePartURLsRequest struct {
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+}
+
+type PresignedPart struct {
+	PartNumber int    `json:"part_number"`
+	URL        string `json:"url"`
+}
+
+type GeneratePartURLsResponse struct {
+	UploadUUID uuid.UUID       `json:"upload_uuid"`
+	Parts      []PresignedPart `json:"parts"`
 }

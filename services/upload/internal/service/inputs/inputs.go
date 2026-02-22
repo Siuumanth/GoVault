@@ -28,3 +28,8 @@ type AddPartInput struct {
 	SizeBytes  int64
 	Etag       string
 }
+
+type PresignedPart struct {
+	PartNumber int
+	URL        string
+}

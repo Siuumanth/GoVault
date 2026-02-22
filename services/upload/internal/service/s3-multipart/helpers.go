@@ -11,7 +11,11 @@ import (
 )
 
 func calculateTotalParts(fileSize int64, partSize int64) int64 {
-	return int64((fileSize + shared.ChunkSizeBytes - 1) / partSize)
+	if partSize <= 0 {
+		return 0
+	}
+	// Standard "Ceil" logic: (a + b - 1) / b
+	return (fileSize + partSize - 1) / partSize
 }
 
 func getMimeType(filename string) string {

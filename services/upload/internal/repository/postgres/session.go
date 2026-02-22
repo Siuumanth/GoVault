@@ -85,7 +85,7 @@ func (p *PGUploadSessionRepo) GetSessionByID(ctx context.Context, session_id int
 	return &session, err
 }
 
-const GetSesionByUUIDQuery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, created_at FROM upload_sessions WHERE upload_uuid = $1`
+const GetSesionByUUIDQuery = `SELECT id, upload_uuid, user_id, file_name, file_size_bytes, total_chunks, status, upload_method, storage_upload_id, created_at FROM upload_sessions WHERE upload_uuid = $1`
 
 func (p *PGUploadSessionRepo) GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error) {
 	var session model.UploadSession
@@ -98,6 +98,8 @@ func (p *PGUploadSessionRepo) GetSessionByUUID(ctx context.Context, upload_uuid 
 		&session.FileSize,
 		&session.TotalParts,
 		&session.Status,
+		&session.UploadMethod,
+		&session.StorageUploadID,
 		&session.CreatedAt,
 	)
 	return &session, err
