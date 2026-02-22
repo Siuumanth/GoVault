@@ -13,10 +13,10 @@ import (
 // tempoerory
 // TODO: Change
 type Handler struct {
-	uploadService *backend.UploadService
+	uploadService *backend.ProxyUploadService
 }
 
-func NewUploadHandler(uploadService *backend.UploadService) *Handler {
+func NewUploadHandler(uploadService *backend.ProxyUploadService) *Handler {
 	return &Handler{uploadService: uploadService}
 }
 

@@ -6,14 +6,14 @@ import (
 	"upload/internal/storage"
 )
 
-type UploadService struct {
+type MultipartUploadService struct {
 	registry   *repository.RepoRegistry
 	storage    storage.FileStorage
 	fileClient *clients.FileClient
 }
 
-func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *UploadService {
-	return &UploadService{
+func NewMultipartUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *MultipartUploadService {
+	return &MultipartUploadService{
 		registry:   registry,
 		storage:    storage,
 		fileClient: fileClient,

@@ -26,7 +26,7 @@ import (
 // 	GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
 // }
 
-func (s *UploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
+func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
 	// form model
 	var session model.UploadSession
 	fileUUID := uuid.New()
@@ -62,7 +62,7 @@ func (s *UploadService) UploadSession(ctx context.Context, in *inputs.UploadSess
 }
 
 // AddS3Part records the ETag received from the frontend after a direct S3 upload
-func (s *UploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, input *inputs.AddPartInput) error {
+func (s *MultipartUploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, input *inputs.AddPartInput) error {
 	// 1. resolve Session and validate status
 	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
 	if err != nil {
@@ -103,7 +103,9 @@ func (s *UploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, inp
 
 	return nil
 }
-func (s *UploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid.UUID) error {
+
+// decompose function
+func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid.UUID) error {
 	// 1. Get session
 	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
 	if err != nil {
@@ -138,7 +140,7 @@ func (s *UploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid
 	storageKey := fmt.Sprintf("%s%s/%s", shared.S3UsersPrefix, session.UserID, fileUUID)
 
 	// Detach context for finalization
-	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	// FIX: Capturing both the location string and the error
@@ -150,11 +152,8 @@ func (s *UploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid
 	// Optional: Log the final S3 location for debugging
 	log.Printf("[INFO] S3 assembly complete: %s", location)
 
-	// 5. Detect MimeType
-	mimeType := mime.TypeByExtension(filepath.Ext(session.FileName))
-	if mimeType == "" {
-		mimeType = "application/octet-stream"
-	}
+	// 5. detect MimeType
+	mimeType := getMimeType(session.FileName)
 
 	// 6. Request file client to save file
 	err = s.fileClient.AddFile(bgCtx, &clients.CreateFileRequest{
@@ -176,7 +175,15 @@ func (s *UploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid
 	return s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
 }
 
-func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+func getMimeType(filename string) string {
+	mimeType := mime.TypeByExtension(filepath.Ext(filename))
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	return mimeType
+}
+
+func (s *MultipartUploadService) fail(ctx context.Context, sessionID int64, err error) error {
 	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
 	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
 

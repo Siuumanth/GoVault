@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *UploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
+func (s *ProxyUploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
 	/*
 	   - calculate total chunks
 	   - insert session row to uploadSession table

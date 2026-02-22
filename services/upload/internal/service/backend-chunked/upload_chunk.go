@@ -39,7 +39,7 @@ import (
 */
 
 // main func
-func (s *UploadService) UploadChunk(ctx context.Context, input *inputs.UploadChunkInput) error {
+func (s *ProxyUploadService) UploadChunk(ctx context.Context, input *inputs.UploadChunkInput) error {
 	// 1,2
 	session, err := s.mustAcceptChunks(ctx, input.UploadUUID)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *UploadService) UploadChunk(ctx context.Context, input *inputs.UploadChu
 
 }
 
-func (s *UploadService) handleChunk(
+func (s *ProxyUploadService) handleChunk(
 	ctx context.Context,
 	session *model.UploadSession,
 	input *inputs.UploadChunkInput,
@@ -152,7 +152,7 @@ func chunkPath(sessionID int64, chunkID int) string {
 	)
 }
 
-func (s *UploadService) isUploadComplete(ctx context.Context, session *model.UploadSession) (bool, error) {
+func (s *ProxyUploadService) isUploadComplete(ctx context.Context, session *model.UploadSession) (bool, error) {
 	count, err := s.registry.Chunks.CountBySession(ctx, session.ID)
 	if err != nil {
 		return false, err
@@ -160,7 +160,7 @@ func (s *UploadService) isUploadComplete(ctx context.Context, session *model.Upl
 	return count == int(session.TotalParts), nil
 }
 
-func (s *UploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
+func (s *ProxyUploadService) finalizeUpload(ctx context.Context, session *model.UploadSession) error {
 	s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "assembling")
 
 	finalPath, err := s.assembleChunks(session.ID, session.TotalParts)
@@ -232,11 +232,11 @@ func (s *UploadService) finalizeUpload(ctx context.Context, session *model.Uploa
 
 }
 
-func (s *UploadService) removeSessionFolder(finalPath string) error {
+func (s *ProxyUploadService) removeSessionFolder(finalPath string) error {
 	return os.RemoveAll(filepath.Dir(finalPath))
 }
 
-func (s *UploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*model.UploadSession, error) {
+func (s *ProxyUploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*model.UploadSession, error) {
 	session, err := s.registry.Sessions.GetSessionByUUID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (s *UploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID) (*mo
 	return session, nil
 }
 
-func (s *UploadService) fail(ctx context.Context, sessionID int64, err error) error {
+func (s *ProxyUploadService) fail(ctx context.Context, sessionID int64, err error) error {
 	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
 	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
 

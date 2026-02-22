@@ -8,7 +8,7 @@ import (
 	"upload/shared"
 )
 
-func (s *UploadService) assembleChunks(sessionID int64, totalChunks int64) (string, error) {
+func (s *ProxyUploadService) assembleChunks(sessionID int64, totalChunks int64) (string, error) {
 	sessionDir := filepath.Join(shared.UploadBasePath, fmt.Sprintf("%d", sessionID))
 	finalPath := filepath.Join(sessionDir, "final")
 
