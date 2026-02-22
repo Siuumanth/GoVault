@@ -101,3 +101,43 @@ paths:
                     type: array
                     items:
                       type: integer
+
+
+
+
+# multipart
+paths:
+  /upload/session:
+    post:
+      summary: Create session (set upload_method to 'multipart' for S3)
+      responses:
+        200:
+          description: Session Created
+  /upload/multipart/part:
+    post:
+      summary: Record S3 ETag after frontend direct upload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upload_uuid: { type: string, format: uuid }
+                part_number: { type: integer }
+                etag: { type: string }
+      responses:
+        200:
+          description: Part metadata saved
+  /upload/multipart/complete:
+    post:
+      summary: Finalize assembly in S3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upload_uuid: { type: string, format: uuid }
+      responses:
+        200:
+          description: File assembled and registered
