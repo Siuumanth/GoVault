@@ -45,3 +45,17 @@ type AddS3PartRequest struct {
 type CompleteMultipartRequest struct {
 	UploadUUID uuid.UUID `json:"upload_uuid"`
 }
+
+type GeneratePartURLsRequest struct {
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+}
+
+type PresignedPart struct {
+	PartNumber int    `json:"part_number"`
+	URL        string `json:"url"`
+}
+
+type GeneratePartURLsResponse struct {
+	UploadUUID uuid.UUID       `json:"upload_uuid"`
+	Parts      []PresignedPart `json:"parts"`
+}

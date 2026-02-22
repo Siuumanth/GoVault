@@ -180,3 +180,43 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 	// 7. Mark as completed
 	return s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
 }
+func (s *MultipartUploadService) GenerateAllPartURLs(
+	ctx context.Context,
+	uploadUUID uuid.UUID,
+) ([]inputs.PresignedPart, error) {
+
+	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	objectKey := fmt.Sprintf(
+		"%s%s/%s",
+		shared.S3UsersPrefix,
+		session.UserID,
+		session.UploadUUID.String(),
+	)
+
+	var parts []inputs.PresignedPart
+
+	for i := 1; i <= int(session.TotalParts); i++ {
+
+		url, err := s.storage.PresignUploadPart(
+			ctx,
+			objectKey,
+			*session.StorageUploadID,
+			int32(i),
+			15*time.Minute,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		parts = append(parts, inputs.PresignedPart{
+			PartNumber: i,
+			URL:        url,
+		})
+	}
+
+	return parts, nil
+}

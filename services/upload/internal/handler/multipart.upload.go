@@ -73,3 +73,37 @@ func (h *Handler) CompleteMultipart(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+// POST /upload/multipart/presign
+// POST /upload/multipart/presign
+func (h *Handler) GenerateMultipartPartURLs(w http.ResponseWriter, r *http.Request) {
+
+	var req GeneratePartURLsRequest
+	if err := decodeJSON(r, &req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	serviceParts, err := h.multipartUploadService.GenerateAllPartURLs(
+		r.Context(),
+		req.UploadUUID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Map service type → handler DTO
+	var responseParts []PresignedPart
+	for _, p := range serviceParts {
+		responseParts = append(responseParts, PresignedPart{
+			PartNumber: p.PartNumber,
+			URL:        p.URL,
+		})
+	}
+
+	respondJSON(w, http.StatusOK, GeneratePartURLsResponse{
+		UploadUUID: req.UploadUUID,
+		Parts:      responseParts,
+	})
+}
