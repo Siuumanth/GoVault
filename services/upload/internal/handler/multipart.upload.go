@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 	"upload/internal/service/inputs"
+
+	"github.com/google/uuid"
 )
 
 // POST /upload/multipart/session
@@ -74,26 +76,31 @@ func (h *Handler) CompleteMultipart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// POST /upload/multipart/presign
-// POST /upload/multipart/presign
+// GET /upload/multipart/presign?uploadUUID=...
 func (h *Handler) GenerateMultipartPartURLs(w http.ResponseWriter, r *http.Request) {
 
-	var req GeneratePartURLsRequest
-	if err := decodeJSON(r, &req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	uploadUUIDStr := r.URL.Query().Get("uploadUUID")
+	if uploadUUIDStr == "" {
+		http.Error(w, "missing uploadUUID", http.StatusBadRequest)
+		return
+	}
+
+	uploadUUID, err := uuid.Parse(uploadUUIDStr)
+	if err != nil {
+		http.Error(w, "invalid uploadUUID", http.StatusBadRequest)
 		return
 	}
 
 	serviceParts, err := h.multipartUploadService.GenerateAllPartURLs(
 		r.Context(),
-		req.UploadUUID,
+		uploadUUID,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Map service type → handler DTO
+	// Map service → handler DTO
 	var responseParts []PresignedPart
 	for _, p := range serviceParts {
 		responseParts = append(responseParts, PresignedPart{
@@ -103,7 +110,7 @@ func (h *Handler) GenerateMultipartPartURLs(w http.ResponseWriter, r *http.Reque
 	}
 
 	respondJSON(w, http.StatusOK, GeneratePartURLsResponse{
-		UploadUUID: req.UploadUUID,
+		UploadUUID: uploadUUID,
 		Parts:      responseParts,
 	})
 }

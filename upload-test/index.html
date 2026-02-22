@@ -2,213 +2,213 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoVault Multi-Stage Tester</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 650px; margin: 2rem auto; background-color: #f8f9fa; color: #333; }
-        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        input[type="text"], input[type="file"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #dfe3e6; border-radius: 6px; box-sizing: border-box; }
-        
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; transition: all 0.2s; }
-        
-        #healthBtn { background-color: #47cc40; color: white; }
-        #sessionBtn, #getDownloadUrlBtn { background-color: #007bff; color: white; }
-        #uploadBtn, #executeDownloadBtn { background-color: #238636; color: white; }
-        
-        button:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.6; }
-        button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-
-        progress { width: 100%; height: 20px; margin-top: 10px; accent-color: #238636; }
-        #log { background: #161b22; color: #d1d5da; padding: 15px; font-family: 'Cascadia Code', monospace; font-size: 12px; height: 220px; overflow-y: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #30363d; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 750px; margin: 2rem auto; background-color: #f4f6f8; color: #333; }
+        .card { background: white; padding: 25px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e1e4e8; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .btn-init { background: #007bff; color: white; }
+        .btn-start { background: #238636; color: white; }
+        button { width: 100%; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; margin-top: 10px; }
+        button:disabled { background: #ccc !important; cursor: not-allowed; }
+        #log { background: #1e1e1e; color: #d1d5da; padding: 15px; font-family: 'Cascadia Code', monospace; height: 300px; overflow-y: auto; border-radius: 6px; font-size: 12px; line-height: 1.5; }
         .err { color: #f85149; }
+        .success { color: #7ee787; }
         .info { color: #79c0ff; }
-        .success { color: #51cf66; }
-        label { font-weight: 600; font-size: 14px; color: #444; }
-        .step-label { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 5px; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        progress { width: 100%; height: 20px; margin-top: 15px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>GoVault Credentials</h2>
-        <label>Access Token (JWT)</label>
-        <input type="text" id="token" placeholder="Bearer token...">
-        <div class="btn-group">
-            <button id="healthBtn">Check Health</button>
-        </div>
+        <h2>1. Auth & Config</h2>
+        <label>Bearer Token</label>
+        <input type="text" id="token" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        
+        <label>Upload Strategy</label>
+        <select id="uploadMethod">
+            <option value="proxy">Backend Proxy (5MB Chunks)</option>
+            <option value="multipart">S3 Multipart (100MB Parts)</option>
+        </select>
     </div>
 
     <div class="card">
-        <h3>Upload Flow</h3>
-        <span class="step-label">STAGE 1</span><br>
-        <label>Select File</label>
+        <h2>2. File Selection</h2>
         <input type="file" id="fileInput">
-        <button id="sessionBtn">Initialize Session</button>
-        <hr>
-        <span class="step-label">STAGE 2</span><br>
-        <div id="sessionInfo" style="font-size: 12px; color: #666; margin-bottom: 10px;">No active session</div>
-        <button id="uploadBtn" disabled>Start Uploading Chunks</button>
+        <button id="sessionBtn" class="btn-init">Initialize Session</button>
         <progress id="progressBar" value="0" max="100"></progress>
+        <button id="uploadBtn" class="btn-start" disabled>Start Upload Sequence</button>
     </div>
 
     <div class="card">
-        <h3>Download Flow</h3>
-        <span class="step-label">STAGE 1</span><br>
-        <label>File UUID</label>
-        <input type="text" id="downloadFileId" placeholder="Enter File UUID">
-        <button id="getDownloadUrlBtn">Get Download Info</button>
-        <hr>
-        <span class="step-label">STAGE 2</span><br>
-        <div id="downloadUrlInfo" style="font-size: 11px; color: #666; word-break: break-all; margin-bottom: 10px;">Metadata not fetched yet</div>
-        <button id="executeDownloadBtn" disabled>Execute S3 Download</button>
-    </div>
-
-    <div class="card">
-        <label>Console Logs</label>
+        <h3>System Logs</h3>
         <div id="log"></div>
     </div>
 
     <script>
-        const CHUNK_SIZE = 5 * 1024 * 1024;
-        const GATEWAY_URL = "http://localhost:9000/api";
-        const UPLOAD_URL = `${GATEWAY_URL}/upload`;
-        const FILES_URL = `${GATEWAY_URL}/files`;
+        /** --- CONFIGURATION --- **/
+        const PROXY_CHUNK_SIZE = 5 * 1024 * 1024; 
+        const S3_PART_SIZE = 100 * 1024 * 1024;
+        const BASE_URL = "http://localhost:9000/api/upload";
 
-        let activeSession = null;
-        let presignedUrl = null;
-
-        const logDiv = document.getElementById('log');
-        const progressBar = document.getElementById('progressBar');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const executeDownloadBtn = document.getElementById('executeDownloadBtn');
-
-        function logger(msg, type = 'default') {
-            const div = document.createElement('div');
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            if (type === 'err') div.className = 'err';
-            if (type === 'info') div.className = 'info';
-            if (type === 'success') div.className = 'success';
-            logDiv.prepend(div);
-        }
-
-        // --- HEALTH CHECK ---
-        document.getElementById('healthBtn').onclick = async () => {
-            const token = document.getElementById('token').value;
-            try {
-                const resp = await fetch(`${UPLOAD_URL}/health`, {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-                });
-                const text = await resp.text();
-                logger(`Health: ${text}`, resp.ok ? 'success' : 'err');
-            } catch (err) { logger(`Health check failed`, 'err'); }
+        /** --- STATE --- **/
+        let session = null;
+        const ui = {
+            log: (msg, type = '') => {
+                const div = document.createElement('div');
+                div.className = type;
+                div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                document.getElementById('log').prepend(div);
+                console.log(`[${type.toUpperCase() || 'LOG'}]`, msg);
+            },
+            progress: (val) => document.getElementById('progressBar').value = val,
+            setBtn: (id, enabled) => document.getElementById(id).disabled = !enabled
         };
 
-        // --- UPLOAD STAGE 1 ---
+        /** --- API CLIENT --- **/
+        const API = {
+            async request(endpoint, options = {}) {
+                const token = document.getElementById('token').value;
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    ...options.headers
+                };
+
+                const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+                const text = await response.text();
+                
+                // Log all responses for debugging
+                console.log(`API Response (${endpoint}):`, { status: response.status, body: text });
+
+                if (!response.ok) throw new Error(text || `Status ${response.status}`);
+                
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    return text; // Return raw text if not JSON
+                }
+            }
+        };
+
+        /** --- EVENT HANDLERS --- **/
+
+        // 1. Initialize Session
         document.getElementById('sessionBtn').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
-            const token = document.getElementById('token').value;
-            if (!file || !token) return alert("File and Token required");
+            const method = document.getElementById('uploadMethod').value;
+            if (!file) return alert("Select a file");
 
             try {
-                const resp = await fetch(`${UPLOAD_URL}/session`, {
+                ui.log(`Initializing ${method} session...`, 'info');
+                
+                const isMultipart = method === 'multipart';
+                const endpoint = isMultipart ? '/multipart/session' : '/proxy/session';
+                
+                // DTO Mapping: Matches your Go struct JSON tags exactly
+                const payload = isMultipart ? {
+                    file_name: file.name,
+                    file_size_bytes: file.size,
+                    part_size_bytes: S3_PART_SIZE
+                } : {
+                    file_name: file.name,
+                    file_size_bytes: file.size
+                };
+
+                session = await API.request(endpoint, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_name: file.name, file_size_bytes: file.size })
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                if (!resp.ok) throw new Error(`Status ${resp.status}`);
-                activeSession = await resp.json();
-                document.getElementById('sessionInfo').innerHTML = `Session ID: ${activeSession.upload_uuid}`;
-                uploadBtn.disabled = false;
-                logger(`Session Initialized: ${activeSession.upload_uuid}`, 'success');
-            } catch (err) { logger(`Session error: ${err.message}`, 'err'); }
+
+                ui.log(`Session Created: ${session.upload_uuid}`, 'success');
+                ui.log(`Total Parts expected: ${session.total_chunks}`, 'info');
+                
+                session.method = method;
+                session.partSize = isMultipart ? S3_PART_SIZE : PROXY_CHUNK_SIZE;
+                
+                ui.setBtn('uploadBtn', true);
+            } catch (err) {
+                ui.log(`Init Failed: ${err.message}`, 'err');
+            }
         };
 
-        // --- UPLOAD STAGE 2 ---
-        uploadBtn.onclick = async () => {
+        // 2. Upload Execution
+        document.getElementById('uploadBtn').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
-            const token = document.getElementById('token').value;
-            uploadBtn.disabled = true;
-            try {
-                for (let i = 0; i < activeSession.total_chunks; i++) {
-                    const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-                    const buffer = await chunk.arrayBuffer();
-                    const hash = await crypto.subtle.digest('SHA-256', buffer);
-                    const checksum = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-                    const resp = await fetch(`${UPLOAD_URL}/chunk?id=${i}`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Upload-UUID': activeSession.upload_uuid,
-                            'Checksum': checksum,
-                            'Content-Type': 'application/octet-stream'
-                        },
-                        body: buffer
-                    });
-                    if (!resp.ok) throw new Error(`Chunk ${i} failed`);
-                    progressBar.value = ((i + 1) / activeSession.total_chunks) * 100;
-                    logger(`Chunk ${i} uploaded`);
-                }
-                logger("Upload Complete!", 'success');
-            } catch (err) { 
-                logger(`Upload Failed: ${err.message}`, 'err'); 
-                uploadBtn.disabled = false; 
-            }
-        };
-
-        // --- DOWNLOAD STAGE 1: GET DOWNLOAD INFO ---
-        document.getElementById('getDownloadUrlBtn').onclick = async () => {
-            const fileId = document.getElementById('downloadFileId').value;
-            const token = document.getElementById('token').value;
-            if (!fileId || !token) return alert("File UUID and Token required");
+            ui.setBtn('uploadBtn', false);
+            ui.progress(0);
 
             try {
-                logger("Fetching download metadata from Files Service...", "info");
+                const total = parseInt(session.total_chunks);
                 
-                // Matches Handler: GET /api/files/{fileID}/download
-                const resp = await fetch(`${FILES_URL}/${fileId}/download`, {
-                    method: 'GET',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                for (let i = 0; i < total; i++) {
+                    const start = i * session.partSize;
+                    const end = Math.min(start + session.partSize, file.size);
+                    const blob = file.slice(start, end);
+
+                    if (session.method === 'proxy') {
+                        await handleProxyChunk(blob, i);
+                    } else {
+                        await handleS3Part(blob, i + 1); // S3 is 1-indexed
                     }
-                });
 
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                
-                const data = await resp.json(); 
-                
-                // If your service generates a URL, use data.download_url
-                // If it just gives key, use data.storage_key (browser can't download key directly without signing)
-                presignedUrl = data.download_url || data.storage_key; 
-                
-                document.getElementById('downloadUrlInfo').innerHTML = `
-                    <strong>Target:</strong> ${presignedUrl}<br>
-                    <strong>Expires:</strong> ${data.expires_at || 'N/A'}
-                `;
-                
-                executeDownloadBtn.disabled = false;
-                logger("Download metadata received.", "success");
+                    ui.progress(((i + 1) / total) * 100);
+                }
+
+                if (session.method === 'multipart') {
+                    ui.log("Finalizing S3 Multipart assembly...", "info");
+                    await API.request('/multipart/complete', {
+                        method: 'POST',
+                        body: JSON.stringify({ upload_uuid: session.upload_uuid }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                ui.log("🔥 ALL OPERATIONS COMPLETE", "success");
             } catch (err) {
-                logger(`Download Meta Error: ${err.message}`, "err");
+                ui.log(`Critical Failure: ${err.message}`, 'err');
+                ui.setBtn('uploadBtn', true);
             }
         };
 
-        // --- DOWNLOAD STAGE 2: EXECUTE ---
-        executeDownloadBtn.onclick = async () => {
-            if (!presignedUrl) return;
-            logger("Redirecting to S3 Source...", "info");
+        /** --- CORE UPLOAD LOGIC --- **/
+
+        async function handleProxyChunk(blob, index) {
+            // Checksum calculation (required by your backend code)
+            const buffer = await blob.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const checksum = Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+
+            await API.request(`/proxy/chunk?id=${index}`, {
+                method: 'POST',
+                body: buffer,
+                headers: {
+                    'Upload-UUID': session.upload_uuid,
+                    'Checksum': checksum,
+                    'Content-Type': 'application/octet-stream'
+                }
+            });
+            ui.log(`Chunk ${index} verified and stored.`);
+        }
+
+        async function handleS3Part(blob, partNumber) {
+            // Here you would normally upload directly to S3. 
+            // We simulate the ETag return and record it in your backend.
+            const mockETag = `"${Math.random().toString(16).slice(2)}"`;
             
-            try {
-                // If presignedUrl is a valid HTTPS link, this triggers the download
-                window.open(presignedUrl, '_blank');
-                logger("Download triggered.", "success");
-            } catch (err) {
-                logger(`Execution error: ${err.message}`, "err");
-            }
-        };
+            await API.request('/multipart/part', {
+                method: 'POST',
+                body: JSON.stringify({
+                    upload_uuid: session.upload_uuid,
+                    part_number: partNumber,
+                    size_bytes: blob.size,
+                    etag: mockETag
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            ui.log(`Part ${partNumber} recorded in DB.`);
+        }
     </script>
 </body>
 </html>
