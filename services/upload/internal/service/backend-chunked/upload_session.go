@@ -1,4 +1,4 @@
-package service
+package backend
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"upload/internal/model"
+	"upload/internal/service/inputs"
 	"upload/shared"
 
 	"github.com/google/uuid"
 )
 
-func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSessionInput) (*model.UploadSession, error) {
+func (s *ProxyUploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
 	/*
 	   - calculate total chunks
 	   - insert session row to uploadSession table
@@ -23,13 +24,14 @@ func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSession
 	// assume there are no missing fields
 	// fill upload session model
 	session.UploadUUID = uuid.New()
-	session.FileName = inputs.FileName
-	session.FileSize = inputs.FileSizeBytes
-	session.UserID = inputs.UserID
-	session.TotalChunks = calculateTotalChunks(inputs.FileSizeBytes)
+	session.FileName = in.FileName
+	session.FileSize = in.FileSizeBytes
+	session.UserID = in.UserID
+	session.UploadMethod = "proxy" // backend chunked
+	session.TotalParts = calculateTotalParts(in.FileSizeBytes)
 
 	// insert session into database
-	err := s.registry.Sessions.CreateSession(ctx, &session)
+	_, err := s.registry.Sessions.CreateSession(ctx, &session)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +47,8 @@ func (s *UploadService) UploadSession(ctx context.Context, inputs *UploadSession
 	return &session, nil
 }
 
-func calculateTotalChunks(fileSize int64) int {
-	return int((fileSize + shared.ChunkSizeBytes - 1) / shared.ChunkSizeBytes)
+func calculateTotalParts(fileSize int64) int64 {
+	return int64((fileSize + shared.ChunkSizeBytes - 1) / shared.ChunkSizeBytes)
 }
 
 func createSessionDir(sessionID int64) (string, error) {

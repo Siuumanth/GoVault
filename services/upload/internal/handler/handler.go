@@ -5,20 +5,35 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"upload/internal/service"
+	"upload/internal/service/backend-chunked"
+	multipart "upload/internal/service/s3-multipart"
 
 	"github.com/google/uuid"
 )
 
+// tempoerory
 type Handler struct {
-	uploadService *service.UploadService
+	proxyUploadService     *backend.ProxyUploadService
+	multipartUploadService *multipart.MultipartUploadService
 }
 
-func NewUploadHandler(uploadService *service.UploadService) *Handler {
-	return &Handler{uploadService: uploadService}
+func NewUploadHandler(proxyUploadService *backend.ProxyUploadService, multipartUploadService *multipart.MultipartUploadService) *Handler {
+	return &Handler{
+		proxyUploadService:     proxyUploadService,
+		multipartUploadService: multipartUploadService,
+	}
 }
 
 // helpers
+
+func respondJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		fmt.Printf("Error encoding JSON: %v", err)
+	}
+}
+
 func userIDFromHeader(r *http.Request) (uuid.UUID, error) {
 	id := r.Header.Get("X-User-ID")
 	if id == "" {

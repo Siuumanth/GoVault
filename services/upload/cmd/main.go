@@ -46,10 +46,10 @@ func main() {
 	}
 
 	fileClient := clients.NewFileClient(fsURL)
-	uploadService := service.NewUploadService(repos, s3Storage, fileClient)
+	sr := service.NewServiceRegistry(repos, s3Storage, fileClient)
 
 	// ---------- Handler ----------
-	uploadHandler := handler.NewUploadHandler(uploadService)
+	uploadHandler := handler.NewUploadHandler(sr.Proxy, sr.Multipart)
 
 	// ---------- Router ----------
 	mainRouter := chi.NewRouter()

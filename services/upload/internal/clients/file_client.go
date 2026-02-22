@@ -40,7 +40,7 @@ func NewFileClient(url string) *FileClient {
 	}
 	return &FileClient{
 		BaseURL: url,
-		client:  &http.Client{Timeout: 2 * time.Second},
+		client:  &http.Client{Timeout: 10 * time.Second},
 		cb:      gobreaker.NewCircuitBreaker(settings),
 	}
 

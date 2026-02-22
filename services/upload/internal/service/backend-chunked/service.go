@@ -1,4 +1,4 @@
-package service
+package backend
 
 import (
 	"upload/internal/clients"
@@ -6,14 +6,14 @@ import (
 	"upload/internal/storage"
 )
 
-type UploadService struct {
+type ProxyUploadService struct {
 	registry   *repository.RepoRegistry
 	storage    storage.FileStorage
 	fileClient *clients.FileClient
 }
 
-func NewUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *UploadService {
-	return &UploadService{
+func NewProxyUploadService(registry *repository.RepoRegistry, storage storage.FileStorage, fileClient *clients.FileClient) *ProxyUploadService {
+	return &ProxyUploadService{
 		registry:   registry,
 		storage:    storage,
 		fileClient: fileClient,

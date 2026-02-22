@@ -9,14 +9,16 @@ import (
 // these are models returned by the repository and the actual schema
 
 type UploadSession struct {
-	ID          int64     // internal BIGSERIAL
-	UploadUUID  uuid.UUID // public ID
-	UserID      uuid.UUID
-	FileName    string
-	FileSize    int64
-	TotalChunks int
-	Status      string
-	CreatedAt   time.Time
+	ID              int64     // internal BIGSERIAL
+	UploadUUID      uuid.UUID // public ID
+	UserID          uuid.UUID
+	FileName        string
+	FileSize        int64
+	TotalParts      int64 // TODO: Change to total parts
+	Status          string
+	UploadMethod    string  // proxy or multipart
+	StorageUploadID *string // nullable so ptr
+	CreatedAt       time.Time
 }
 
 type UploadChunk struct {
@@ -25,6 +27,15 @@ type UploadChunk struct {
 	ChunkIndex int
 	SizeBytes  int64
 	CheckSum   string
+	UploadedAt time.Time
+}
+
+type UploadPart struct {
+	ID         int64
+	SessionID  int64 // upload sessions id
+	PartNumber int
+	SizeBytes  int64
+	Etag       string
 	UploadedAt time.Time
 }
 

@@ -19,9 +19,15 @@ type UploadChunkRepository interface {
 }
 
 type UploadSessionRepository interface {
-	CreateSession(ctx context.Context, session *model.UploadSession) error
+	CreateSession(ctx context.Context, session *model.UploadSession) (*model.UploadSession, error)
 	GetSessionByID(ctx context.Context, session_id int64) (*model.UploadSession, error)
 	GetSessionByUUID(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
 	UpdateSessionStatus(ctx context.Context, session_id int64, status string) error
 	DeleteSessionChunks(ctx context.Context, session_id int64) error
+}
+
+// multipart
+type UploadPartRepository interface {
+	CreatePart(ctx context.Context, part *model.UploadPart) error
+	GetPartsBySession(ctx context.Context, session_id int64) ([]*model.UploadPart, error)
 }
