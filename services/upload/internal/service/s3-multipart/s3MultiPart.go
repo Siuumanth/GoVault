@@ -5,10 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"mime"
-	"os"
-	"path/filepath"
-	"strconv"
 	"time"
 	"upload/internal/clients"
 	"upload/internal/model"
@@ -111,6 +107,8 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 	if err != nil {
 		return err
 	}
+	// RECONSTRUCT the exact same key used in InitiateMultipart
+	storageKey := fmt.Sprintf("%s%s/%s", shared.S3UsersPrefix, session.UserID, session.UploadUUID.String())
 
 	if session.UploadMethod != "multipart" || session.StorageUploadID == nil {
 		return errors.New("invalid upload method or missing S3 session")
@@ -136,9 +134,6 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 		})
 	}
 
-	fileUUID := uuid.New()
-	storageKey := fmt.Sprintf("%s%s/%s", shared.S3UsersPrefix, session.UserID, fileUUID)
-
 	// Detach context for finalization
 	bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -157,7 +152,7 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 
 	// 6. Request file client to save file
 	err = s.fileClient.AddFile(bgCtx, &clients.CreateFileRequest{
-		FileUUID:   fileUUID,
+		FileUUID:   session.UploadUUID,
 		UserID:     session.UserID,
 		UploadUUID: session.UploadUUID,
 		Name:       session.FileName,
@@ -173,25 +168,4 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 
 	// 7. Mark as completed
 	return s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
-}
-
-func getMimeType(filename string) string {
-	mimeType := mime.TypeByExtension(filepath.Ext(filename))
-	if mimeType == "" {
-		mimeType = "application/octet-stream"
-	}
-	return mimeType
-}
-
-func (s *MultipartUploadService) fail(ctx context.Context, sessionID int64, err error) error {
-	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
-	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
-
-	sessionDir := filepath.Join(
-		shared.UploadBasePath,
-		strconv.FormatInt(sessionID, 10),
-	)
-	_ = os.RemoveAll(sessionDir)
-
-	return err
 }

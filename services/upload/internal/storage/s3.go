@@ -52,15 +52,12 @@ func (s *S3Storage) InitiateMultipart(ctx context.Context, key string) (string, 
 }
 
 // Upload Part
-
 func (s *S3Storage) CompleteMultipart(ctx context.Context, key string, uploadID string, parts []types.CompletedPart) (string, error) {
 	input := &s3.CompleteMultipartUploadInput{
-		Bucket:   aws.String(s.Bucket),
-		Key:      aws.String(key),
-		UploadId: aws.String(uploadID),
-		MultipartUpload: &types.CompletedMultipartUpload{
-			Parts: parts,
-		},
+		Bucket:          aws.String(s.Bucket),
+		Key:             aws.String(key),
+		UploadId:        aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{Parts: parts},
 	}
 
 	result, err := s.Client.CompleteMultipartUpload(ctx, input)
@@ -68,6 +65,8 @@ func (s *S3Storage) CompleteMultipart(ctx context.Context, key string, uploadID 
 		return "", fmt.Errorf("failed to complete multipart: %w", err)
 	}
 
-	// return the final location of the file
-	return *result.Location, nil
+	if result.Location != nil {
+		return *result.Location, nil
+	}
+	return key, nil // Fallback to key if location is nil
 }
