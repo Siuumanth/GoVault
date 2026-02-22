@@ -9,7 +9,7 @@ type UploadChunkRequest struct {
 }
 
 // stores dto to communicate from handler to service layer
-type CreateUploadSessionRequest struct {
+type CreateProxyUploadSessionRequest struct {
 	FileName      string `json:"file_name"`
 	FileSizeBytes int64  `json:"file_size_bytes"`
 }

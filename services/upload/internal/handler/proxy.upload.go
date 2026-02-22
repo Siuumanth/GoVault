@@ -22,7 +22,7 @@ func (h *Handler) CreateProxyUploadSession(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var req CreateUploadSessionRequest
+	var req CreateProxyUploadSessionRequest
 
 	if err := decodeJSON(r, &req); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)

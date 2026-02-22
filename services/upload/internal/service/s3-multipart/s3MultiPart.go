@@ -76,6 +76,7 @@ func (s *MultipartUploadService) AddS3Part(ctx context.Context, uploadUUID uuid.
 	}
 
 	if session.UploadMethod != "multipart" {
+		log.Println("session IS : ", session)
 		return errors.New("invalid upload method: session is not multipart")
 	}
 
