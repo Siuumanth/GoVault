@@ -53,10 +53,15 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 	// Capture upstream transport errors (dial, timeout, etc.)
 	// Upstream error happens when the gateway cannot even successfully talk to the backend service.
 	// default respnose is 502, we just handle it and log it how we want here
+	// internal/proxy/reverse.go
+
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		reqID := middleware.GetRequestID(r.Context())
 		log.Printf("[req_id=%s] [CB:%s] upstream error: %v", reqID, serviceName, err)
-		fmt.Fprintf(w, "Upstream error") // to user
+
+		// Explicitly set the status code before writing the message
+		w.WriteHeader(http.StatusBadGateway)
+		fmt.Fprintf(w, "Upstream error: Service unreachable")
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,28 +70,31 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 			ResponseWriter: w,
 			status:         http.StatusOK,
 		}
+
 		// execute forwarding logic
 		_, err := cb.Execute(func() (interface{}, error) {
 			proxy.ServeHTTP(rw, r)
 
 			// Trip breaker only on 5xx
 			if rw.status >= 500 {
-				return nil, fmt.Errorf("upstream 5xx: %d", rw.status)
+				return nil, fmt.Errorf("upstream failure: %d", rw.status)
 			}
-
 			return nil, nil
 		})
 
-		// returning proper request if circuit breaker is open, not just 5xx
 		if err != nil {
 			if err == gobreaker.ErrOpenState {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				fmt.Fprintf(w, "%s unavailable (circuit open)", serviceName)
 				return
 			}
-
-			// Upstream already responded; just log
-			log.Printf("[CB:%s] execution error: %v", serviceName, err)
+			// If the ErrorHandler already ran, the status is already set to 502.
+			// If the CB just tripped now, it might need a status.
+			if rw.status < 400 {
+				w.WriteHeader(http.StatusBadGateway)
+			}
+			fmt.Fprintf(w, "Upstream error: %v", err)
+			return
 		}
 	})
 }
