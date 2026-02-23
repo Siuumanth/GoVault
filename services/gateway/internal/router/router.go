@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // DONE: Refactor router to allow for different implementatoins of router
@@ -50,7 +49,7 @@ func (r ChiRouter) ConfigureRoutes(proxies *Proxies, authz MW.Middleware) {
 	// Health check
 	r.mux.Get("/health", health.HealthCheckHandler)
 
-	r.mux.Handle("/metrics", promhttp.Handler())
+	//	r.mux.Handle("/metrics", promhttp.Handler())
 	// Public routes (no JWT)
 	r.mux.Route("/auth", func(r chi.Router) {
 		r.Mount("/", http.StripPrefix("/auth", proxies.Auth))

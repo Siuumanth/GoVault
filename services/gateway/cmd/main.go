@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 /*
@@ -49,10 +50,16 @@ func main() {
 
 	finalGateway := gw.BuildGateway(r)
 
+	// top level mux — splits traffic before any middleware runs
+	// /metric shud be in the root, can make this better code later
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/", finalGateway)
+
 	// finalGateway is a handler with all the middlewares applied
 	server := &http.Server{
 		Addr:    ":9000",
-		Handler: finalGateway,
+		Handler: mux,
 	}
 
 	// 1. create a channel to listen for OS signals (Interrupt/Kill), eg:- Ctrl + C is a kill

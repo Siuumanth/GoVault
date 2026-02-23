@@ -35,6 +35,9 @@ func NewLogger() Middleware {
 				status:         http.StatusOK, // default
 			}
 
+			// start inflight
+			metrics.HttpInFlight.Inc() // request started
+
 			next.ServeHTTP(rw, r)
 
 			duration := time.Since(start).Seconds()
