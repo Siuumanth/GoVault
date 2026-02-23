@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gateway/internal/gateway"
+	"gateway/internal/metrics"
 	MW "gateway/internal/middleware"
 	"gateway/internal/router"
 	"log"
@@ -26,6 +27,7 @@ Steps to create the api gatway:
 */
 
 func main() {
+	metrics.Init()
 	godotenv.Load()
 
 	rl := MW.NewBasicRateLimiter(1000, time.Minute)

@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"gateway/internal/metrics"
 	"gateway/internal/utils"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -34,6 +36,21 @@ func NewLogger() Middleware {
 			}
 
 			next.ServeHTTP(rw, r)
+
+			duration := time.Since(start).Seconds()
+			statusStr := strconv.Itoa(rw.status)
+
+			// ---- METRICS ----
+			metrics.HttpRequestsTotal.
+				WithLabelValues(r.Method, r.URL.Path, statusStr).
+				Inc()
+
+			metrics.HttpRequestDuration.
+				WithLabelValues(r.Method, r.URL.Path).
+				Observe(duration)
+
+			metrics.HttpInFlight.Dec()
+			// ------------------
 
 			reqID := GetRequestID(r.Context())
 
