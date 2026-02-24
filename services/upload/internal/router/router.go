@@ -11,6 +11,7 @@ import (
 
 func RegisterUploadRoutes(r chi.Router, h *handler.Handler) {
 	r.Use(middleware.Logger)
+	r.Use(middleware.ValidateUserID)
 
 	// --- Public / Utility ---
 	r.Get("/health", handler.HealthHandler)

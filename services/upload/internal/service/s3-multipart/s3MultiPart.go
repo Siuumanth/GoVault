@@ -68,11 +68,15 @@ func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.U
 }
 
 // AddS3Part records the ETag received from the frontend after a direct S3 upload
-func (s *MultipartUploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, input *inputs.AddPartInput) error {
+func (s *MultipartUploadService) AddS3Part(ctx context.Context, uploadUUID uuid.UUID, actorID uuid.UUID, input *inputs.AddPartInput) error {
 	// 1. resolve Session and validate status
 	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
 	if err != nil {
 		return err
+	}
+
+	if session.UserID != actorID {
+		return errors.New("Unauthorized")
 	}
 
 	if session.UploadMethod != "multipart" {
@@ -112,11 +116,15 @@ func (s *MultipartUploadService) AddS3Part(ctx context.Context, uploadUUID uuid.
 }
 
 // decompose function
-func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid.UUID) error {
+func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, uploadUUID uuid.UUID, actorID uuid.UUID) error {
 	// 1. Get session
 	session, err := s.registry.Sessions.GetSessionByUUID(ctx, uploadUUID)
 	if err != nil {
 		return err
+	}
+	// check ownership
+	if session.UserID != actorID {
+		return errors.New("Unauthorized")
 	}
 	// RECONSTRUCT the exact same key used in InitiateMultipart
 	storageKey := fmt.Sprintf("%s%s/%s", shared.S3UsersPrefix, session.UserID, session.UploadUUID.String())

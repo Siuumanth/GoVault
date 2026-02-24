@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"upload/internal/service/inputs"
+	"upload/shared"
 
 	"github.com/google/uuid"
 )
@@ -43,8 +44,10 @@ func (h *Handler) AddS3Part(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
+	// extract user id form context and pass it to the service
+	actorID := r.Context().Value(shared.ActorIDKey).(uuid.UUID)
 
-	err := h.multipartUploadService.AddS3Part(r.Context(), req.UploadUUID, &inputs.AddPartInput{
+	err := h.multipartUploadService.AddS3Part(r.Context(), req.UploadUUID, actorID, &inputs.AddPartInput{
 		PartNumber: req.PartNumber,
 		SizeBytes:  req.SizeBytes,
 		Etag:       req.Etag,
@@ -67,7 +70,9 @@ func (h *Handler) CompleteMultipart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.multipartUploadService.CompleteS3Multipart(r.Context(), req.UploadUUID)
+	actorID := r.Context().Value(shared.ActorIDKey).(uuid.UUID)
+
+	err := h.multipartUploadService.CompleteS3Multipart(r.Context(), req.UploadUUID, actorID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
