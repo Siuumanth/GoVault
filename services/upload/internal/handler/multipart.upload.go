@@ -9,30 +9,50 @@ import (
 )
 
 // POST /upload/multipart/session
+// services/upload/internal/handler/multipart.upload.go
+
+// POST /upload/multipart/session
 func (h *Handler) CreateMultipartSession(w http.ResponseWriter, r *http.Request) {
-	userID, _ := userIDFromHeader(r)
+	userID, err := userIDFromHeader(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req CreateMultipartSessionRequest
 	if err := decodeJSON(r, &req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	// Uses PartSize provided by Frontend
-	session, err := h.multipartUploadService.UploadSession(r.Context(), &inputs.UploadSessionInput{
+	// Call service - catching the session AND the newly generated parts
+	session, serviceParts, err := h.multipartUploadService.UploadSession(r.Context(), &inputs.UploadSessionInput{
 		UserID:        userID,
 		FileName:      req.FileName,
 		FileSizeBytes: req.FileSizeBytes,
 		PartSize:      req.PartSizeBytes,
 	})
 	if err != nil {
+		// Log the error for debugging before sending to client
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, CreateUploadSessionResponse{
+	// Map service-layer parts to handler-layer DTOs
+	var responseParts []PresignedPart
+	for _, p := range serviceParts {
+		responseParts = append(responseParts, PresignedPart{
+			PartNumber: p.PartNumber,
+			URL:        p.URL,
+		})
+	}
+
+	// Return everything in one JSON response
+	respondJSON(w, http.StatusOK, CreateMultipartUploadSessionResponse{
 		UploadUUID:      session.UploadUUID,
 		TotalParts:      session.TotalParts,
 		StorageUploadID: session.StorageUploadID,
+		Parts:           responseParts, // Frontend now has all URLs immediately!
 	})
 }
 
@@ -81,6 +101,8 @@ func (h *Handler) CompleteMultipart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+/*
+
 // GET /upload/multipart/presign?uploadUUID=...
 func (h *Handler) GenerateMultipartPartURLs(w http.ResponseWriter, r *http.Request) {
 
@@ -119,3 +141,5 @@ func (h *Handler) GenerateMultipartPartURLs(w http.ResponseWriter, r *http.Reque
 		Parts:      responseParts,
 	})
 }
+
+*/

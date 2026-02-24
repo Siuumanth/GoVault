@@ -28,8 +28,6 @@ func RegisterUploadRoutes(r chi.Router, h *handler.Handler) {
 		r.Post("/session", h.CreateMultipartSession)
 		r.Post("/part", h.AddS3Part)
 		r.Post("/complete", h.CompleteMultipart)
-		// Get /upload/multipart/presign
-		r.Get("/presign", h.GenerateMultipartPartURLs)
 	})
 }
 

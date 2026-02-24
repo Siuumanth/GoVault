@@ -22,7 +22,7 @@ import (
 // 	GetUploadStatus(ctx context.Context, upload_uuid uuid.UUID) (*model.UploadSession, error)
 // }
 
-func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, error) {
+func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.UploadSessionInput) (*model.UploadSession, []inputs.PresignedPart, error) {
 	// form model
 	var session model.UploadSession
 	fileUUID := uuid.New()
@@ -44,7 +44,7 @@ func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.U
 	// 3. Talk to S3 to get the UploadID
 	uploadID, err := s.storage.InitiateMultipart(ctx, objectKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initiate s3 multipart: %w", err)
+		return nil, nil, fmt.Errorf("failed to initiate s3 multipart: %w", err)
 	}
 	session.StorageUploadID = &uploadID
 
@@ -61,10 +61,19 @@ func (s *MultipartUploadService) UploadSession(ctx context.Context, in *inputs.U
 			log.Printf("[ERROR] Critical: Failed to abort S3 multipart after DB error: %v", abortErr)
 		}
 
-		return nil, fmt.Errorf("failed to create session in DB: %w", err)
+		s.fail(ctx, session.ID, err)
+		return nil, nil, fmt.Errorf("failed to generate presigned URLs, %w", err)
 	}
 
-	return &session, nil
+	// NEXT : Return all signed URLS
+
+	parts, err := s.generateAllPartURLs(ctx, fileUUID)
+	if err != nil {
+		s.fail(ctx, session.ID, err)
+		return nil, nil, fmt.Errorf("failed to create session in DB: %w", err)
+	}
+
+	return &session, parts, nil
 }
 
 // AddS3Part records the ETag received from the frontend after a direct S3 upload
@@ -188,7 +197,10 @@ func (s *MultipartUploadService) CompleteS3Multipart(ctx context.Context, upload
 	// 7. Mark as completed
 	return s.registry.Sessions.UpdateSessionStatus(ctx, session.ID, "completed")
 }
-func (s *MultipartUploadService) GenerateAllPartURLs(
+
+// private method
+
+func (s *MultipartUploadService) generateAllPartURLs(
 	ctx context.Context,
 	uploadUUID uuid.UUID,
 ) ([]inputs.PresignedPart, error) {

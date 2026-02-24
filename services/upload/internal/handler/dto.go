@@ -14,11 +14,9 @@ type CreateProxyUploadSessionRequest struct {
 	FileSizeBytes int64  `json:"file_size_bytes"`
 }
 
-// handler/dto/create_upload_session_response.go
-type CreateUploadSessionResponse struct {
-	UploadUUID      uuid.UUID `json:"upload_uuid"`
-	TotalParts      int64     `json:"total_chunks"`
-	StorageUploadID *string   `json:"storage_upload_id,omitempty"` // S3's ID for Multipart
+type CreateProxyUploadSessionResponse struct {
+	UploadUUID uuid.UUID `json:"upload_uuid"`
+	TotalParts int64     `json:"total_chunks"`
 }
 
 type UploadStatusResponse struct {
@@ -32,6 +30,13 @@ type CreateMultipartSessionRequest struct {
 	FileName      string `json:"file_name"`
 	FileSizeBytes int64  `json:"file_size_bytes"`
 	PartSizeBytes int64  `json:"part_size_bytes"`
+}
+
+type CreateMultipartUploadSessionResponse struct {
+	UploadUUID      uuid.UUID       `json:"upload_uuid"`
+	TotalParts      int64           `json:"total_chunks"`
+	StorageUploadID *string         `json:"storage_upload_id,omitempty"`
+	Parts           []PresignedPart `json:"parts,omitempty"` // Added this field
 }
 
 type AddS3PartRequest struct {
@@ -49,6 +54,11 @@ type CompleteMultipartRequest struct {
 type GeneratePartURLsRequest struct {
 	UploadUUID uuid.UUID `json:"upload_uuid"`
 }
+
+//
+////
+
+///
 
 type PresignedPart struct {
 	PartNumber int    `json:"part_number"`

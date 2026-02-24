@@ -41,7 +41,7 @@ func (h *Handler) CreateProxyUploadSession(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp := CreateUploadSessionResponse{
+	resp := CreateProxyUploadSessionResponse{
 		UploadUUID: session.UploadUUID,
 		TotalParts: session.TotalParts,
 	}
