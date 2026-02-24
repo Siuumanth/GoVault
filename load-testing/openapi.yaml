@@ -131,42 +131,45 @@ paths:
       responses:
         "200": { description: Chunk accepted }
 
-  /api/upload/multipart/session:
+        
+/api/upload/multipart/session:
     post:
       tags: [Upload - Multipart]
       security: [{ BearerAuth: [] }]
-      summary: Start S3 Direct Multipart session
+      summary: Start S3 Direct Multipart session and get presigned URLs
+      description: |
+        Initializes an S3 multipart upload and immediately generates presigned URLs 
+        for every part of the file based on the provided part_size_bytes.
       requestBody:
         content:
           application/json:
             schema:
               type: object
-              required: [file_name, file_size_bytes, part_size_bytes]  # part size normally 100 mb 
+              required: [file_name, file_size_bytes, part_size_bytes]
               properties:
                 file_name: { type: string }
                 file_size_bytes: { type: integer, format: int64 }
                 part_size_bytes: { type: integer, format: int64 }
       responses:
         "200":
+          description: Session created and URLs generated successfully
           content:
             application/json:
               schema:
+                type: object
                 properties:
                   upload_uuid: { type: string, format: uuid }
-                  storage_upload_id: { type: string }
+                  total_chunks: { type: integer, description: "Total number of parts required to complete the upload" }
+                  storage_upload_id: { type: string, description: "The internal S3 UploadId" }
+                  parts:
+                    type: array
+                    description: "List of presigned URLs for direct-to-S3 upload"
+                    items:
+                      type: object
+                      properties:
+                        part_number: { type: integer }
+                        url: { type: string, format: uri }
 
-  /api/upload/multipart/presign:
-    get:
-      tags: [Upload - Multipart]
-      security: [{ BearerAuth: [] }]
-      summary: Get presigned URLs for all parts
-      parameters:
-        - name: uploadUUID
-          in: query
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200": { description: List of presigned URLs }
 
   /api/upload/multipart/complete:
     post:

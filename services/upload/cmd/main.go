@@ -22,7 +22,6 @@ import (
 )
 
 // Done: Make it raw bytes uplaod
-// TODO: add sending recieved chunks info with every request
 // Done: Delete session if fail or after upload
 func main() {
 	godotenv.Load()
