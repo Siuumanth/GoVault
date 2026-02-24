@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: GoVault API Gateway
+  version: 1.0.0
+  description: Unified API for Auth, File Management, and Chunked Uploads.
+
+servers:
+  - url: http://localhost:9000
+    description: Main API Gateway
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FileSummary:
+      type: object
+      properties:
+        file_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid }
+        name: { type: string }
+        mime_type: { type: string }
+        size_bytes: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        is_public: { type: boolean }
+    
+    ShareRecipient:
+      type: object
+      required: [email, permission]
+      properties:
+        email: { type: string, format: email }
+        permission: { type: string, enum: [viewer, editor] }
+
+paths:
+  # ==========================================
+  # AUTH SERVICE (Mounted at /auth) of gateway
+  # ==========================================
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register a new account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username: { type: string }
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200": { description: Signup successful }
+        "400": { description: User already exists }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and get JWT
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  username: { type: string }
+                  email: { type: string }
+
+  # ==========================================
+  # UPLOAD SERVICE (Mounted at /api/upload) of gateway
+  # ==========================================
+  /api/upload/proxy/session:
+    post:
+      tags: [Upload - Proxy]
+      security: [{ BearerAuth: [] }]
+      summary: Start a backend-chunked session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_name, file_size_bytes]
+              properties:
+                file_name: { type: string }
+                file_size_bytes: { type: integer, format: int64 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  upload_uuid: { type: string, format: uuid }
+                  total_chunks: { type: integer }
+
+  /api/upload/proxy/chunk:
+    post:
+      tags: [Upload - Proxy]
+      security: [{ BearerAuth: [] }]
+      summary: Upload 10MB binary chunk
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: Upload-UUID
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+        - name: Checksum
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "200": { description: Chunk accepted }
+
+  /api/upload/multipart/session:
+    post:
+      tags: [Upload - Multipart]
+      security: [{ BearerAuth: [] }]
+      summary: Start S3 Direct Multipart session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_name, file_size_bytes, part_size_bytes]
+              properties:
+                file_name: { type: string }
+                file_size_bytes: { type: integer, format: int64 }
+                part_size_bytes: { type: integer, format: int64 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  upload_uuid: { type: string, format: uuid }
+                  storage_upload_id: { type: string }
+
+  /api/upload/multipart/presign:
+    get:
+      tags: [Upload - Multipart]
+      security: [{ BearerAuth: [] }]
+      summary: Get presigned URLs for all parts
+      parameters:
+        - name: uploadUUID
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: List of presigned URLs }
+
+  /api/upload/multipart/complete:
+    post:
+      tags: [Upload - Multipart]
+      security: [{ BearerAuth: [] }]
+      summary: Finalize S3 assembly
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                upload_uuid: { type: string, format: uuid }
+      responses:
+        "200": { description: File assembled }
+
+  # ==========================================
+  # FILES SERVICE (Mounted at /api/files)
+  # ==========================================
+  /api/files/owned:
+    get:
+      tags: [Files]
+      security: [{ BearerAuth: [] }]
+      summary: Get files owned by me
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  files: { type: array, items: { $ref: '#/components/schemas/FileSummary' } }
+
+  /api/files/shared:
+    get:
+      tags: [Files]
+      security: [{ BearerAuth: [] }]
+      summary: Get files shared with me
+      responses:
+        "200": { description: List of shared files }
+
+  /api/files/{fileID}:
+    patch:
+      tags: [Files]
+      security: [{ BearerAuth: [] }]
+      summary: Rename file
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name: { type: string }
+      responses:
+        "204": { description: Updated }
+    delete:
+      tags: [Files]
+      security: [{ BearerAuth: [] }]
+      summary: Soft delete file
+      responses:
+        "204": { description: Deleted }
+
+  /api/files/{fileID}/shares:
+    post:
+      tags: [Sharing]
+      security: [{ BearerAuth: [] }]
+      summary: Share file with users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                recipients: { type: array, items: { $ref: '#/components/schemas/ShareRecipient' } }
+      responses:
+        "201": { description: Shared }
+
+  /api/files/{fileID}/public:
+    post:
+      tags: [Sharing]
+      security: [{ BearerAuth: [] }]
+      summary: Enable public access
+    delete:
+      tags: [Sharing]
+      security: [{ BearerAuth: [] }]
+      summary: Disable public access
+
+  /api/files/{fileID}/shortcut:
+    post:
+      tags: [Shortcuts]
+      security: [{ BearerAuth: [] }]
+      summary: Create shortcut
+    delete:
+      tags: [Shortcuts]
+      security: [{ BearerAuth: [] }]
+      summary: Remove shortcut
