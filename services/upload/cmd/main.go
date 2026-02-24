@@ -67,9 +67,21 @@ func main() {
 }
 
 func getS3Client() *s3.Client {
+	// actual line for AWS
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// below lines for MinIO: if AWS_ENDP isnt theres its s3, if ter its miniIO
+	// if endpoint is set, use it (MinIO in dev), otherwise use real S3
+	endpoint := os.Getenv("AWS_ENDPOINT")
+	if endpoint != "" {
+		return s3.NewFromConfig(cfg, func(o *s3.Options) {
+			o.BaseEndpoint = &endpoint
+			o.UsePathStyle = true // MinIO requires path style
+		})
+	}
+
 	return s3.NewFromConfig(cfg)
 }
