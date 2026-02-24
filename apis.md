@@ -7,28 +7,33 @@
 
 
 ## Files: 
-* `GET /api/files/{fileID}` – Get public file summary
-* `GET /api/files/{fileID}/download` – Get public download link
-* `GET /api/files/owned` – List user's files
-* `GET /api/files/shared` – List shared files
-* `GET /api/files/shortcuts` – List user's shortcuts
-* `PATCH /api/files/{fileID}` – Rename owned file
-* `DELETE /api/files/{fileID}` – Soft delete owned file
-* `POST /api/files/{fileID}/copy` – Duplicate existing file
-* `POST /api/files/{fileID}/shares` – Share with multiple users
-* `GET /api/files/{fileID}/shares` – List file access permissions
-* `PATCH /api/files/{fileID}/shares/{userID}` – Update user permissions
-* `DELETE /api/files/{fileID}/shares/{userID}` – Revoke user access
-* `POST /api/files/{fileID}/public` – Enable public access
-* `DELETE /api/files/{fileID}/public` – Disable public access
-* `POST /api/files/{fileID}/shortcut` – Create file bookmark
-* `DELETE /api/files/{fileID}/shortcut` – Remove file bookmark
+* `GET /api/files/f/{fileID}` – Get public file summary
+* `GET /api/files/f/{fileID}/download` – Get public download link
+* `GET /api/files/me/owned` – List user's files
+* `GET /api/files/me/shared` – List shared files
+* `GET /api/files/me/shortcuts` – List user's shortcuts
+* `PATCH /api/files/f/{fileID}` – Rename owned file
+* `DELETE /api/files/f/{fileID}` – Soft delete owned file
+* `POST /api/files/f/{fileID}/copy` – Duplicate existing file
+* `POST /api/files/f/{fileID}/shares` – Share with multiple users
+* `GET /api/files/f/{fileID}/shares` – List file access permissions
+* `PATCH /api/files/f/{fileID}/shares/{userID}` – Update user permissions
+* `DELETE /api/files/f/{fileID}/shares/{userID}` – Revoke user access
+* `POST /api/files/f/{fileID}/public` – Enable public access
+* `DELETE /api/files/f/{fileID}/public` – Disable public access
+* `POST /api/files/f/{fileID}/shortcut` – Create file bookmark
+* `DELETE /api/files/f/{fileID}/shortcut` – Remove file bookmark
 
 ## Upload: 
 
-* `POST /api/upload/session` – Initialize chunked upload
-* `POST /api/upload/chunk` – Upload binary file part
+* `POST /api/upload/proxy/session` – Initialize chunked upload
+* `POST /api/upload/proxy/chunk` – Upload binary file part
+* 
 * `GET /api/upload/status` – Check upload progress
+  
+* `POST /api/upload/multipart/session` - Init multipart session
+* `GET /api/upload/multipart/Presign` - Get al chunks presign urls
+* `POST /api/upload/multipart/part` - Record ETag after a successful direct S3 upload
 
 ---
 

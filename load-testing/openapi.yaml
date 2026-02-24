@@ -112,7 +112,7 @@ paths:
       security: [{ BearerAuth: [] }]
       summary: Upload 10MB binary chunk
       parameters:
-        - name: id
+        - name: id   # index of chunk to upload
           in: query
           required: true
           schema: { type: integer }
@@ -141,7 +141,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [file_name, file_size_bytes, part_size_bytes]
+              required: [file_name, file_size_bytes, part_size_bytes]  # part size normally 100 mb 
               properties:
                 file_name: { type: string }
                 file_size_bytes: { type: integer, format: int64 }
@@ -185,7 +185,7 @@ paths:
   # ==========================================
   # FILES SERVICE (Mounted at /api/files)
   # ==========================================
-  /api/files/owned:
+  /api/files/me/owned:
     get:
       tags: [Files]
       security: [{ BearerAuth: [] }]
@@ -202,7 +202,7 @@ paths:
                 properties:
                   files: { type: array, items: { $ref: '#/components/schemas/FileSummary' } }
 
-  /api/files/shared:
+  /api/files/me/shared:
     get:
       tags: [Files]
       security: [{ BearerAuth: [] }]
@@ -210,7 +210,7 @@ paths:
       responses:
         "200": { description: List of shared files }
 
-  /api/files/{fileID}:
+  /api/files/f/{fileID}:
     patch:
       tags: [Files]
       security: [{ BearerAuth: [] }]
@@ -230,7 +230,7 @@ paths:
       responses:
         "204": { description: Deleted }
 
-  /api/files/{fileID}/shares:
+  /api/files/f/{fileID}/shares:
     post:
       tags: [Sharing]
       security: [{ BearerAuth: [] }]
@@ -244,7 +244,7 @@ paths:
       responses:
         "201": { description: Shared }
 
-  /api/files/{fileID}/public:
+  /api/files/f/{fileID}/public:
     post:
       tags: [Sharing]
       security: [{ BearerAuth: [] }]
@@ -254,7 +254,7 @@ paths:
       security: [{ BearerAuth: [] }]
       summary: Disable public access
 
-  /api/files/{fileID}/shortcut:
+  /api/files/f/{fileID}/shortcut:
     post:
       tags: [Shortcuts]
       security: [{ BearerAuth: [] }]
