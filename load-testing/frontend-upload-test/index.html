@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GoVault Persistent Uploader</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 750px; margin: 2rem auto; background-color: #0d1117; color: #c9d1d9; }
+        .card { background: #161b22; padding: 25px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #30363d; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; box-sizing: border-box; }
+        .btn-init { background: #1f6feb; color: white; }
+        .btn-start { background: #238636; color: white; }
+        .btn-clear { background: #f85149; color: white; margin-top: 20px; font-size: 11px; padding: 5px; width: auto; }
+        button { width: 100%; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; margin-top: 10px; }
+        button:disabled { background: #21262d !important; color: #484f58; cursor: not-allowed; }
+        #log { background: #010409; color: #79c0ff; padding: 15px; font-family: monospace; height: 350px; overflow-y: auto; border-radius: 6px; font-size: 12px; border: 1px solid #30363d; }
+        progress { width: 100%; height: 15px; margin-top: 15px; }
+        .success { color: #3fb950; }
+        .info { color: #d2a8ff; }
+        .err { color: #f85149; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. Authentication</h2>
+        <input type="text" id="token" placeholder="Bearer Token...">
+        <label>Upload Strategy</label>
+        <select id="uploadMethod">
+            <option value="proxy">Proxy (5MB Chunks)</option>
+            <option value="multipart">S3 Multipart (100MB Parts)</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <h2>2. File & Session</h2>
+        <div id="sessionStatus" style="margin-bottom: 10px; font-size: 13px; color: #8b949e;">No active session.</div>
+        <input type="file" id="fileInput">
+        <button type="button" id="sessionBtn" class="btn-init">Initialize Session</button>
+        <progress id="progressBar" value="0" max="100"></progress>
+        <button type="button" id="uploadBtn" class="btn-start" disabled>Start/Resume Upload</button>
+        <button type="button" id="clearBtn" class="btn-clear">Forced Reset (Clear LocalStorage)</button>
+    </div>
+
+    <div class="card">
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const PROXY_CHUNK_SIZE = 5 * 1024 * 1024; 
+        const S3_PART_SIZE = 100 * 1024 * 1024;
+        const BASE_URL = "http://localhost:9000/api/upload";
+
+        let activeSession = null;
+
+        const ui = {
+            log: (msg, type = '') => {
+                const div = document.createElement('div');
+                div.className = type;
+                div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                document.getElementById('log').prepend(div);
+                console.log(`[${type.toUpperCase() || 'LOG'}]`, msg);
+            },
+            updateStatus: (msg) => document.getElementById('sessionStatus').innerHTML = msg,
+            progress: (val) => document.getElementById('progressBar').value = val,
+            setBtn: (id, enabled) => document.getElementById(id).disabled = !enabled
+        };
+
+        const API = {
+            async request(endpoint, options = {}) {
+                const token = document.getElementById('token').value;
+                const headers = { 'Authorization': `Bearer ${token}`, ...options.headers };
+                const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+                const text = await response.text();
+                if (!response.ok) throw new Error(text || `HTTP ${response.status}`);
+                try { return JSON.parse(text); } catch (e) { return text; }
+            }
+        };
+
+        /** --- LOCAL STORAGE HELPERS --- **/
+        function saveSession(data) {
+            const toSave = { ...data };
+            if (data.urls instanceof Map) {
+                toSave.serializedUrls = Array.from(data.urls.entries());
+            }
+            localStorage.setItem('govault_upload_session', JSON.stringify(toSave));
+        }
+
+        function loadSession() {
+            const saved = localStorage.getItem('govault_upload_session');
+            if (!saved) return null;
+            const data = JSON.parse(saved);
+            if (data.serializedUrls) {
+                data.urls = new Map(data.serializedUrls);
+            }
+            return data;
+        }
+
+        // Check for session on load
+        window.onload = () => {
+            activeSession = loadSession();
+            if (activeSession) {
+                ui.log("Restored previous session from localStorage.", "info");
+                ui.updateStatus(`<span class="success">Active Session: ${activeSession.upload_uuid}</span>`);
+                ui.setBtn('uploadBtn', true);
+            }
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            localStorage.removeItem('govault_upload_session');
+            ui.log("LocalStorage Cleared.", "err");
+            ui.updateStatus("No active session.");
+            ui.setBtn('uploadBtn', false);
+            activeSession = null;
+        };
+
+        /** --- INITIALIZE SESSION --- **/
+        document.getElementById('sessionBtn').onclick = async () => {
+            const file = document.getElementById('fileInput').files[0];
+            const method = document.getElementById('uploadMethod').value;
+            const token = document.getElementById('token').value;
+            
+            if (!file || !token) return alert("Select file and provide Token");
+
+            try {
+                ui.log(`Initializing new ${method} session...`, "info");
+                const isMP = method === 'multipart';
+                const payload = { 
+                    file_name: file.name, 
+                    file_size_bytes: file.size 
+                };
+                if (isMP) payload.part_size_bytes = S3_PART_SIZE;
+
+                const sess = await API.request(isMP ? '/multipart/session' : '/proxy/session', {
+                    method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }
+                });
+
+                activeSession = { 
+                    ...sess, 
+                    method, 
+                    partSize: isMP ? S3_PART_SIZE : PROXY_CHUNK_SIZE 
+                };
+
+                if (isMP) {
+                    ui.log("Fetching Presigned URLs...", "info");
+                    const urlData = await API.request(`/multipart/presign?uploadUUID=${sess.upload_uuid}`);
+                    activeSession.urls = new Map(urlData.parts.map(p => [p.part_number, p.url]));
+                }
+
+                saveSession(activeSession);
+                ui.log(`Session Created: ${sess.upload_uuid}`, 'success');
+                ui.updateStatus(`<span class="success">Active Session: ${sess.upload_uuid}</span>`);
+                ui.setBtn('uploadBtn', true);
+            } catch (err) { ui.log(`Init Error: ${err.message}`, 'err'); }
+        };
+
+        /** --- UPLOAD EXECUTION --- **/
+        document.getElementById('uploadBtn').onclick = async () => {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return alert("Please re-select the file to provide the data bytes.");
+            if (!activeSession) return ui.log("No session loaded", "err");
+
+            ui.setBtn('uploadBtn', false);
+            ui.log(`Starting ${activeSession.method} upload loop...`, "info");
+
+            try {
+                // Sync status with backend
+                const status = await API.request(`/status?upload_uuid=${activeSession.upload_uuid}`);
+                const completedParts = new Set(status.uploaded_chunks || []);
+
+                const total = parseInt(activeSession.total_chunks);
+                for (let i = 0; i < total; i++) {
+                    const partNum = i + 1;
+                    const currentIdx = i;
+
+                    // Skip logic
+                    if (activeSession.method === 'proxy' && completedParts.has(currentIdx)) {
+                        ui.log(`Skipping chunk ${currentIdx} (already in DB)`);
+                        continue;
+                    }
+                    if (activeSession.method === 'multipart' && completedParts.has(partNum)) {
+                        ui.log(`Skipping part ${partNum} (already in DB)`);
+                        continue;
+                    }
+
+                    const start = i * activeSession.partSize;
+                    const end = Math.min(start + activeSession.partSize, file.size);
+                    const blob = file.slice(start, end);
+
+                    if (activeSession.method === 'proxy') {
+                        await handleProxyChunk(blob, i, activeSession.upload_uuid);
+                    } else {
+                        await handleS3Part(blob, partNum, activeSession);
+                    }
+                    ui.progress(((i + 1) / total) * 100);
+                }
+
+                if (activeSession.method === 'multipart') {
+                    ui.log("Finalizing Multipart Assembly...", "info");
+                    await API.request('/multipart/complete', {
+                        method: 'POST',
+                        body: JSON.stringify({ upload_uuid: activeSession.upload_uuid }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                ui.log("🔥 UPLOAD COMPLETE", "success");
+                localStorage.removeItem('govault_upload_session');
+            } catch (err) { 
+                ui.log(`Failure: ${err.message}`, 'err'); 
+                ui.setBtn('uploadBtn', true);
+            }
+        };
+
+        async function handleProxyChunk(blob, index, uuid) {
+            const buffer = await blob.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const checksum = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            await API.request(`/proxy/chunk?id=${index}`, {
+                method: 'POST', body: buffer,
+                headers: { 'Upload-UUID': uuid, 'Checksum': checksum, 'Content-Type': 'application/octet-stream' }
+            });
+            ui.log(`Chunk ${index} verified.`);
+        }
+
+        async function handleS3Part(blob, partNumber, session) {
+            const url = session.urls.get(partNumber);
+            // S3 PUT (Direct)
+            const s3Resp = await fetch(url, { method: 'PUT', body: blob });
+            if (!s3Resp.ok) throw new Error(`S3 Error on Part ${partNumber}`);
+
+            const etag = s3Resp.headers.get("ETag");
+            if (!etag) throw new Error("CORS: ETag header missing. Check S3 ExposeHeaders.");
+
+            // Record in Backend
+            await API.request('/multipart/part', {
+                method: 'POST',
+                body: JSON.stringify({
+                    upload_uuid: session.upload_uuid,
+                    part_number: partNumber,
+                    size_bytes: blob.size,
+                    etag: etag
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            ui.log(`Part ${partNumber} registered.`);
+        }
+    </script>
+</body>
+</html>
