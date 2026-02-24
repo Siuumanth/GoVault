@@ -59,6 +59,8 @@ services:
     depends_on:
       upload-db:
         condition: service_healthy
+      minio:              
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9002/health"]
       interval: 2m
@@ -81,6 +83,8 @@ services:
     depends_on:
       files-db:
         condition: service_healthy
+      minio:              
+        condition: service_healthy      
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9003/health"]
       interval: 2m
@@ -177,6 +181,26 @@ services:
       curl -f http://files-service:9003/health
       "
 
+# ---------- MINIO ----------
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9100:9000"  # S3 API
+      - "9101:9001"  # MinIO console UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# ---------- VOLUMES ----------
 
 volumes:
   auth_db_data:
