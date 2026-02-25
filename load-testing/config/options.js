@@ -1,4 +1,5 @@
 export const UPLOAD_METHOD = 'proxy'; // swap to 'multipart' for S3
+export const VU_COUNT = 100; // virtual users count 
 
 export const loadOptions = {
   stages: [

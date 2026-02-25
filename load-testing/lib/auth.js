@@ -1,30 +1,38 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 
 const BASE_URL = 'http://localhost:9000';
 
-export function createUser() {
-  const id = Math.floor(Math.random() * 1000000);
-  const email = `test-${id}@govault.com`;
-  const username = `test-${id}`;
-  const password = 'Test@1234';
+/**
+  @param {number} index - Optional index to create predictable credentials
+ */
+export function createUser(index = null) {
+  // Use the index if provided, otherwise a random number
+  const id = index !== null ? index : Math.floor(Math.random() * 1000000);
+  
+  const payload = JSON.stringify({
+    username: `user_${id}`,
+    email: `test-${id}@govault.com`,
+    password: 'Test@1234',
+  });
 
-  const signupRes = http.post(
-    `${BASE_URL}/auth/signup`,
-    JSON.stringify({ username, email, password }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  const params = {
+    headers: { 'Content-Type': 'application/json' },
+  };
 
-  check(signupRes, { 'signup 200': (r) => r.status === 200 });
+  const signupRes = http.post(`${BASE_URL}/auth/signup`, payload, params);
 
-  const loginRes = http.post(
-    `${BASE_URL}/auth/login`,
-    JSON.stringify({ email, password }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  check(signupRes, {
+    'signup status is 200': (r) => r.status === 200,
+  });
+  
+  sleep(0.1); // Short pause to avoid slamming the DB during setup
 
-  check(loginRes, { 'login 200': (r) => r.status === 200 });
+  const loginRes = http.post(`${BASE_URL}/auth/login`, payload, params);
 
-  const token = JSON.parse(loginRes.body).token;
-  return token;
+  // Return an object with both the token and the unique ID used
+  return {
+    token: loginRes.json().token,
+    id: id
+  };
 }
