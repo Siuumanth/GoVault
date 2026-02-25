@@ -6,7 +6,7 @@ const BASE_URL = 'http://localhost:9000/api/upload';
 const PART_SIZE = getChunkSize('multipart');
 
 // Open file at the top (Init stage)
-const binFile = open('../assets/testfile.bin', 'b');
+const binFile = open('../lib/test.wav', 'b');
 
 export default function (currentUser) {
   const token = currentUser.token;

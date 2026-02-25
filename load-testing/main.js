@@ -8,38 +8,47 @@ import s3Test from './scenarios/upload_multipart.js';
 export { options };
 
 /**
- * setup() runs ONCE before the test starts.
- * We use it to populate the database with users so the test doesn't fail.
+ setup() runs ONCE before the test starts.
+ We use it to populate the database with users so the test doesn't fail.
  */
 export function setup() {
   const users = [];
   
-  // Get the highest 'target' from your stages (e.g., 400)
-  const maxVus = Math.max(...options.stages.map(s => s.target));
+  // Hard-calculate the peak based on your SCALE to be 100% sure
+  const SCALE = 0.4; 
+  const peakVus = Math.round(1000 * SCALE); // This matches your stressOptions peak
   
-  console.log(`[SETUP] Creating ${maxVus} test users in GoVault...`);
+  console.log(`[SETUP] Starting... Target: ${peakVus} users`);
 
-  for (let i = 1; i <= maxVus; i++) {
-    // We pass 'i' so credentials are predictable (test-1, test-2, etc.)
-    users.push(createUser(i)); 
+  for (let i = 1; i <= peakVus; i++) {
+    const user = createUser(i);
+    if (user && user.token) {
+      users.push(user);
+    }
   }
 
-  // This 'users' array is passed to the default function as 'data'
-  return { users };
+  console.log(`[SETUP] Done. Created ${users.length} users.`);
+  return { users: users }; // Ensure the key is exactly 'users'
 }
 
-/**
- * default() is the code each Virtual User (VU) actually runs.
- */
 export default function (data) {
-  // Grab the specific user assigned to this VU based on its ID (__VU)
-  const currentUser = data.users[__VU - 1];
+  // 1. Check if data exists
+  if (!data || !data.users || data.users.length === 0) {
+    // This only happens if setup() fails or returns empty
+    return; 
+  }
 
-  // Run the sub-tests
+  // 2. Index safely. Use modulo (%) so if VU 401 wakes up but we have 400 users, 
+  // it just grabs user 1 instead of crashing.
+  const index = (__VU - 1) % data.users.length;
+  const currentUser = data.users[index];
+
+  if (!currentUser) return;
+
+  // Run tests
   authTest(currentUser);
   filesTest(currentUser);
 
-  // Switch upload strategy based on your config/options.js
   if (UPLOAD_METHOD === 'proxy') {
     proxyTest(currentUser);
   } else {

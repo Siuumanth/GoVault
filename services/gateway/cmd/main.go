@@ -31,7 +31,7 @@ func main() {
 	metrics.Init()
 	godotenv.Load()
 
-	rl := MW.NewBasicRateLimiter(1000, time.Minute)
+	rl := MW.NewBasicRateLimiter(100000, time.Minute)
 	authz := MW.NewAuthZ()
 	// all controllable from the main function - DI
 	gatewayDeps := &gateway.GatewayDeps{

@@ -2,9 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 const BASE_URL = 'http://localhost:9000';
-
 export default function (currentUser) {
-  // Now we use the ID that was actually created for this specific VU
   const res = http.post(
     `${BASE_URL}/auth/login`,
     JSON.stringify({ 
@@ -14,9 +12,15 @@ export default function (currentUser) {
     { headers: { 'Content-Type': 'application/json' } }
   );
 
+  // ONLY try to parse if status is 200
+  let token;
+  if (res.status === 200) {
+    token = res.json().token;
+  }
+
   check(res, {
     'login 200': (r) => r.status === 200,
-    'has token': (r) => r.json().token !== undefined,
+    'has token': () => token !== undefined,
   });
 
   sleep(1);
