@@ -11,14 +11,16 @@ import (
 )
 
 type S3Storage struct {
-	Client *s3.Client
-	Bucket string
+	Client        *s3.Client
+	PresignClient *s3.PresignClient
+	Bucket        string
 }
 
-func NewS3Storage(client *s3.Client, bucket string) *S3Storage {
+func NewS3Storage(internalclient *s3.Client, presignClient *s3.Client, bucket string) *S3Storage {
 	return &S3Storage{
-		Client: client,
-		Bucket: bucket,
+		Client:        internalclient,
+		PresignClient: s3.NewPresignClient(presignClient),
+		Bucket:        bucket,
 	}
 }
 

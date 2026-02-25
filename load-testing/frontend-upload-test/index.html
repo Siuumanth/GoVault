@@ -114,6 +114,7 @@
         };
 
         /** --- INITIALIZE SESSION --- **/
+       /** --- INITIALIZE SESSION --- **/
         document.getElementById('sessionBtn').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
             const method = document.getElementById('uploadMethod').value;
@@ -128,29 +129,37 @@
                     file_name: file.name, 
                     file_size_bytes: file.size 
                 };
+                
+                // If Multipart, backend needs to know our part size to generate URLs
                 if (isMP) payload.part_size_bytes = S3_PART_SIZE;
 
+                // 1. Single Request to create session (and get URLs if multipart)
                 const sess = await API.request(isMP ? '/multipart/session' : '/proxy/session', {
-                    method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }
+                    method: 'POST', 
+                    body: JSON.stringify(payload), 
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
+                // 2. Build the local session object
                 activeSession = { 
                     ...sess, 
                     method, 
                     partSize: isMP ? S3_PART_SIZE : PROXY_CHUNK_SIZE 
                 };
 
-                if (isMP) {
-                    ui.log("Fetching Presigned URLs...", "info");
-                    const urlData = await API.request(`/multipart/presign?uploadUUID=${sess.upload_uuid}`);
-                    activeSession.urls = new Map(urlData.parts.map(p => [p.part_number, p.url]));
+                // 3. Directly map the URLs returned in the session response
+                if (isMP && sess.parts) {
+                    ui.log(`Received ${sess.parts.length} presigned URLs from backend.`, "success");
+                    activeSession.urls = new Map(sess.parts.map(p => [p.part_number, p.url]));
                 }
 
                 saveSession(activeSession);
                 ui.log(`Session Created: ${sess.upload_uuid}`, 'success');
                 ui.updateStatus(`<span class="success">Active Session: ${sess.upload_uuid}</span>`);
                 ui.setBtn('uploadBtn', true);
-            } catch (err) { ui.log(`Init Error: ${err.message}`, 'err'); }
+            } catch (err) { 
+                ui.log(`Init Error: ${err.message}`, 'err'); 
+            }
         };
 
         /** --- UPLOAD EXECUTION --- **/

@@ -34,9 +34,9 @@ func main() {
 
 	repos := repository.NewRegistryFromDB(db)
 	// ---------- AWS / S3 ----------
-	s3Client := getS3Client()
+	internalS3Client, presignBaseClient := getS3Clients()
 	bucket := os.Getenv("BUCKET_NAME")
-	s3Storage := storage.NewS3Storage(s3Client, bucket)
+	s3Storage := storage.NewS3Storage(internalS3Client, presignBaseClient, bucket)
 
 	// ---------- Service & Client ----------
 	fsURL := os.Getenv("GOVAULT_FILES_SERVICE_URL")
@@ -66,22 +66,31 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func getS3Client() *s3.Client {
-	// actual line for AWS
+// below logic is to seamlessly switch from prod to de
+
+func getS3Clients() (*s3.Client, *s3.Client) {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	// internal client for PutObject, CreateMultipartUpload etc
 	// below lines for MinIO: if AWS_ENDP isnt theres its s3, if ter its miniIO
 	// if endpoint is set, use it (MinIO in dev), otherwise use real S3
-	endpoint := os.Getenv("AWS_ENDPOINT")
-	if endpoint != "" {
-		return s3.NewFromConfig(cfg, func(o *s3.Options) {
-			o.BaseEndpoint = &endpoint
-			o.UsePathStyle = true // MinIO requires path style
-		})
-	}
 
-	return s3.NewFromConfig(cfg)
+	internalEndpoint := os.Getenv("AWS_ENDPOINT")
+	internalClient := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = &internalEndpoint
+		o.UsePathStyle = true
+	})
+
+	publicEndpoint := os.Getenv("AWS_PUBLIC_ENDPOINT")
+	if publicEndpoint == "" {
+		publicEndpoint = internalEndpoint
+	}
+	presignBaseClient := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = &publicEndpoint
+		o.UsePathStyle = true
+	})
+
+	return internalClient, presignBaseClient
 }
