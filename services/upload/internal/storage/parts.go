@@ -37,7 +37,7 @@ func (s *S3Storage) PresignUploadPart(
 	if publicEndpoint != "" {
 		internalEndpoint := os.Getenv("AWS_ENDPOINT")
 		url := strings.Replace(req.URL, internalEndpoint, publicEndpoint, 1)
-		log.Printf("replacing %s with %s to get %s", internalEndpoint, publicEndpoint, url)
+		//	log.Printf("replacing %s with %s to get %s", internalEndpoint, publicEndpoint, url)
 		return url, nil
 	}
 

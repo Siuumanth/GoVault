@@ -67,7 +67,9 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:9002/health"]
       interval: 2m
       timeout: 2s
-      retries: 5    
+      retries: 5   
+    volumes:
+      - upload_session_data:/app/sessions 
 
   files-service:
     build: ./services/files
@@ -240,3 +242,4 @@ volumes:
   files_db_data:
   grafana_data:  
   prometheus_data:
+  upload_session_data:    # 
