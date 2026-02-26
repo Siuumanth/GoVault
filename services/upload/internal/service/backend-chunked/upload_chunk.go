@@ -249,13 +249,23 @@ func (s *ProxyUploadService) mustAcceptChunks(ctx context.Context, id uuid.UUID)
 
 func (s *ProxyUploadService) fail(ctx context.Context, sessionID int64, err error) error {
 	log.Printf("[ERROR] Upload session %d failed: %v", sessionID, err)
+
+	// 1. Update DB status first
 	_ = s.registry.Sessions.UpdateSessionStatus(ctx, sessionID, "failed")
 
+	// 2. Construct path exactly as it is in your storage logic
 	sessionDir := filepath.Join(
 		shared.UploadBasePath,
 		strconv.FormatInt(sessionID, 10),
 	)
-	_ = os.RemoveAll(sessionDir)
+
+	// 3. Debug: Log the path you are trying to delete to verify it exists
+	log.Printf("[DEBUG] Attempting to remove directory: %s", sessionDir)
+
+	// 4. RemoveAll
+	if remErr := os.RemoveAll(sessionDir); remErr != nil {
+		log.Printf("[ERROR] Failed to remove session directory %s: %v", sessionDir, remErr)
+	}
 
 	return err
 }
