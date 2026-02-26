@@ -2,9 +2,8 @@ package utils
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"fmt"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 // hash password using sha256
@@ -22,6 +21,21 @@ func HashPassword(password string) (string, error) {
 //	}
 //
 // verify if password correct
-func VerifyPassword(password, hash string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+// func VerifyPassword(password, hash string) error {
+// 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+// }
+
+// FIX: Verify password by hashing input and comparing hex strings
+func VerifyPassword(password, storedHash string) error {
+	// 1. Hash the password provided during login
+	currentHash, _ := HashPassword(password)
+
+	// 2. Use ConstantTimeCompare to prevent timing attacks
+	// It returns 1 if they match, 0 if they don't
+	if subtle.ConstantTimeCompare([]byte(currentHash), []byte(storedHash)) == 1 {
+		return nil
+	}
+
+	// 3. Return an error if they don't match to satisfy your existing logic
+	return fmt.Errorf("invalid credentials")
 }

@@ -2,22 +2,12 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { getChunkSize, calculateChunks } from '../lib/file.js';
-
+const binFile = open('../lib/test.wav', 'b');   // normal upload of 1 mb
 const BASE_URL = 'http://localhost:9000/api/upload';
 const PART_SIZE = getChunkSize('multipart');
 
-// --- SHARED MEMORY: Shared across all VUs to save RAM ---
-const binFile = new SharedArray('test file proxy', function () {
-    const data = open('../lib/test.wav', 'b');
-    
-    // VALIDATION: If this fails, k6 will stop before the test starts
-    if (!data || data.byteLength === 0) {
-        throw new Error("\n\n [!] CRITICAL: test.wav is empty or not found at ../lib/test.wav \n");
-    }
-    
-    console.log(`\n [SUCCESS] Loaded ${data.byteLength} bytes into SharedArray \n`);
-    return [data];
-})[0];
+// const binFile = encoding.b64decode(fileData, 'std', 'b');
+const fileSize = binFile.byteLength;
 
 export default function (currentUser) {
     // Safety check for user data
@@ -29,7 +19,6 @@ export default function (currentUser) {
         'Content-Type': 'application/json',
     };
 
-    const fileSize = binFile.byteLength;
     const totalParts = calculateChunks(fileSize, PART_SIZE);
 
     // 1. Create Multipart Session

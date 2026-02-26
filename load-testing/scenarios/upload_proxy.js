@@ -2,25 +2,25 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { getChunkSize, calculateChunks, calculateChecksum } from '../lib/file.js';
+import {UPLOAD_METHOD} from '../config/options.js';
 
+const binFile = open('../lib/test.wav', 'b');   // normal upload of 1 mb 
 const BASE_URL = 'http://localhost:9000/api/upload';
-const CHUNK_SIZE = getChunkSize('proxy');
+const CHUNK_SIZE = getChunkSize(UPLOAD_METHOD);
 
-// --- SHARED MEMORY: Loads file once for all VUs ---
-const binFile = new SharedArray('test file proxy', function () {
-    const data = open('../lib/test.wav', 'b');
-    
-    // VALIDATION: If this fails, k6 will stop before the test starts
-    if (!data || data.byteLength === 0) {
-        throw new Error("\n\n [!] CRITICAL: test.wav is empty or not found at ../lib/test.wav \n");
-    }
-    
-    console.log(`\n [SUCCESS] Loaded ${data.byteLength} bytes into SharedArray \n`);
-    return [data];
-})[0];
+const fileSize = binFile.byteLength;
+
 export default function (currentUser) {
     // Safety check for user data
     if (!currentUser || !currentUser.token) return;
+    // FORCED DEBUG
+   
+   // console.log(`DEBUG: VU ${__VU} sees ${actualSize} bytes`);
+
+    if (fileSize === 0) {
+        // This stops the test immediately if the memory is empty
+        throw new Error("SharedArray is empty inside the VU loop!");
+    }
 
     const token = currentUser.token;
     const headers = {
@@ -28,7 +28,6 @@ export default function (currentUser) {
         'Content-Type': 'application/json',
     };
 
-    const fileSize = binFile.byteLength;
     const totalChunks = calculateChunks(fileSize, CHUNK_SIZE);
 
     // 1. Create Proxy Session
