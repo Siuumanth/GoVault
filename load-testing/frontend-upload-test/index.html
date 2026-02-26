@@ -20,7 +20,7 @@
     </style>
 </head>
 <body>
-
+<!-- http://127.0.0.1:5500/load-testing/frontend-upload-test/index.html -->
     <div class="card">
         <h2>1. Authentication</h2>
         <input type="text" id="token" placeholder="Bearer Token...">
@@ -154,6 +154,7 @@
                 }
 
                 saveSession(activeSession);
+                console.log(activeSession)
                 ui.log(`Session Created: ${sess.upload_uuid}`, 'success');
                 ui.updateStatus(`<span class="success">Active Session: ${sess.upload_uuid}</span>`);
                 ui.setBtn('uploadBtn', true);

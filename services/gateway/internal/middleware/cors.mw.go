@@ -14,6 +14,7 @@ func NewCORS() Middleware {
 	allowedOrigins = []string{
 		os.Getenv("FRONTEND_URL"),
 		os.Getenv("DEV_URL"),
+		"http://localhost:5500",
 		"https://localhost:5500",
 		"http://127.0.0.1:5500",
 		os.Getenv("OTHER_URL"),
@@ -47,6 +48,7 @@ func NewCORS() Middleware {
 
 			// Handle preflight request
 			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
 				return
 			}
 
