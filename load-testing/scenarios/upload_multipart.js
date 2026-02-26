@@ -50,7 +50,7 @@ export default function (currentUser) {
         const s3Res = http.put(url, partData);
         check(s3Res, { [`part ${partNumber} s3 200`]: (r) => r.status === 200 });
 
-        const etag = s3Res.headers['ETag'];
+       const etag = s3Res.headers['Etag'] || s3Res.headers['etag'] || s3Res.headers['ETag'];
 
         // Register part in GoVault backend
         const partRes = http.post(
@@ -65,7 +65,7 @@ export default function (currentUser) {
         );
         check(partRes, { [`part ${partNumber} registered`]: (r) => r.status === 200 });
     }
-
+sleep(0.2)
     // 3. Complete Upload
     const completeRes = http.post(
         `${BASE_URL}/multipart/complete`,

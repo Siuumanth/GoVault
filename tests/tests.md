@@ -218,3 +218,62 @@ running (6m35.9s), 000/300 VUs, 13197 complete and 0 interrupted iterations
 default ✓ [======================================] 000/300 VUs  6m0s
 ```
 
+# Test 5: - 400 users with auth, upload and fetch files, 1 mb file , proxy, 1 mb file
+## Starting to see errors 
+```bash
+     scenarios: (100.00%) 1 scenario, 400 max VUs, 6m30s max duration (incl. graceful stop):
+              * default: Up to 400 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+INFO[0000] [SETUP] Starting... Target: 400 users         source=console
+INFO[0045] [SETUP] Done. Created 400 users.              source=console
+
+
+  █ TOTAL RESULTS
+
+    checks_total.......: 70775  174.065595/s
+    checks_succeeded...: 99.57% 70475 out of 70775
+    checks_failed......: 0.42%  300 out of 70775
+
+    ✗ signup status is 200
+      ↳  25% — ✓ 100 / ✗ 300
+    ✓ login 200
+    ✓ has token
+    ✓ files 200
+    ✓ proxy session 200
+    ✓ proxy chunk 0 200
+
+    HTTP
+    http_req_duration..............: avg=940.43ms min=560.4µs med=187.05ms max=8.08s  p(90)=4.12s p(95)=5.5s
+      { expected_response:true }...: avg=945.36ms min=560.4µs med=188.25ms max=8.08s  p(90)=4.13s p(95)=5.5s
+    http_req_failed................: 0.52% 300 out of 57100
+    http_reqs......................: 57100 140.432999/s
+
+    EXECUTION
+    iteration_duration.............: avg=5.81s    min=2.03s   med=6.45s    max=11.78s p(90)=9s    p(95)=9.48s
+    iterations.....................: 14075 34.616365/s
+    vus............................: 4     min=0            max=400
+    vus_max........................: 400   min=400          max=400
+
+    NETWORK
+    data_received..................: 86 MB 211 kB/s
+    data_sent......................: 15 GB 36 MB/s
+
+running (6m46.6s), 000/400 VUs, 14075 complete and 0 interrupted iterations
+default ✓ [======================================] 000/400 VUs  6m0s
+
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+
+
+# S3 Multipart tests

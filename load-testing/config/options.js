@@ -1,6 +1,6 @@
 export const SCALE = 0.4; 
 
-export const UPLOAD_METHOD = 'proxy'; // swap to 'multipart' for S3
+export const UPLOAD_METHOD = 'multipart'; // swap to 'multipart' for S3
 export const VU_COUNT = Math.round(100 * SCALE); // virtual users count 
 
 export const loadOptions = {
