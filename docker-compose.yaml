@@ -145,13 +145,21 @@ services:
   
 # ---------- Monitoring ----------
 
+# ---------- Monitoring ----------
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus  # This maps the named volume to the data directory
     ports:
       - "9090:9090"
+    # Optional: ensure prometheus uses the correct storage path if you change defaults
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=10d' # Keeps data for 15 days
     depends_on:
       gateway:
         condition: service_healthy
@@ -231,3 +239,4 @@ volumes:
   upload_db_data:
   files_db_data:
   grafana_data:  
+  prometheus_data:

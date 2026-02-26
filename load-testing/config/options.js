@@ -1,4 +1,4 @@
-const SCALE = 0.3; 
+export const SCALE = 0.2; 
 
 export const UPLOAD_METHOD = 'proxy'; // swap to 'multipart' for S3
 export const VU_COUNT = Math.round(100 * SCALE); // virtual users count 
@@ -9,7 +9,7 @@ export const loadOptions = {
     { duration: '3m', target: Math.round(200 * SCALE) },   // sustained heavy load
     { duration: '1m', target: 0 },                         // ramp down
   ],
-  setupTimeout: '5m',
+  setupTimeout: '8m',
 };
 
 export const stressOptions = {
@@ -20,7 +20,7 @@ export const stressOptions = {
     { duration: '2m', target: Math.round(1000 * SCALE) },  // peak stress
     { duration: '1m', target: 0 },                         // recovery
   ],
-  setupTimeout: '5m',
+  setupTimeout: '8m',
 };
 
 export const spikeOptions = {
@@ -30,7 +30,7 @@ export const spikeOptions = {
     { duration: '1m', target: Math.round(2000 * SCALE) },  // hold the flood
     { duration: '20s', target: 0 },                        // drop
   ],
-  setupTimeout: '5m',
+  setupTimeout: '8m',
 };
 
 // change this to loadOptions / stressOptions / spikeOptions

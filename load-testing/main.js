@@ -1,4 +1,4 @@
-import { options, UPLOAD_METHOD } from './config/options.js';
+import { options, UPLOAD_METHOD, SCALE } from './config/options.js';
 import { createUser } from './lib/auth.js';
 import authTest from './scenarios/auth_test.js';
 import filesTest from './scenarios/files_test.js';
@@ -15,7 +15,6 @@ export function setup() {
   const users = [];
   
   // Hard-calculate the peak based on your SCALE to be 100% sure
-  const SCALE = 0.4; 
   const peakVus = Math.round(1000 * SCALE); // This matches your stressOptions peak
   
   console.log(`[SETUP] Starting... Target: ${peakVus} users`);
