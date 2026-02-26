@@ -29,7 +29,10 @@ export default function (currentUser) {
             file_size_bytes: fileSize,
             part_size_bytes: PART_SIZE,
         }),
-        { headers }
+        { 
+            headers,
+            tags: { name: 'multipart_session_init' } 
+        }
     );
 
     check(sessionRes, { 'multipart session 200': (r) => r.status === 200 });
@@ -47,7 +50,9 @@ export default function (currentUser) {
         const url = parts[i].url;
 
         // PUT directly to MinIO
-        const s3Res = http.put(url, partData);
+        const s3Res = http.put(url, partData, {
+            tags: { name: 's3_part_put' }
+        });
         check(s3Res, { [`part ${partNumber} s3 200`]: (r) => r.status === 200 });
 
        const etag = s3Res.headers['Etag'] || s3Res.headers['etag'] || s3Res.headers['ETag'];
@@ -61,7 +66,10 @@ export default function (currentUser) {
                 size_bytes: partData.byteLength, 
                 etag 
             }),
-            { headers }
+            { 
+                headers,
+                tags: { name: 'register_part' }
+            }
         );
         check(partRes, { [`part ${partNumber} registered`]: (r) => r.status === 200 });
     }
@@ -70,7 +78,10 @@ sleep(0.2)
     const completeRes = http.post(
         `${BASE_URL}/multipart/complete`,
         JSON.stringify({ upload_uuid }),
-        { headers }
+        { 
+            headers,
+            tags: { name: 'multipart_complete' }
+        }
     );
     check(completeRes, { 'multipart complete 200': (r) => r.status === 200 });
 }
