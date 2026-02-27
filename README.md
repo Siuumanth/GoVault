@@ -222,13 +222,6 @@ That’s important.
 
 ## 9. Containerization & Deployment
 
-![Image](https://www.researchgate.net/publication/351626260/figure/fig1/AS%3A1024410047750148%401621249796981/Microservice-architecture-with-docker.png)
-
-![Image](https://miro.medium.com/v2/resize%3Afit%3A1158/1%2A0ICZPjrC-cBNBubW5wMMCw.jpeg)
-
-![Image](https://signoz.io/img/guides/2024/08/how-to-view-docker-compose-healthcheck-logs-Screenshot_2024-08-27_at_11.35.01_PM.webp)
-
-![Image](https://healthchecks.io/static/img/my_checks.png)
 
 ### Features
 
