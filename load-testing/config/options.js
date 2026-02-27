@@ -34,4 +34,5 @@ export const spikeOptions = {
 };
 
 // change this to loadOptions / stressOptions / spikeOptions
+// k6 looks for an exported variable called options 
 export const options = stressOptions;

@@ -3,130 +3,92 @@
 **Cloud-Native File Storage System with Resumable Uploads and Service Isolation**
 
 ---
+# Dependencies: 
+
+- **Language & Core Backend:** Go (Golang), net/http
+- **Authentication & Security:** bcrypt, JWT
+- **Resilience & Utilities:** Circuit breaker (custom / gobreaker), UUID package
+- **Database:** PostgreSQL
+- **Object Storage:** AWS S3, MinIO
+- **Containerization & Deployment:** Docker, Docker Compose
+- **Testing & Observability:** k6, Prometheus, Grafana
+
+---
 ## 1. System Overview
 
 GoVault is a cloud-native file storage platform designed with a **microservices architecture**, focusing on reliability, scalability, and production-grade backend design.
 
 The system supports:
-
-- Chunked and resumable uploads
-    
+- proxy Chunked and resumable uploads
 - S3 multipart uploads
-    
 - File ownership & sharing
-    
 - Public/private access control
-    
 - Rate limiting & authentication
-    
 - Service isolation with per-service databases
-    
 
 It emphasizes **clean architecture principles**, operational awareness, and deployment realism.
 
 ---
-
 ## 2. Architecture
 
 ### High-Level Design
 
-![Image](https://learn.microsoft.com/en-us/azure/architecture/microservices/images/gateway.png)
-
-![Image](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/architect-microservice-container-applications/media/direct-client-to-microservice-communication-versus-the-api-gateway-pattern/custom-service-api-gateway.png)
-
-![Image](https://www.ideamotive.co/hs-fs/hubfs/Building%20a%20Microservice%20in%20Go%20Business%20Guide%20-%20Microservice%20Architecture.png?name=Building+a+Microservice+in+Go+Business+Guide+-+Microservice+Architecture.png&width=2088)
-
-![Image](https://miro.medium.com/1%2AJ7PCOraxPlvGmH3H517ZVw.jpeg)
-
-### Core Services
-
+#### Services:
 - **API Gateway**
-    
 - **Auth Service**
-    
 - **Upload Service**
-    
 - **Files Service**
-    
-
 ### Architectural Highlights
 
 - Microservices-based design
-    
 - Clear service boundaries
-    
 - Separate PostgreSQL instance per service
-    
 - Interface-driven internal architecture
-    
 - REST-based inter-service communication
-    
 - Circuit breaker–protected service calls
-    
 - Default Docker network for service communication
-    
 
 This design enforces **fault isolation**, **independent scalability**, and clean ownership of data.
 
 ---
-
 ## 3. API Gateway
 
 The API Gateway acts as the single entry point into the system.
-
 ### Features
-
 - Ordered middleware chaining
-    
 - Request ID generation and structured logging
-    
 - Security header injection
-    
 - CORS handling
-    
 - JWT authentication
-    
 - Fixed-window in-memory rate limiting
-    
 - Middleware adapters for trusted header injection
-    
 
 The gateway handles all cross-cutting concerns, keeping internal services clean and focused on business logic.
 
 ---
-
 ## 4. Authentication Service
 
 Authentication is fully stateless and token-based.
-
 ### Features
-
 - Secure password hashing using bcrypt
-    
 - Stateless JWT issuance
-    
 - JWT validation at gateway level
-    
 - Token-based inter-service authorization
-    
 
 No session storage. Horizontal scaling is naturally supported.
 
+
 ---
+---
+---
+
 
 ## 5. Upload System
 
 This is the strongest technical component of the system.
 
 ---
-
 ### A. Proxy-Based Chunked Upload
-
-![Image](https://i.sstatic.net/2jmmJ.png)
-
-![Image](https://www.ionos.com/digitalguide/fileadmin/DigitalGuide/Screenshots_2022/Server-side-rendering-diagram.png)
-
-![Image](https://www.researchgate.net/publication/325865324/figure/fig2/AS%3A640279006679041%401529665819735/System-Architecture-of-the-server-side-and-the-client-side.png)
 
 #### Flow:
 
