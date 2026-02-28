@@ -4,9 +4,9 @@ import pandas as pd
 
 # Data from Proxy Tests (1-5)
 proxy_data = {
-    'VUs': [200, 300, 400],
-    'Throughput': [91.67, 134.85, 140.43],
-    'p95_Latency': [3.85, 3.39, 5.50]
+    'VUs': [200, 300, 400, 500],
+    'Throughput': [142, 138.85, 140.43, 141],
+    'p95_Latency': [1.49, 3.39, 5.50, 7.06]
 }
 df_p = pd.DataFrame(proxy_data)
 

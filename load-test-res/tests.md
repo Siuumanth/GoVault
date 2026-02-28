@@ -60,7 +60,6 @@ default ✓ [======================================] 000/200 VUs  6m0s
 ---
 ---
 
-
 # Test 2: - 200 users with auth, upload and fetch files, 1 mb file , proxy
 ```bash
 D:\code\Golang\GoVault\load-testing>k6 run main.js
@@ -120,23 +119,14 @@ INFO[0022] [SETUP] Done. Created 200 users.              source=console
 running (6m23.8s), 000/200 VUs, 12590 complete and 0 interrupted iterati
 ```
 
-
+# recent
 # Test 3: - 200 users with auth, upload and fetch files, 1 mb file , proxy, 1 mb file
 ```bash
-
-
-     scenarios: (100.00%) 1 scenario, 200 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 200 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
-INFO[0000] [SETUP] Starting... Target: 200 users         source=console
-INFO[0023] [SETUP] Done. Created 200 users.              source=console
-
-
   █ TOTAL RESULTS
 
-    checks_total.......: 58870   153.332042/s
-    checks_succeeded...: 100.00% 58870 out of 58870
-    checks_failed......: 0.00%   0 out of 58870
+    checks_total.......: 68265   177.60543/s
+    checks_succeeded...: 100.00% 68265 out of 68265
+    checks_failed......: 0.00%   0 out of 68265
 
     ✓ signup status is 200
     ✓ login 200
@@ -146,41 +136,29 @@ INFO[0023] [SETUP] Done. Created 200 users.              source=console
     ✓ proxy chunk 0 200
 
     HTTP
-    http_req_duration..............: avg=363.02ms min=1.91ms med=79.27ms max=5.25s p(90)=1.34s p(95)=1.99s
-      { expected_response:true }...: avg=363.02ms min=1.91ms med=79.27ms max=5.25s p(90)=1.34s p(95)=1.99s
-    http_req_failed................: 0.00% 0 out of 47336
-    http_reqs......................: 47336 123.290734/s
+    http_req_duration..............: avg=243.98ms min=766.5µs med=59.27ms max=2.33s p(90)=1s    p(95)=1.49s
+      { expected_response:true }...: avg=243.98ms min=766.5µs med=59.27ms max=2.33s p(90)=1s    p(95)=1.49s
+    http_req_failed................: 0.00% 0 out of 54852
+    http_reqs......................: 54852 142.708754/s
 
     EXECUTION
-    iteration_duration.............: avg=3.46s    min=2.03s  med=3.39s   max=7.91s p(90)=4.86s p(95)=5.28s
-    iterations.....................: 11734 30.562225/s
-    vus............................: 2     min=0          max=200
+    iteration_duration.............: avg=2.98s    min=2.03s   med=2.99s   max=4.72s p(90)=3.98s p(95)=4.11s
+    iterations.....................: 13613 35.417018/s
+    vus............................: 1     min=0          max=200
     vus_max........................: 200   min=200        max=200
 
     NETWORK
-    data_received..................: 65 MB 170 kB/s
-    data_sent......................: 12 GB 32 MB/s
-
-
-
-
-running (6m23.9s), 000/200 VUs, 11734 complete and 0 interrupted iterations
-default ✓ [======================================] 000/200 VUs  6m0s
-```
-
-
+    data_received..................: 77 MB 201 kB/s
+    data_sent......................: 14 GB 37 MB/s
 
 ---
-
+---
 
 # Test 4: - 300 users with auth, upload and fetch files, 1 mb file , proxy, 1 mb file
+
 ```bash
      scenarios: (100.00%) 1 scenario, 300 max VUs, 6m30s max duration (incl. graceful stop):
               * default: Up to 300 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
-INFO[0000] [SETUP] Starting... Target: 300 users         source=console
-INFO[0034] [SETUP] Done. Created 300 users.              source=console
-
 
   █ TOTAL RESULTS
 
@@ -221,13 +199,6 @@ default ✓ [======================================] 000/300 VUs  6m0s
 # Test 5: - 400 users with auth, upload and fetch files, 1 mb file , proxy, 1 mb file
 ## Starting to see errors 
 ```bash
-     scenarios: (100.00%) 1 scenario, 400 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 400 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
-INFO[0000] [SETUP] Starting... Target: 400 users         source=console
-INFO[0045] [SETUP] Done. Created 400 users.              source=console
-
-
   █ TOTAL RESULTS
 
     checks_total.......: 70775  174.065595/s
@@ -264,7 +235,40 @@ default ✓ [======================================] 000/400 VUs  6m0s
 ```
 
 
+# tEst 6- 500 users 
+```bash
+  █ TOTAL RESULTS
 
+    checks_total.......: 68265   177.60543/s
+    checks_succeeded...: 100.00% 68265 out of 68265
+    checks_failed......: 0.00%   0 out of 68265
+
+    ✓ signup status is 200
+    ✓ login 200
+    ✓ has token
+    ✓ files 200
+    ✓ proxy session 200
+    ✓ proxy chunk 0 200
+
+    HTTP
+    http_req_duration..............: avg=243.98ms min=766.5µs med=59.27ms max=2.33s p(90)=1s    p(95)=1.49s
+      { expected_response:true }...: avg=243.98ms min=766.5µs med=59.27ms max=2.33s p(90)=1s    p(95)=1.49s
+    http_req_failed................: 0.00% 0 out of 54852
+    http_reqs......................: 54852 142.708754/s
+
+    EXECUTION
+    iteration_duration.............: avg=2.98s    min=2.03s   med=2.99s   max=4.72s p(90)=3.98s p(95)=4.11s
+    iterations.....................: 13613 35.417018/s
+    vus............................: 1     min=0          max=200
+    vus_max........................: 200   min=200        max=200
+
+    NETWORK
+    data_received..................: 77 MB 201 kB/s
+    data_sent......................: 14 GB 37 MB/s
+
+running (6m24.4s), 000/200 VUs, 13613 complete and 0 interrupted iterations
+default ✓ [======================================] 000/200 VUs  6m0s
+```
 
 
 
@@ -276,13 +280,20 @@ default ✓ [======================================] 000/400 VUs  6m0s
 
 
 
+
+
+
+
+
+---
+
+---
+
+---
+
 # S3 Multipart tests
 # 1. 400 VU, same configs
 ```bash
-INFO[0000] [SETUP] Starting... Target: 400 users         source=console
-INFO[0045] [SETUP] Done. Created 400 users.              source=console
-WARN[0345] The test has generated metrics with 100051 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
-
 
   █ TOTAL RESULTS
 
@@ -314,12 +325,6 @@ WARN[0345] The test has generated metrics with 100051 unique time series, which 
     NETWORK
     data_received..................: 89 MB 219 kB/s
     data_sent......................: 14 GB 35 MB/s
-
-
-
-
-running (6m47.6s), 000/400 VUs, 13608 complete and 0 interrupted iterations
-default ✓ [======================================] 000/400 VUs  6m0s
 ```
 
 ---
@@ -328,13 +333,6 @@ default ✓ [======================================] 000/400 VUs  6m0s
 
 # 2. 600 vu, same 
 ```bash
-     scenarios: (100.00%) 1 scenario, 600 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 600 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
-INFO[0000] [SETUP] Starting... Target: 600 users         source=console
-INFO[0069] [SETUP] Done. Created 600 users.              source=console
-WARN[0389] The test has generated metrics with 100303 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
-
 
   █ TOTAL RESULTS
 
@@ -375,12 +373,6 @@ WARN[0389] The test has generated metrics with 100303 unique time series, which 
 
 # 3. 600 vu, same
 ```bash
-     scenarios: (100.00%) 1 scenario, 600 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 600 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
-INFO[0000] [SETUP] Starting... Target: 600 users         source=console
-INFO[0069] [SETUP] Done. Created 600 users.              source=console
-
 
   █ TOTAL RESULTS
 
@@ -415,11 +407,6 @@ INFO[0069] [SETUP] Done. Created 600 users.              source=console
     data_received..................: 82 MB 191 kB/s
     data_sent......................: 14 GB 34 MB/s
 
-
-
-
-running (7m09.5s), 000/600 VUs, 13670 complete and 0 interrupted iterations
-default ✓ [======================================] 000/600 VUs  6m0s
 ```
 
 ---
@@ -428,68 +415,57 @@ default ✓ [======================================] 000/600 VUs  6m0s
 
 # 4. 750 vu, same
 ```bash
-     scenarios: (100.00%) 1 scenario, 750 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 750 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+   █ TOTAL RESULTS
 
-INFO[0000] [SETUP] Starting... Target: 750 users         source=console
-INFO[0104] [SETUP] Done. Created 750 users.              source=console
-
-
-  █ TOTAL RESULTS
-
-    checks_total.......: 84651  181.827195/s
-    checks_succeeded...: 99.97% 84630 out of 84651
-    checks_failed......: 0.02%  21 out of 84651
+    checks_total.......: 95740  214.104232/s
+    checks_succeeded...: 99.98% 95723 out of 95740
+    checks_failed......: 0.01%  17 out of 95740
 
     ✓ signup status is 200
     ✓ login 200
     ✓ has token
     ✗ files 200
-      ↳  99% — ✓ 11980 / ✗ 6
+      ↳  99% — ✓ 13566 / ✗ 4
     ✓ multipart session 200
     ✓ part 1 s3 200
     ✓ part 1 registered
     ✗ multipart complete 200
-      ↳  99% — ✓ 11970 / ✗ 15
+      ↳  99% — ✓ 13557 / ✗ 13
 
     HTTP
-    http_req_duration..............: avg=1.78s  min=1.26ms med=429.12ms max=23.68s p(90)=5.72s  p(95)=10s
-      { expected_response:true }...: avg=1.78s  min=1.26ms med=428.9ms  max=23.68s p(90)=5.71s  p(95)=10s
-    http_req_failed................: 0.02% 21 out of 73415
-    http_reqs......................: 73415 157.692685/s
+    http_req_duration..............: avg=1.52s min=551µs med=383.41ms max=17.19s p(90)=5.52s  p(95)=9.18s
+      { expected_response:true }...: avg=1.52s min=551µs med=383.38ms max=17.19s p(90)=5.52s  p(95)=9.18s
+    http_req_failed................: 0.02% 17 out of 82920
+    http_reqs......................: 82920 185.434749/s
 
     EXECUTION
-    iteration_duration.............: avg=13.16s min=2.29s  med=11.99s   max=49.34s p(90)=24.15s p(95)=26.38s
-    iterations.....................: 11985 25.743334/s
-    vus............................: 2     min=0           max=750
+    iteration_duration.............: avg=11.5s min=2.29s med=11.71s   max=28.26s p(90)=18.23s p(95)=19.57s
+    iterations.....................: 13570 30.346714/s
+    vus............................: 12    min=0           max=750
     vus_max........................: 750   min=750         max=750
 
     NETWORK
-    data_received..................: 66 MB 142 kB/s
-    data_sent......................: 13 GB 27 MB/s
+    data_received..................: 77 MB 172 kB/s
+    data_sent......................: 14 GB 32 MB/s
 
 
 
 
-running (7m45.6s), 000/750 VUs, 11985 complete and 1 interrupted iterations
+running (7m27.2s), 000/750 VUs, 13570 complete and 0 interrupted iterations
 default ✓ [======================================] 000/750 VUs  6m0s
-
 ```
 
 # 5. 200 vu
 ```bash
-     scenarios: (100.00%) 1 scenario, 200 max VUs, 6m30s max duration (incl. graceful stop):
-              * default: Up to 200 looping VUs for 6m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
-
 INFO[0000] [SETUP] Starting... Target: 200 users         source=console
-INFO[0023] [SETUP] Done. Created 200 users.              source=console
+INFO[0022] [SETUP] Done. Created 200 users.              source=console
 
 
   █ TOTAL RESULTS
 
-    checks_total.......: 77767   202.352091/s
-    checks_succeeded...: 100.00% 77767 out of 77767
-    checks_failed......: 0.00%   0 out of 77767
+    checks_total.......: 87441   227.969747/s
+    checks_succeeded...: 100.00% 87441 out of 87441
+    checks_failed......: 0.00%   0 out of 87441
 
     ✓ signup status is 200
     ✓ login 200
@@ -501,20 +477,27 @@ INFO[0023] [SETUP] Done. Created 200 users.              source=console
     ✓ multipart complete 200
 
     HTTP
-    http_req_duration..............: avg=243.97ms min=798µs med=82.22ms max=3.91s p(90)=671.98ms p(95)=1.33s
-      { expected_response:true }...: avg=243.97ms min=798µs med=82.22ms max=3.91s p(90)=671.98ms p(95)=1.33s
-    http_req_failed................: 0.00% 0 out of 66886
-    http_reqs......................: 66886 174.039399/s
+    http_req_duration..............: avg=176.24ms min=0s    med=58.78ms max=2.82s p(90)=456.01ms p(95)=871.42ms
+      { expected_response:true }...: avg=176.24ms min=0s    med=58.78ms max=2.82s p(90)=456.01ms p(95)=871.42ms
+    http_req_failed................: 0.00% 0 out of 75178
+    http_reqs......................: 75178 195.998555/s
 
     EXECUTION
-    iteration_duration.............: avg=3.67s    min=2.28s med=3.53s   max=7.29s p(90)=5.06s    p(95)=5.4s
-    iterations.....................: 11081 28.833098/s
-    vus............................: 4     min=0          max=200
+    iteration_duration.............: avg=3.26s    min=2.27s med=3.06s   max=6.55s p(90)=4.52s    p(95)=4.98s
+    iterations.....................: 12463 32.492617/s
+    vus............................: 5     min=0          max=200
     vus_max........................: 200   min=200        max=200
 
     NETWORK
-    data_received..................: 78 MB 203 kB/s
-    data_sent......................: 12 GB 30 MB/s
+    data_received..................: 89 MB 231 kB/s
+    data_sent......................: 13 GB 34 MB/s
+
+
+
+
+running (6m23.6s), 000/200 VUs, 12463 complete and 0 interrupted iterations
+default ✓ [======================================] 000/200 VUs  6m0s
+
 
 ```
 

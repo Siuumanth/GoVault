@@ -1,4 +1,4 @@
-export const SCALE = 2; 
+export const SCALE = 0.6; 
 
 export const UPLOAD_METHOD = 'multipart'; // swap to 'multipart' for S3
 export const VU_COUNT = Math.round(100 * SCALE); // virtual users count 

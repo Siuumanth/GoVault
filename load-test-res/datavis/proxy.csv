@@ -1,0 +1,5 @@
+VUs,Throughput_RPS,Median_Latency,p95_Latency
+200,142.71,59.27ms,1.49s
+300,134.86,131.9ms,3.39s
+400,140.43,187.05ms,5.5s
+500,141.72,262.64ms,7.69s
