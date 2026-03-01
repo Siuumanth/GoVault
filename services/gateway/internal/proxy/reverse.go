@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"gateway/internal/middleware"
-	"log"
+	"gateway/pkg/zlog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"time"
 
 	"github.com/sony/gobreaker"
+	"go.uber.org/zap"
 )
 
 type statusRecorder struct {
@@ -46,7 +47,11 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 		},
 
 		OnStateChange: func(name string, from, to gobreaker.State) {
-			log.Printf("[CB:%s] %s → %s", name, from.String(), to.String())
+			zlog.L.Info("circuit breaker state change",
+				zap.String("cb_name", name),
+				zap.String("from", from.String()),
+				zap.String("to", to.String()),
+			)
 		}, // log wen state change
 	}
 
@@ -59,7 +64,11 @@ func NewReverseProxy(target string, serviceName string) http.Handler {
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		reqID := middleware.GetRequestID(r.Context())
-		log.Printf("[req_id=%s] [CB:%s] upstream error: %v", reqID, serviceName, err)
+		zlog.L.Error("upstream error",
+			zap.String("request_id", reqID),
+			zap.String("cb_name", serviceName),
+			zap.Error(err), // Automatically handles the error message
+		)
 
 		// Explicitly set the status code before writing the message
 		w.WriteHeader(http.StatusBadGateway)

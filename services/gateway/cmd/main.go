@@ -7,7 +7,8 @@ import (
 	"gateway/internal/metrics"
 	MW "gateway/internal/middleware"
 	"gateway/internal/router"
-	zlog "gateway/pkg/zap"
+
+	"gateway/pkg/zlog"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 )
 
 /*
@@ -77,7 +79,7 @@ func main() {
 	go func() {
 		fmt.Println("Gateway starting on :9000")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Listen error: %s\n", err)
+			zlog.L.Error("Listen error: %v\n", zap.Error(err))
 		}
 	}()
 

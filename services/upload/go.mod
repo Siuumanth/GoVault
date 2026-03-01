@@ -12,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/sony/gobreaker v1.0.0
+	go.uber.org/zap v1.27.1
 )
 
 require (
@@ -31,4 +32,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 // indirect
 	github.com/aws/smithy-go v1.24.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 )

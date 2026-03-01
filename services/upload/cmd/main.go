@@ -14,22 +14,26 @@ import (
 	"upload/internal/router"
 	"upload/internal/service"
 	"upload/internal/storage"
+	zlog "upload/pkg/zlog"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
-// Done: Make it raw bytes uplaod
-// Done: Delete session if fail or after upload
 func main() {
+	// development level logger
+	zlog.Init()
+	defer zlog.Sync()
+
 	godotenv.Load()
 	// ---------- DB ----------
 	dbURL := os.Getenv("UPLOAD_POSTGRES_URL_DEV")
 	db, err := database.Connect(dbURL)
 	if err != nil {
-		log.Fatal(err)
+		zlog.L.Error("Error connecting to DB ", zap.Error(err))
 	}
 
 	repos := repository.NewRegistryFromDB(db)
@@ -41,7 +45,7 @@ func main() {
 	// ---------- Service & Client ----------
 	fsURL := os.Getenv("GOVAULT_FILES_SERVICE_URL")
 	if dbURL == "" || fsURL == "" || bucket == "" {
-		log.Fatal("missing required env vars")
+		zlog.L.Error("missing required env vars")
 	}
 
 	fileClient := clients.NewFileClient(fsURL)
@@ -62,7 +66,7 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	log.Println("Upload service running on :9002")
+	zlog.L.Info("Upload service running on :9002")
 	log.Fatal(server.ListenAndServe())
 }
 

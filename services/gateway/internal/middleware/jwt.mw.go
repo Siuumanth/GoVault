@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"gateway/internal/utils"
-	"log"
+	zlog "gateway/pkg/zlog"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 // http.Handler is an interface with 1 function - serveHTTP(w,r)
@@ -51,7 +52,7 @@ func NewJWT() Middleware {
 				return []byte(jwtSecret), nil
 			})
 			if err != nil {
-				log.Println("JWT mW error:", err)
+				zlog.L.Error("JWT middleware error", zap.Error(err))
 				switch {
 				case errors.Is(err, jwt.ErrTokenExpired):
 					http.Error(w, "Token expired", http.StatusUnauthorized)

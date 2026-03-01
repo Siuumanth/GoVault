@@ -3,7 +3,7 @@ package middleware
 import (
 	"gateway/internal/metrics"
 	"gateway/internal/utils"
-	zlog "gateway/pkg/zap"
+	zlog "gateway/pkg/zlog"
 	"net/http"
 	"strconv"
 	"time"
