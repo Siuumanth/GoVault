@@ -204,6 +204,8 @@ All services communicate via default Docker networking.
 - **Structured Logging:** Implemented structured logging using Uber’s zap logger for performance and machine readability.
 - **Local Object Storage Testing:** Used MinIO (S3-compatible) within Docker Compose for realistic local testing of upload flows and multipart behavior.
 
+[Read the full report on load testing here](https://github.com/Siuumanth/GoVault/blob/main/LoadTestReport.md)
+
 ---
 ## 11. Frontend (MVP - similar look to Google Drive)
 - Chunk/part slicing logic

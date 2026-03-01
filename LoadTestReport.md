@@ -228,6 +228,7 @@ I have generated a separate dashboard for every single test run. However, since 
 - ##### 750 VUs - proxy uploading (latency capped in the graph)
   
 `"They gave us he number they had, I think the true number is much much higher"` moment  (If u got the reference then let me know :) )
+
 ![](https://github.com/Siuumanth/GoVault/blob/main/load-test-res/proxy-uploads/7-600vu.png?raw=true)
 
 - ##### 400 VUs - multipart uploading
@@ -271,7 +272,35 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 
 
 ---
-### **Deep Dive Analysis**
+
+# Visualizations for Easier Understanding:
+
+## Proxy Uploads:
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/proxy1.png?raw=true)
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/proxy2.png?raw=true)
+
+
+## S3 Multipart Uploads:
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/mp1.png?raw=true)
+
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/mp2.png?raw=true)
+
+## Side by Side 
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/bossTE.png?raw=true)
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/bossTP.png?raw=true)
+
+
+
+
+
+---
+## **Deep Dive Analysis**
 
 #### **The Efficiency Gap**
 
@@ -280,7 +309,7 @@ Right from the start (**200 VUs**), I observed that the **Direct S3 Multipart** 
 #### **The Breaking Point (The 750-850 VU Wall)**
 The most revealing data point is the **Error Rate** at higher loads:
 
-- **Proxy Failure:** At **850 VUs**, my Proxy strategy hit a wall with a **26% error rate**. The backend was so overwhelmed by managing file chunks in memory while simultaneously handling API logic that it began dropping requests.
+- **Proxy Failure:** At **850 VUs**, my Proxy strategy hit a wall with a **14% error rate**. The backend was so overwhelmed by managing file chunks in memory while simultaneously handling API logic that it began dropping requests.
     
 - **Multipart Resilience:** At the same **850 VUs**, the Multipart strategy was still rock solid with an error rate of only **0.73%**. It successfully offloaded the heavy lifting to MinIO/S3, allowing the Go services to remain responsive.
 
@@ -302,7 +331,6 @@ One of my tests for 1000 VUs when running a couple other applications on my pc d
     http_req_failed................: 29.49% 33194 out of 112547
 ```
 
-
 ---
 
 #### **Throughput Saturation**
@@ -312,6 +340,22 @@ In my **Proxy** tests, I noticed the **Law of Diminishing Returns**. Even as I i
 #### **Latency vs. Errors**
 
 By **1000 VUs** in the Multipart test, the throughput dropped to **177 RPS** and the p95 latency climbed to **11.9s**. While the error rate stayed low (**2.27%**), the experience became sluggish. This confirms that while my architecture is stable, the local **WSL2 overhead** and single-disk I/O create a hard ceiling for performance that only a true cloud environment could resolve.
+
+#### **The Latency Gap: Median vs. p95**
+
+Across both architectures, I saw a massive divergence between Median and p95 latencies as load increased. 
+
+- **Proxy Uploads:** At 400 VUs, the Median is **188ms**, but the p95 is **5.5 seconds**. This extreme gap is caused by **Head-of-Line Blocking**. Because the Go backend is busy buffering and checksumming chunks in memory, "unlucky" requests get stuck in the queue, making the experience terrible for the top 5% of users.
+    
+- **Multipart Uploads:** The gap is tighter and more predictable. At 400 VUs, the p95 is **4.15s**. Since the Go service isn't "touching" the file data, it doesn't get bogged down as easily. The eventual spike at 1000 VUs (**11.9s**) is mostly due to **TCP Connection Exhaustion**—the OS simply runs out of "slots" to handle new users.
+
+#### **The "Bcrypt" CPU Trap**
+
+Initially, I used **Bcrypt** for password hashing during the Auth phase. I quickly realized this was a massive bottleneck for a stress test.
+
+- **The Problem:** Bcrypt is designed to be "slow" to prevent brute-force attacks, but at 500+ VUs, it was eating 70-80% of my CPU just to handle logins. This left almost no resources for the actual file uploading or database management.
+    
+- **The Fix:** For the purpose of this load test, I switched to **SHA-256**. While less secure for passwords in a real-world production app, it is much faster and allowed the CPU to focus on the architectural stress of the storage system rather than getting stuck on expensive math.
 
 ---
 
@@ -323,35 +367,114 @@ By **1000 VUs** in the Multipart test, the throughput dropped to **177 RPS** and
 
 ## **5. The Engineering Journey: Optimization & Lessons**
 
-Beyond the raw numbers, the process of load testing **GoVault** led to several critical architectural pivots. I didn't just observe failures; I used them to re-engineer the system in real-time.
+This project wasn't just about collecting numbers; it was about watching a distributed system break and re-engineering it in real-time. Here is what I learned through the "book of tests."
 
-### **Optimizing the Infrastructure**
+### **1. The WSL2 "Mount" Bottleneck**
 
-- **Volume Mount Overhead:** I discovered that **bind mounts** between Windows and WSL2 were a massive bottleneck for my PostgreSQL and MinIO containers. The cross-OS file system calls were killing my I/O. I switched to **Named Volumes**, which stay within the Linux filesystem, significantly reducing latency.
-    
-- **Database Scaling:** When I saw **504 Gateway Timeouts** at 400 VUs, I realized my DB connection pools were exhausted. I manually tuned the pool sizes to find the sweet spot where the CPU could handle the concurrent queries without the application hanging.
-    
-- **Logging vs. Latency:** I started with standard logging but noticed a visible lag as the logs hit the disk. Switching to **Uber’s Zap Logger** (structured, zero-allocation) made the backend noticeably more responsive under high-concurrency stress.
-    
+Early on, I realized that **bind mounts** between Windows and WSL2 were a silent performance killer. The overhead of the Windows file system talking to the Linux kernel meant my databases and storage were lagging before the test even started. I moved everything to **Dedicated Named Volumes**, keeping all I/O strictly within the Linux environment, which stabilized my baseline latency.
 
-### **The Law of Diminishing Returns**
 
-During the **Proxy-Based** tests, I hit a hard truth: **Adding more Virtual Users (VUs) does not always mean more work gets done.**
+### **2. The Database & Concurrency Wall**
 
-- After a certain point, the throughput (RPS) stayed flat or even dropped, while the latency skyrocketed.
-    
-- This happened because the backend was so busy "context switching" and managing memory for the proxy chunks that it didn't have any CPU cycles left to actually process the data.
-    
+As I pushed past 600 VUs, the system didn't just slow down—it started failing.
 
-### **Key Takeaways**
+- **The Problem:** My Go services would hang because they ran out of **PostgreSQL connections**, and single heavy uploads would "lock" the DB, causing everything else to time out.
+    
+- **The Solution:** I learned that a production system needs a **Connection Pooler (like PgBouncer)** to manage DB traffic, **Horizontal Scaling** (adding more service replicas), and **Aggressive Timeouts** so one slow request doesn't kill the whole app.
 
-1. **Infrastructure matters more than code:** A fast Go binary is useless if the DB pool is too small or the Docker volumes are slow.
+### **3. The k6 Experience: Power vs. Overhead**
+
+I was blown away by `k6`. Its engine is written in **Go**, which makes it incredibly fast, but the scripts are **JavaScript**, making it easy to write complex scenarios. However, I learned that `k6` is a double-edged sword:
+
+- It spawns worker processes (VUs) that execute loops as fast as possible, which **explodes your local memory**.
     
-2. **Scalability has a ceiling:** The Proxy-based approach is great for control, but the Direct S3 approach is the only way to scale without the backend becoming a bottleneck.
+- I hit a **"Metric Wall"** where the load generator itself became the bottleneck, proving that for massive tests, you need to distribute `k6` itself across multiple machines.
+
+### **4. The "Zap" Factor: Structured Logging**
+
+It wasn't just my imagination—switching to **Uber’s Zap Logger** actually decreased my error rates at **850+ VUs**. Standard logging often involves heavy string formatting and synchronous I/O. Zap is "zero-allocation" and extremely fast. By reducing the CPU time spent on logging, I freed up just enough cycles for the services to process actual requests instead of timing out.
+
+### **5. Hardware Realities & Distributed Failure**
+
+This project was a masterclass in **Resource Saturation**. I saw firsthand how fast computers are—managing thousands of processes and gigabytes of data every second—but I also saw their absolute limit.
+
+- **Root Cause:** 99% of my failures weren't "bad code"; they were **resource exhaustion**. When CPU and RAM hit that 95% wall, the laws of physics take over, and the system begins to drift.
     
-3. **Observability is the only way to debug load:** Without Prometheus and Grafana, I would have never known _why_ the system was failing—I would have just seen "Error 500."
+- **Theoretical Mastery:** I now have a good understanding of how distributed systems fail (TCP exhaustion, head-of-line blocking, disk I/O contention) and, more importantly, the architectural patterns needed to overcome them in a production-grade environment.
+    
+---
+
+To wrap up the analysis, I want to talk about a major "ghost in the machine" moment I hit during a 850 VU stress test.
+
+### **The Ghost Iteration Problem**
+
+I found a confusing gap between my test logs and my actual storage. Even though **k6 reported 13,425 iterations finished**, my **Postgres** and **MinIO** storage only showed **624 unique user folders**.
+
+Basically, over 200 of my 850 Virtual Users seemed to "finish" their work without actually leaving a single trace in the database or the cloud. It was like they never existed.
+
+---
+### **The Root Causes**
+
+After digging into the architecture, I found three main reasons for this "Success Gap":
+
+#### **1. The "Race to the Bottom" (Resource Starvation)**
+
+Since my Go backend handles everything—Auth and File Metadata—850 VUs were all fighting for a tiny pool of **Database Connections**.
+
+- The "fast" users (the ones who got a connection first) would finish multiple loops.
+- The "slow" users (the ones waiting in line) were completely starved of resources.
+    
+    Because k6 counts an iteration as "complete" even if the script just finishes its loop after a failure, the total count looked high, but the actual data never made it to the disk.
+
+#### **2. The OS Wall (TCP Exhaustion)**
+
+At 850 VUs, my laptop hit its limit for **Open Files** and **Network Ports**.
+
+- Many users reported "Completed" because the k6 script reached the end, but the network request was actually **Refused** before it even touched my Go code.
+    
+- Since the error happened at the **OS level** and not the **App level**, the system didn't even get a chance to log a 500 error. The requests just died silently in the background.
+
+#### **3. The Metadata Sync Lag**
+
+In the **Multipart** flow, there’s a tiny gap where MinIO gets the file, but the Go backend hasn't officially saved the "Success" info to Postgres yet.
+
+- Under 95%+ CPU load, those database writes were simply timing out.
+    
+- MinIO would have the file parts, but because the "Complete" call never reached the database, the folder was never officially "finalized." The data was there, but the system didn't know it.
+    
+---
+
+### **Theoretical Fix: The Redis "Shock Absorber"**
+
+To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next logical step in this architecture is adding a **Redis layer**.
+
+- **Rate Limiting:** Instead of letting 850 VUs slam the PostgreSQL instance all at once, I could use Redis to implement a global **Rate Limiter**. This would "reject" excess traffic at the Gateway before it ever hits the expensive Database or Disk I/O.
+    
+- **Metadata Caching:** By caching user sessions and file metadata in Redis, I could reduce the number of "Reads" hitting Postgres by up to 90%. This would leave the database "Write" connections free to handle the final file assembly, preventing the timeouts that caused my data mismatch.
+
+
+
+
+---
+
+
+# **6. Conclusion**
+
+The performance testing of GoVault proved one thing: **Architecture matters more than raw hardware.** Even on a single local machine with the overhead of WSL2, the shift from a Proxy-based model to a Direct S3 Multipart strategy transformed how the system handled pressure.
+
+### **The Final Verdict**
+
+- **The S3 Advantage:** By treating the Go backend as a **coordinator** (handling metadata) rather than a **data mover** (handling file bytes), I was able to maintain a steady throughput of **~175 RPS** even as the virtual user count climbed to 1,000.
+    
+- **Engineering Trade-offs:** I saw firsthand how every CPU cycle counts. Switching from **Bcrypt to SHA-256** for the test was a necessary move to keep the CPU free for the storage logic, and moving to **Zap Logging** proved that even "small" overheads can cause a system to tip over at 850+ VUs.
+    
+- **The Reality of Limits:** My tests hit a physical wall. The 95%+ CPU saturation and TCP port exhaustion showed that while the Go code was efficient, the local hardware reached its absolute limit.
     
 
 ---
 
-**Does this capture the "vibe" of your journey? If so, should we move to the final Comparison Table or is there one more lesson you want to add?**
+### **Final Thoughts**
+
+This marks the end of **3 months of hard grinding**. What started as a cloud-native file storage idea turned into a deep-dive into how distributed systems live, breathe, and eventually break. Seeing the "Ghost Iterations" and "Metric Walls" in real-time made me realize that building for scale isn't just about writing code—it's about managing resources and predicting failures.
+
+Distributed systems are incredibly fun (and frustrating), and watching GoVault survive a 1,000 VU storm was the perfect way to wrap up this journey.
