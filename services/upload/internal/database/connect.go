@@ -15,7 +15,7 @@ func Connect(url string) (*sql.DB, error) {
 
 	// 1. The Waiting Room: Max physical connections
 	// Set this to ~80-90 if Postgres max_connections is 100
-	db.SetMaxOpenConns(80)
+	db.SetMaxOpenConns(200)
 
 	// 2. The Warm-up: How many idle connections to keep alive
 	db.SetMaxIdleConns(20)

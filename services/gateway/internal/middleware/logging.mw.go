@@ -42,7 +42,7 @@ func NewLogger() Middleware {
 
 			next.ServeHTTP(rw, r)
 
-			duration := time.Since(start).Seconds()
+			duration := time.Since(start)
 			statusStr := strconv.Itoa(rw.status)
 
 			// ---- METRICS ----
@@ -52,7 +52,7 @@ func NewLogger() Middleware {
 
 			metrics.HttpRequestDuration.
 				WithLabelValues(r.Method, r.URL.Path).
-				Observe(duration)
+				Observe(duration.Seconds())
 
 			metrics.HttpInFlight.Dec()
 			// ------------------
@@ -65,7 +65,7 @@ func NewLogger() Middleware {
 					zap.String("method", r.Method),
 					zap.String("path", r.URL.Path),
 					zap.Int("status", rw.status),
-					zap.Duration("duration", time.Duration(duration)*time.Second),
+					zap.Duration("duration", duration),
 					zap.String("error", string(rw.body)),
 				)
 			} else {
@@ -74,7 +74,7 @@ func NewLogger() Middleware {
 					zap.String("method", r.Method),
 					zap.String("path", r.URL.Path),
 					zap.Int("status", rw.status),
-					zap.Duration("duration", time.Duration(duration)*time.Second),
+					zap.Duration("duration", duration),
 				)
 			}
 
