@@ -143,7 +143,7 @@ The internal structure follows production-grade layering:
 - **Service Layer** – Business logic encapsulation
 - **Repository Layer** – Database abstraction by dependency injection
 
-!()(https://github.com/Siuumanth/GoVault/blob/main/images/layers.png?raw=true)
+![](https://github.com/Siuumanth/GoVault/blob/main/images/layers.png?raw=true)
 ### Design Principles Used
 - Interface-driven development
 - Dependency injection through interfaces
@@ -154,7 +154,7 @@ The internal structure follows production-grade layering:
 ---
 ## 8. Database Design
 - PostgreSQL per service
-- UUID-based primary keys
+- UUID-based identification and internal ids for faster joins and fetching
 - Indexed database on frequently read columns for performance
 - Composite constraints for integrity
 - Strict ownership relationships
