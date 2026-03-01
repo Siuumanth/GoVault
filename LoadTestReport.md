@@ -1,12 +1,13 @@
-Contents:
+## **Table of Contents**
 
-- introduction (what is this, tools used, context, overview of architecture)
-and sayying strictly this test is based on locally tested , on windows ,  ryzen 5, 16 gb ram so there is wsl overhead also , so is less efifcient than actual cloud 
+1. **Introduction & System Overview**
+2. **Core Concepts & Terminology**
+3. **Test Methodology & VU Lifecycle**
+4. **Performance Metrics & Analysis**
+5. **The Engineering Journey: Optimizations**
+6. **Conclusion**
 
-- things to know before hand , virtual users vs actual users, mapping between them, what is p95 n stuff, why errors can happen in http  , like tcp connections , db pool exhaust n stuff 
-- actual load tests, starting from 200 vu
-
-
+---
 # **1. Introduction**
 
 ### **Project Overview**
@@ -89,7 +90,6 @@ Go handles traffic differently than many other languages, which affects how it b
 
 
 
-
 # **3. Test Methodology & Adjustments**
 
 ### **How I Ran the Tests**
@@ -142,10 +142,6 @@ Once the test starts, each VU is assigned an account and loops through these fou
 
 ```bash
   █ TOTAL RESULTS
-    checks_total.......: 96480  205.640433/s
-    checks_succeeded...: 98.35% 94893 out of 96480
-    checks_failed......: 1.64%  1587 out of 96480
-
     ✓ signup status is 200
     ✓ login 200
     ✓ has token
@@ -174,9 +170,6 @@ Once the test starts, each VU is assigned an account and loops through these fou
     data_received..................: 73 MB 156 kB/s
     data_sent......................: 14 GB 30 MB/s
   
-
-running (7m49.2s), 000/925 VUs, 13700 complete and 5 interrupted iterations
-default ✓ [======================================] 000/925 VUs  6m0s
 ```
 
 Below is a summary from a **925 VU multipart upload test**:
@@ -189,8 +182,6 @@ Below is a summary from a **925 VU multipart upload test**:
 
 Looking at the results, there are a few things that aren't immediately clear:
 
-- **The "Checks" Hierarchy:** Notice that **Signup** and **Login** usually have 100% success. The failures only start appearing at the **Multipart Complete** or **S3 Registration** steps. This tells me the Auth service is fine, but the **Upload Service** or **Database** is where the bottleneck sits.
-    
 - **Iteration Duration vs. Request Duration:** * `http_req_duration` is the time for a _single_ API call (e.g., uploading one part).
     
     - `iteration_duration` is the time it takes for one VU to complete the _entire flow_ (Login -> Init Upload -> Upload Parts -> Complete). An average of **14s** means a single user takes that long to finish the whole process under heavy load.
@@ -218,6 +209,7 @@ I monitored the system in real-time using **Prometheus and Grafana** to track **
 
 The dashboard allowed me to see the "hockey stick" curve in real-time—where latency stayed flat and then suddenly shot up. Seeing these HTTP metrics helped me understand that the bottlenecks were physical resource limits, specifically CPU saturation and I/O wait, rather than just code inefficiency. It proved that while the architecture was stable, the local hardware had reached its absolute ceiling.
 
+
 ### **The Visualization Strategy**
 
 I have generated a separate dashboard for every single test run. However, since the **RPS (Requests Per Second) panels** look nearly identical across tests until the breaking point, I have included the most representative charts below to show the overall trends.
@@ -237,6 +229,7 @@ I have generated a separate dashboard for every single test run. However, since 
 - ##### 1000 VUs - multipart uploading 
 ![](https://github.com/Siuumanth/GoVault/blob/main/load-test-res/multipart-uploads/6-1000vu.png?raw=true)
 
+
 ### **The "Truth": k6 vs. Prometheus**
 
 While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports** as the "absolute truth" for two main reasons:
@@ -248,7 +241,7 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 
 ---
 
-### **FINALLY!! (after an eternity of yapping) - The Comparative Results Table**
+## **FINALLY!! (after an eternity of yapping) - The Comparative Results Table**
 | **VU Count** | **Strategy**  | **Throughput (RPS)** | **Median Latency** | **p95 Latency** | **Error Rate** |
 | ------------ | ------------- | -------------------- | ------------------ | --------------- | -------------- |
 | **200**      | Proxy         | 142                  | 59ms               | 1.49s           | 0.00%          |
@@ -300,6 +293,7 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 
 
 ---
+
 ## **Deep Dive Analysis**
 
 #### **The Efficiency Gap**
@@ -357,15 +351,14 @@ Initially, I used **Bcrypt** for password hashing during the Auth phase. I quick
     
 - **The Fix:** For the purpose of this load test, I switched to **SHA-256**. While less secure for passwords in a real-world production app, it is much faster and allowed the CPU to focus on the architectural stress of the storage system rather than getting stuck on expensive math.
 
+
+
+
 ---
 
 
 
-
-
----
-
-## **5. The Engineering Journey: Optimization & Lessons**
+# **5. The Engineering Journey: Optimization & Lessons**
 
 This project wasn't just about collecting numbers; it was about watching a distributed system break and re-engineering it in real-time. Here is what I learned through the "book of tests."
 
@@ -379,34 +372,50 @@ Early on, I realized that **bind mounts** between Windows and WSL2 were a silent
 As I pushed past 600 VUs, the system didn't just slow down—it started failing.
 
 - **The Problem:** My Go services would hang because they ran out of **PostgreSQL connections**, and single heavy uploads would "lock" the DB, causing everything else to time out.
-    
-- **The Solution:** I learned that a production system needs a **Connection Pooler (like PgBouncer)** to manage DB traffic, **Horizontal Scaling** (adding more service replicas), and **Aggressive Timeouts** so one slow request doesn't kill the whole app.
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/err1.png?raw=true)
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/err2.png?raw=true)
+
+- **The Solution:** I learned that a production system needs a **Connection Pooler (like PgBouncer)** to manage DB traffic, **Horizontal Scaling** (adding more service replicas), and **Aggressive thought out Timeouts** so one slow request doesn't kill the whole app.
+
 
 ### **3. The k6 Experience: Power vs. Overhead**
 
-I was blown away by `k6`. Its engine is written in **Go**, which makes it incredibly fast, but the scripts are **JavaScript**, making it easy to write complex scenarios. However, I learned that `k6` is a double-edged sword:
+I was blown away by **k6**. The engine is written in **Go** for speed, but the scripts are **JS**, making it easy to write complex logic. However, it’s a double-edged sword:
 
-- It spawns worker processes (VUs) that execute loops as fast as possible, which **explodes your local memory**.
+- **Memory Explosion:** k6 spawns a dedicated "instance" for every VU. While fast, this **explodes your local RAM**. At 850+ VUs, my laptop was fighting just to keep the test runner alive.
     
-- I hit a **"Metric Wall"** where the load generator itself became the bottleneck, proving that for massive tests, you need to distribute `k6` itself across multiple machines.
+- **The "Metric Wall":** Eventually, the load generator (k6) started competing with the backend (GoVault) for the same CPU cycles. This "Metric Wall" proves that for massive tests, you have to distribute k6 across multiple machines to get an honest result.
+    
+- **The JS/Go Bridge:** If your Javascript logic is too "heavy" (like doing complex math inside the loop), it can actually bottleneck the Go engine, artificially inflating your latency numbers.
+
 
 ### **4. The "Zap" Factor: Structured Logging**
 
 It wasn't just my imagination—switching to **Uber’s Zap Logger** actually decreased my error rates at **850+ VUs**. Standard logging often involves heavy string formatting and synchronous I/O. Zap is "zero-allocation" and extremely fast. By reducing the CPU time spent on logging, I freed up just enough cycles for the services to process actual requests instead of timing out.
 
+
 ### **5. Hardware Realities & Distributed Failure**
 
 This project was a masterclass in **Resource Saturation**. I saw firsthand how fast computers are—managing thousands of processes and gigabytes of data every second—but I also saw their absolute limit.
 
-- **Root Cause:** 99% of my failures weren't "bad code"; they were **resource exhaustion**. When CPU and RAM hit that 95% wall, the laws of physics take over, and the system begins to drift.
-    
-- **Theoretical Mastery:** I now have a good understanding of how distributed systems fail (TCP exhaustion, head-of-line blocking, disk I/O contention) and, more importantly, the architectural patterns needed to overcome them in a production-grade environment.
-    
+- **Root Cause:** 99% of my failures weren’t due to "bad code"; they were caused by **resource exhaustion**. When your CPU and RAM hit that 95% wall, the "laws of physics" take over. The system begins to drift, and even the most efficient Go code can't save you if the OS can't find a spare CPU cycle to run it.
+
+- **Theoretical Mastery:** I now have a deep understanding of how distributed systems actually fail—from **TCP exhaustion** and **Head-of-Line blocking** to **Disk I/O contention**. More importantly, I’ve learned the foundation of architectural patterns needed to overcome these bottlenecks in a real production environment.
+
+
+
+
 ---
+
+
+
+## One last yap.... I promise
 
 To wrap up the analysis, I want to talk about a major "ghost in the machine" moment I hit during a 850 VU stress test.
 
-### **The Ghost Iteration Problem**
+## **The Ghost Iteration Problem**
 
 I found a confusing gap between my test logs and my actual storage. Even though **k6 reported 13,425 iterations finished**, my **Postgres** and **MinIO** storage only showed **624 unique user folders**.
 
@@ -458,6 +467,7 @@ To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next 
 ---
 
 
+
 # **6. Conclusion**
 
 The performance testing of GoVault proved one thing: **Architecture matters more than raw hardware.** Even on a single local machine with the overhead of WSL2, the shift from a Proxy-based model to a Direct S3 Multipart strategy transformed how the system handled pressure.
@@ -477,4 +487,11 @@ The performance testing of GoVault proved one thing: **Architecture matters more
 
 This marks the end of **3 months of hard grinding**. What started as a cloud-native file storage idea turned into a deep-dive into how distributed systems live, breathe, and eventually break. Seeing the "Ghost Iterations" and "Metric Walls" in real-time made me realize that building for scale isn't just about writing code—it's about managing resources and predicting failures.
 
-Distributed systems are incredibly fun (and frustrating), and watching GoVault survive a 1,000 VU storm was the perfect way to wrap up this journey.
+Distributed systems are incredibly fun (and frustrating), and watching GoVault survive a 1,000 VU storm was the perfect way to wrap up this journey. It’s been a wild ride seeing my baby, GoVault, go from a few lines of Go code to a battle-hardened system that held its own against a massive wave of traffic.
+
+If you read the whole thing, Congratulations!!!! Do let me know your thoughts and takeaways!
+
+Now....its time to touch some grass.
+
+Bye.
+
