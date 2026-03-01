@@ -1,6 +1,6 @@
-export const SCALE = 0.6; 
+export const SCALE = 0.75; 
 
-export const UPLOAD_METHOD = 'multipart'; // swap to 'multipart' for S3
+export const UPLOAD_METHOD = 'proxy'; // swap to 'multipart' for S3
 export const VU_COUNT = Math.round(100 * SCALE); // virtual users count 
 
 export const loadOptions = {
@@ -21,6 +21,9 @@ export const stressOptions = {
     { duration: '1m', target: 0 },                         // recovery
   ],
   setupTimeout: '8m',
+  http_req_duration: { 
+    max: 60000 
+  },
 };
 
 export const spikeOptions = {
