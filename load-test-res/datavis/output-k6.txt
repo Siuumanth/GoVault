@@ -1,0 +1,399 @@
+
+
+===== FILE: D:/code/Golang/GoVault/load-testing\main.js =====
+
+import { options, UPLOAD_METHOD, SCALE } from './config/options.js';
+import { createUser } from './lib/auth.js';
+import authTest from './scenarios/auth_test.js';
+import filesTest from './scenarios/files_test.js';
+import proxyTest from './scenarios/upload_proxy.js';
+import s3Test from './scenarios/upload_multipart.js';
+
+export { options };   // exporting options from main.js to the k6 runtime, these are our vu count n stuff 
+
+/**
+ setup() runs ONCE before the test starts.
+ We use it to populate the database with users so the test doesn't fail.
+ */
+// set up users
+export function setup() {
+  const users = [];  // list of our current users 
+  
+  // Hard-calculate the peak based on your SCALE to be 100% sure
+  const peakVus = Math.round(1000 * SCALE); // This matches your stressOptions peak
+  
+  console.log(`[SETUP] Starting... Target: ${peakVus} users`);
+
+  for (let i = 1; i <= peakVus; i++) {
+    const user = createUser(i);   // sign up every user 
+    if (user && user.token) {
+      users.push(user);
+    }
+  }
+
+  console.log(`[SETUP] Done. Created ${users.length} users.`);
+  return { users: users }; // Ensure the key is exactly 'users'
+}
+// k6 runs setup first, then sees what is being returned
+// passes that data to data in the below default functoin
+
+export default function (data) {   // data = same data returned from setup
+  // 1. Check if data exists
+  if (!data || !data.users || data.users.length === 0) {
+    // This only happens if setup() fails or returns empty
+    return; 
+  }
+
+  // 2. Index safely. Use modulo (%) so if VU 401 wakes up but we have 400 users, 
+  // it just grabs user 1 instead of crashing.
+  // In k6, __VU is a global variable that represents the Virtual User (VU) ID
+
+  // the number of vus spwaned depend on what u exported from options 
+  const index = (__VU - 1) % data.users.length; 
+  const currentUser = data.users[index];
+
+  if (!currentUser) return;
+
+  // Run tests
+  authTest(currentUser);
+  filesTest(currentUser);
+
+  if (UPLOAD_METHOD === 'proxy') {
+    proxyTest(currentUser);
+  } else {
+    s3Test(currentUser);
+  }
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\config\options.js =====
+
+export const SCALE = 0.925; 
+
+export const UPLOAD_METHOD = 'proxy'; // swap to 'multipart' for S3
+export const VU_COUNT = Math.round(100 * SCALE); // virtual users count 
+
+export const loadOptions = {
+  stages: [
+    { duration: '1m', target: Math.round(200 * SCALE) },   // steady ramp
+    { duration: '3m', target: Math.round(200 * SCALE) },   // sustained heavy load
+    { duration: '1m', target: 0 },                         // ramp down
+  ],
+  setupTimeout: '8m',
+};
+
+export const stressOptions = {
+  stages: [
+    { duration: '1m', target: Math.round(250 * SCALE) },   // initial push
+    { duration: '1m', target: Math.round(500 * SCALE) },   // breaking point search
+    { duration: '1m', target: Math.round(750 * SCALE) },   // extreme load
+    { duration: '2m', target: Math.round(1000 * SCALE) },  // peak stress
+    { duration: '1m', target: 0 },                         // recovery
+  ],
+  setupTimeout: '8m',
+  http_req_duration: { 
+    max: 60000 
+  },
+};
+
+export const spikeOptions = {
+  stages: [
+    { duration: '10s', target: 0 },
+    { duration: '20s', target: Math.round(2000 * SCALE) }, // massive sudden spike
+    { duration: '1m', target: Math.round(2000 * SCALE) },  // hold the flood
+    { duration: '20s', target: 0 },                        // drop
+  ],
+  setupTimeout: '8m',
+};
+
+// change this to loadOptions / stressOptions / spikeOptions
+// k6 looks for an exported variable called options 
+export const options = stressOptions;
+
+===== FILE: D:/code/Golang/GoVault/load-testing\lib\auth.js =====
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+const BASE_URL = 'http://localhost:9000';
+
+/**
+  @param {number} index - Optional index to create predictable credentials
+ */
+export function createUser(index = null) {
+  // Use the index if provided, otherwise a random number
+  const id = index !== null ? index : Math.floor(Math.random() * 1000000);
+  
+  const payload = JSON.stringify({
+    username: `user_${id}`,
+    email: `test-${id}@govault.com`,
+    password: 'Test@1234',
+  });
+
+  const params = {
+    headers: { 'Content-Type': 'application/json' },
+  };
+
+  const signupRes = http.post(`${BASE_URL}/auth/signup`, payload, params);
+
+  check(signupRes, {
+    'signup status is 200': (r) => r.status === 200,
+  });
+  
+  sleep(0.1); // Short pause to avoid slamming the DB during setup
+
+  const loginRes = http.post(`${BASE_URL}/auth/login`, payload, params);
+
+  // Return an object with both the token and the unique ID used
+  return {
+    token: loginRes.json().token,
+    id: id
+  };
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\lib\data.js =====
+
+// import { SharedArray } from 'k6/data';
+// import encoding from 'k6/encoding';
+
+// // ✅ Survives JSON serialization — stored as base64 string
+// export const fileData = new SharedArray('test file', function () {
+//     const raw = open('../lib/test.wav', 'b');
+//     return [encoding.b64encode(raw)]; // store as string, not binary
+// })[0];
+
+
+
+===== FILE: D:/code/Golang/GoVault/load-testing\lib\file.js =====
+
+import { sha256 } from 'k6/crypto';
+export function getChunkSize(method) {
+  // 10MB for proxy, 100MB for direct S3
+  return method === 'proxy' ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+}
+
+export function calculateChunks(fileSize, chunkSize) {
+  return Math.ceil(fileSize / chunkSize);
+}
+
+// Checksum helper remains the same
+
+export function calculateChecksum(buffer) {
+  return sha256(buffer, 'hex');
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\scenarios\auth_test.js =====
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+const BASE_URL = 'http://localhost:9000';
+export default function (currentUser) {
+  const res = http.post(
+    `${BASE_URL}/auth/login`,
+    JSON.stringify({ 
+      email: `test-${currentUser.id}@govault.com`, 
+      password: 'Test@1234' 
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+
+  // ONLY try to parse if status is 200
+  let token;
+  if (res.status === 200) {
+    token = res.json().token;
+  }
+
+  check(res, {
+    'login 200': (r) => r.status === 200,
+    'has token': () => token !== undefined,
+  });
+
+  sleep(1);
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\scenarios\files_test.js =====
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+const BASE_URL = 'http://localhost:9000';
+
+// Remove the setup() from here!
+
+export default function (currentUser) {
+  // Use the token passed from main.js
+  const res = http.get(`${BASE_URL}/api/files/me/owned`, {
+    headers: { Authorization: `Bearer ${currentUser.token}` },
+  });
+
+  check(res, {
+    'files 200': (r) => r.status === 200,
+  });
+
+  sleep(1);
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\scenarios\upload_multipart.js =====
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { SharedArray } from 'k6/data';
+import { getChunkSize, calculateChunks } from '../lib/file.js';
+const binFile = open('../lib/test.wav', 'b');   // normal upload of 1 mb
+const BASE_URL = 'http://localhost:9000/api/upload';
+const PART_SIZE = getChunkSize('multipart');
+
+// const binFile = encoding.b64decode(fileData, 'std', 'b');
+const fileSize = binFile.byteLength;
+
+export default function (currentUser) {
+    // Safety check for user data
+    if (!currentUser || !currentUser.token) return;
+
+    const token = currentUser.token;
+    const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const totalParts = calculateChunks(fileSize, PART_SIZE);
+
+    // 1. Create Multipart Session
+    const sessionRes = http.post(
+        `${BASE_URL}/multipart/session`,
+        JSON.stringify({
+            file_name: 'testfile.bin',
+            file_size_bytes: fileSize,
+            part_size_bytes: PART_SIZE,
+        }),
+        { 
+            headers,
+            tags: { name: 'multipart_session_init' } 
+        }
+    );
+
+    check(sessionRes, { 'multipart session 200': (r) => r.status === 200 });
+    
+    if (sessionRes.status !== 200) return;
+    const { upload_uuid, parts } = sessionRes.json();
+
+    // 2. Upload Parts to S3 and Register Etags
+    for (let i = 0; i < totalParts; i++) {
+        const start = i * PART_SIZE;
+        const end = Math.min(start + PART_SIZE, fileSize);
+        const partData = binFile.slice(start, end);
+        const partNumber = i + 1;
+        
+        const url = parts[i].url;
+
+        // PUT directly to MinIO
+        const s3Res = http.put(url, partData, {
+            tags: { name: 's3_part_put' }
+        });
+        check(s3Res, { [`part ${partNumber} s3 200`]: (r) => r.status === 200 });
+
+       const etag = s3Res.headers['Etag'] || s3Res.headers['etag'] || s3Res.headers['ETag'];
+
+        // Register part in GoVault backend
+        const partRes = http.post(
+            `${BASE_URL}/multipart/part`,
+            JSON.stringify({ 
+                upload_uuid, 
+                part_number: partNumber, 
+                size_bytes: partData.byteLength, 
+                etag 
+            }),
+            { 
+                headers,
+                tags: { name: 'register_part' }
+            }
+        );
+        check(partRes, { [`part ${partNumber} registered`]: (r) => r.status === 200 });
+    }
+sleep(0.2)
+    // 3. Complete Upload
+    const completeRes = http.post(
+        `${BASE_URL}/multipart/complete`,
+        JSON.stringify({ upload_uuid }),
+        { 
+            headers,
+            tags: { name: 'multipart_complete' }
+        }
+    );
+    check(completeRes, { 'multipart complete 200': (r) => r.status === 200 });
+}
+
+===== FILE: D:/code/Golang/GoVault/load-testing\scenarios\upload_proxy.js =====
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { SharedArray } from 'k6/data';
+import { getChunkSize, calculateChunks, calculateChecksum } from '../lib/file.js';
+import {UPLOAD_METHOD} from '../config/options.js';
+
+const binFile = open('../lib/test.wav', 'b');   // normal upload of 1 mb 
+const BASE_URL = 'http://localhost:9000/api/upload';
+const CHUNK_SIZE = getChunkSize(UPLOAD_METHOD);
+
+const fileSize = binFile.byteLength;
+
+export default function (currentUser) {
+    // Safety check for user data
+    if (!currentUser || !currentUser.token) return;
+    // FORCED DEBUG
+   
+   // console.log(`DEBUG: VU ${__VU} sees ${actualSize} bytes`);
+
+    if (fileSize === 0) {
+        // This stops the test immediately if the memory is empty
+        throw new Error("SharedArray is empty inside the VU loop!");
+    }
+
+    const token = currentUser.token;
+    const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+
+    const totalChunks = calculateChunks(fileSize, CHUNK_SIZE);
+
+    // 1. Create Proxy Session
+    const sessionRes = http.post(
+        `${BASE_URL}/proxy/session`,
+        JSON.stringify({ file_name: 'testfile.bin', file_size_bytes: fileSize }),
+        { headers }
+    );
+
+    check(sessionRes, { 
+        'proxy session 200': (r) => r.status === 200 
+    });
+
+    if (sessionRes.status !== 200) return;
+    const { upload_uuid } = sessionRes.json();
+
+    // 2. Upload Chunks
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, fileSize);
+        const chunk = binFile.slice(start, end);
+        const checksum = calculateChecksum(chunk);
+
+        const chunkRes = http.post(
+            `${BASE_URL}/proxy/chunk?id=${i}`,
+            chunk,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/octet-stream',
+                    'Upload-UUID': upload_uuid,
+                    Checksum: checksum,
+                },
+            }
+        );
+
+        check(chunkRes, { [`proxy chunk ${i} 200`]: (r) => r.status === 200 });
+        
+        // Optional: Small sleep to stay under your 100k/min rate limit if VUs are high
+        // sleep(0.1); 
+    }
+}
