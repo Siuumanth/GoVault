@@ -312,6 +312,117 @@ default ✓ [======================================] 000/400 VUs  6m0s
 
 
 ```
+# test 8  - 750 VU
+
+```bash
+  █ TOTAL RESULTS
+
+    checks_total.......: 75985  170.352861/s
+    checks_succeeded...: 99.97% 75966 out of 75985
+    checks_failed......: 0.02%  19 out of 75985
+
+    ✓ signup status is 200
+    ✓ login 200
+    ✓ has token
+    ✗ files 200
+      ↳  99% — ✓ 15028 / ✗ 19
+    ✓ proxy session 200
+    ✓ proxy chunk 0 200
+
+    HTTP
+    http_req_duration..............: avg=2.04s  min=751.7µs med=357.28ms max=22.53s p(90)=8.07s  p(95)=11.18s
+      { expected_response:true }...: avg=2.04s  min=751.7µs med=357.14ms max=22.53s p(90)=8.07s  p(95)=11.19s
+    http_req_failed................: 0.03% 19 out of 61688
+    http_reqs......................: 61688 138.300024/s
+
+    EXECUTION
+    iteration_duration.............: avg=10.37s min=2.03s   med=10.11s   max=40.63s p(90)=17.44s p(95)=19.07s
+    iterations.....................: 15047 33.734283/s
+    vus............................: 10    min=0           max=750
+    vus_max........................: 750   min=750         max=750
+
+    NETWORK
+    data_received..................: 66 MB 148 kB/s
+    data_sent......................: 16 GB 35 MB/s
+
+
+```
+
+# test 9  - 850 VU
+```bash
+
+  █ TOTAL RESULTS
+
+    checks_total.......: 77110  168.338431/s
+    checks_succeeded...: 98.17% 75702 out of 77110
+    checks_failed......: 1.82%  1408 out of 77110
+
+    ✓ signup status is 200
+    ✗ login 200
+      ↳  97% — ✓ 14971 / ✗ 384
+    ✗ has token
+      ↳  97% — ✓ 14971 / ✗ 384
+    ✗ files 200
+      ↳  97% — ✓ 14968 / ✗ 341
+    ✗ proxy session 200
+      ↳  98% — ✓ 14971 / ✗ 299
+    ✓ proxy chunk 0 200
+
+    HTTP
+    http_req_duration..............: avg=2.3s   min=0s      med=336.79ms max=1m0s   p(90)=9.14s  p(95)=10.91s
+      { expected_response:true }...: avg=2.12s  min=804.7µs med=339.34ms max=59.89s p(90)=9.11s  p(95)=10.83s
+    http_req_failed................: 1.63% 1024 out of 62605
+    http_reqs......................: 62605 136.672643/s
+
+    EXECUTION
+    iteration_duration.............: avg=10.98s min=2s      med=11.64s   max=2m2s   p(90)=15.88s p(95)=16.66s
+    iterations.....................: 15270 33.335856/s
+    vus............................: 1     min=0             max=850
+    vus_max........................: 850   min=850           max=850
+
+    NETWORK
+    data_received..................: 66 MB 144 kB/s
+    data_sent......................: 16 GB 34 MB/s
+```
+
+---
+
+# test 10  - 925 VU
+```bash
+  █ TOTAL RESULTS
+
+    checks_total.......: 86136  184.756761/s
+    checks_succeeded...: 81.98% 70618 out of 86136
+    checks_failed......: 18.01% 15518 out of 86136
+
+    ✓ signup status is 200
+    ✗ login 200
+      ↳  78% — ✓ 13939 / ✗ 3893
+    ✗ has token
+      ↳  78% — ✓ 13939 / ✗ 3893
+    ✗ files 200
+      ↳  78% — ✓ 13937 / ✗ 3878
+    ✗ proxy session 200
+      ↳  78% — ✓ 13939 / ✗ 3854
+    ✓ proxy chunk 0 200
+
+    HTTP
+    http_req_duration..............: avg=2.22s  min=0s      med=348.19ms max=1m0s   p(90)=9.41s  p(95)=11.52s
+      { expected_response:true }...: avg=2.4s   min=752.2µs med=433.28ms max=59.93s p(90)=10.01s p(95)=12s
+    http_req_failed................: 16.79% 11625 out of 69229
+    http_reqs......................: 69229  148.49222/s
+
+    EXECUTION
+    iteration_duration.............: avg=10.65s min=2s      med=10.48s   max=2m2s   p(90)=17.91s p(95)=19.85s
+    iterations.....................: 17793  38.164961/s
+    vus............................: 5      min=0              max=924
+    vus_max........................: 925    min=925            max=925
+
+    NETWORK
+    data_received..................: 59 MB  127 kB/s
+    data_sent......................: 15 GB  31 MB/s
+
+```
 
 # S3 Multipart tests
 # 1. 400 VU, same configs
