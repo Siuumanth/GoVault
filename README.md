@@ -1,6 +1,6 @@
 # GoVault
 
-**Cloud-Native File Storage System with Resumable Uploads and Service Isolation**
+**A Microservices-Based Cloud File Storage System**
 
 ---
 # Dependencies: 
@@ -13,6 +13,8 @@
 - **Containerization & Deployment:** Docker, Docker Compose
 - **Testing & Observability:** k6 (JavaScript), Prometheus, Grafana
 - **Frontend**: React js
+
+Built using the **Go (Golang) `net/http` standard library**. By avoiding heavy frameworks, the backend remains extremely lightweight, providing high execution speed and low memory overhead.
 
 ---
 ## 1. System Overview
@@ -53,7 +55,37 @@ It emphasizes **clean architecture principles**, operational awareness, and depl
 This design enforces **fault isolation**, **independent scalability**, and clean ownership of data.
 
 ---
-## 3. API Gateway
+
+## 3. Code Architecture & Design
+The internal structure follows production-grade layering:
+- **Handler Layer** – HTTP parsing & response handling
+- **Service Layer** – Business logic encapsulation
+- **Repository Layer** – Database abstraction by dependency injection
+
+![](https://github.com/Siuumanth/GoVault/blob/main/images/layers.png?raw=true)
+#### **Low-Level Control & Custom Implementation**
+Unlike many modern projects that rely on heavy frameworks or ORMs, GoVault is built from the ground up for maximum performance and transparency:
+
+- **Standard Library Only:** Built using the native `net/http` package. No external web frameworks (like Gin or Echo) were used, ensuring a tiny binary size and zero "magic."
+
+- **Raw SQL & No ORM:** All database interactions are written in raw SQL. This allows for optimized queries, precise indexing control, and avoids the performance overhead of an ORM.
+
+- **Handcrafted Data Flow:** Every component was coded from scratch, including:
+    - **Custom DTOs:** Strict Data Transfer Objects for API contracts.
+    
+    - **Domain Models:** Clear separation between database entities and business logic.
+
+    - **Pointer Optimization:** Efficient memory management by passing pointers to avoid unnecessary data copying.
+    
+    - **Manual Mapping:** Total control over how data transforms between the database, service, and transport layers.
+
+#### **Design Principles Used**
+- **Interface-driven development:** High decouplability between layers.
+- **Dependency injection:** Components are injected via interfaces, making unit testing easy.
+- **Middleware Adapters:** Custom-built wrappers for cross-cutting concerns like logging and auth.
+
+---
+## 4. API Gateway
 
 The API Gateway acts as the single entry point into the system.
 ### Features:
@@ -68,7 +100,7 @@ The API Gateway acts as the single entry point into the system.
 The gateway handles all cross-cutting concerns, keeping internal services clean and focused on business logic.
 
 ---
-## 4. Authentication Service
+## 5. Authentication Service
 
 Authentication is fully stateless and token-based.
 ### Features
@@ -76,7 +108,7 @@ Authentication is fully stateless and token-based.
 - Stateless JWT issuance
 - JWT validation at gateway level
 ---
-## 5. Upload System
+## 6. Upload System
 
 This is the strongest technical component of the system, saving files in the cloud and supporting 2 types of uploads.
 ### A. Proxy-Based Chunked Upload
@@ -123,7 +155,7 @@ and these metrics were validated by load tests.
 This was a deliberate design decision to understand real-world upload architecture patterns and trade offs used in production systems.
 
 ---
-## 6. File Management System
+## 7. File Management System
 
 ### Features
 - Metadata storage, retrieval and updates (only name for now)
@@ -137,19 +169,6 @@ This was a deliberate design decision to understand real-world upload architectu
     - Shortcuts
 supported by pagination.
 ---
-## 7. Code Architecture & Design
-The internal structure follows production-grade layering:
-- **Handler Layer** – HTTP parsing & response handling
-- **Service Layer** – Business logic encapsulation
-- **Repository Layer** – Database abstraction by dependency injection
-
-![](https://github.com/Siuumanth/GoVault/blob/main/images/layers.png?raw=true)
-### Design Principles Used
-- Interface-driven development
-- Dependency injection through interfaces
-- Business logic separated from transport layer
-- Repository abstraction to isolate persistence logic
-- Middleware adapters for cross-cutting concerns
 
 ---
 ## 8. Database Design
