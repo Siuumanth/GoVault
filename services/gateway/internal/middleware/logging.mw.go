@@ -3,10 +3,12 @@ package middleware
 import (
 	"gateway/internal/metrics"
 	"gateway/internal/utils"
-	"log"
+	zlog "gateway/pkg/zap"
 	"net/http"
 	"strconv"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type responseWriter struct {
@@ -58,23 +60,21 @@ func NewLogger() Middleware {
 			reqID := GetRequestID(r.Context())
 
 			if rw.status >= 400 {
-				log.Printf(
-					"request_id=%s method=%s path=%s status=%d duration=%s error=%s",
-					reqID,
-					r.Method,
-					r.URL.Path,
-					rw.status,
-					time.Since(start),
-					string(rw.body),
+				zlog.L.Error("Request failed",
+					zap.String("request_id", reqID),
+					zap.String("method", r.Method),
+					zap.String("path", r.URL.Path),
+					zap.Int("status", rw.status),
+					zap.Duration("duration", time.Duration(duration)*time.Second),
+					zap.String("error", string(rw.body)),
 				)
 			} else {
-				log.Printf(
-					"request_id=%s method=%s path=%s status=%d duration=%s",
-					reqID,
-					r.Method,
-					r.URL.Path,
-					rw.status,
-					time.Since(start),
+				zlog.L.Info("Request success",
+					zap.String("request_id", reqID),
+					zap.String("method", r.Method),
+					zap.String("path", r.URL.Path),
+					zap.Int("status", rw.status),
+					zap.Duration("duration", time.Duration(duration)*time.Second),
 				)
 			}
 

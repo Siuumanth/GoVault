@@ -7,6 +7,7 @@ import (
 	"gateway/internal/metrics"
 	MW "gateway/internal/middleware"
 	"gateway/internal/router"
+	zlog "gateway/pkg/zap"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +29,12 @@ Steps to create the api gatway:
 */
 
 func main() {
+	// development level logger
+	zlog.Init()
+	defer zlog.Sync()
+
+	zlog.L.Info("Server starting...")
+
 	metrics.Init()
 	godotenv.Load()
 
