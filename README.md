@@ -20,6 +20,7 @@
 GoVault is a cloud-native file storage platform designed with a **microservices architecture**, focusing on reliability, scalability, and production-grade backend design.
 
 ![](https://github.com/Siuumanth/GoVault/blob/main/images/system-arch.png?raw=true)
+
 The system supports:
 - proxy Chunked and resumable uploads
 - S3 multipart uploads
