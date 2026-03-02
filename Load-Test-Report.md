@@ -244,6 +244,9 @@ I have generated a separate dashboard for every single test run. However, since 
 ![](https://github.com/Siuumanth/GoVault/blob/main/load-test-res/multipart-uploads/6-1000vu.png?raw=true)
 
 
+If you wanna see how the dashboard looks across all tests, [Click here](https://github.com/Siuumanth/GoVault/tree/main/load-test-res)
+
+---
 ### **The "Truth": k6 vs. Prometheus**
 
 While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports** as the "absolute truth" for two main reasons:
@@ -427,7 +430,7 @@ This project was a masterclass in **Resource Saturation**. I saw firsthand how f
 
 
 
-## One last yap.... I promise
+## One last yap....I promise
 
 To wrap up the analysis, I want to talk about a major "ghost in the machine" moment I hit during a 850 VU stress test.
 
@@ -469,6 +472,8 @@ In the **Multipart** flow, there’s a tiny gap where MinIO gets the file, but t
     
 ---
 
+Since this was due to resource saturation, there was no way I could fix this locally. 
+
 ### **Theoretical Fix: The Redis "Shock Absorber"**
 
 To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next logical step in this architecture is adding a **Redis layer**.
@@ -487,6 +492,16 @@ To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next 
 # **6. Conclusion**
 
 The performance testing of GoVault proved one thing: **Architecture matters more than raw hardware.** Even on a single local machine with the overhead of WSL2, the shift from a Proxy-based model to a Direct S3 Multipart strategy transformed how the system handled pressure.
+
+### **The Reality of Local Stress Testing**
+
+Look, testing on a laptop isn't the same as testing on a thousand-node cluster, but the "physics" of the software doesn't change. Whether it's my Ryzen 5 or an AWS instance, a bottleneck is a bottleneck.
+
+- **Resource Limits are Universal:** TCP ports still run out, databases still hit connection limits, and slow code still eats CPU cycles.
+    
+- **Finding the "Cracks" Early:** By intentionally breaking the system on my own hardware, I found the exact architectural spots where things start to fail.
+    
+- **Scaling the Lessons:** It’s better to hit these "hardware walls" now on a local machine for free than to find them out later when a production system starts dropping real user data.
 
 ### **The Final Verdict**
 
@@ -507,7 +522,7 @@ Distributed systems are incredibly fun (and frustrating), and watching GoVault s
 
 If you read the whole thing, Congratulations!!!! Do let me know your thoughts and takeaways!
 
-Now....its time to touch some grass.
+Now....its time to touch go n some grass.
 
-Bye.
+Bye!
 
