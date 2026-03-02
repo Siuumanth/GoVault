@@ -170,8 +170,29 @@ This was a deliberate design decision to understand real-world upload architectu
 supported by pagination.
 ---
 
+
+## 8. Inter-Service Communication
+
+GoVault follows a **choreographed microservices pattern**. Services are decoupled by business logic but collaborate through the API Gateway and direct internal REST calls to ensure data consistency.
+
+**Primary Communication Flows:**
+
+- **Upload Service → Files Service:** Once an upload (Proxy or Multipart) is finalized, the Upload service notifies the Files service to generate the permanent metadata record and establish file ownership.
+    
+- **Files Service → Auth Service (Identity Resolution):** When a user shares a file via email, the Files service queries the Auth service to resolve that email into a unique **UUID**. This ensures sharing is mapped to a valid system identity.
+    
+- **Files Service → Auth Service (Profile Hydration):** To display "Owned by" or "Shared with" labels, the Files service fetches user metadata from the Auth service using User IDs, keeping the Files database focused strictly on storage logic rather than user profiles.
+    
+
+**Communication Technicals:**
+- **Circuit Breaker Protection:** All inter-service HTTP calls are wrapped in **gobreaker**. This prevents a "cascading failure"—if the Auth service is slow, the Files service won't hang indefinitely; it will "trip" the breaker and fail gracefully.
+    
+- **Internal Networking:** Services communicate over a private, default Docker bridge network, keeping sensitive internal traffic isolated from the public-facing API Gateway.
+    
+- **Standardized Contracts:** Every internal request uses a strict DTO (Data Transfer Object) pattern, ensuring that if one service changes, the others don't break unexpectedly.
+
 ---
-## 8. Database Design
+## 9. Database Design
 - PostgreSQL per service
 - UUID-based identification and internal ids for faster joins and fetching
 - Indexed database on frequently read columns for performance
@@ -183,7 +204,7 @@ supported by pagination.
 Data integrity is enforced at database level — not just application level.
 
 ---
-## 9. Containerization & Deployment
+## 10. Containerization & Deployment
 
 ### Features
 - Multi-stage Docker builds, and static go binaries
@@ -196,7 +217,7 @@ Data integrity is enforced at database level — not just application level.
 All services communicate via default Docker networking.
 
 ---
-## 10. Observability & Testing
+## 11. Observability & Testing
 
 - **Load Testing:** Performed concurrent user simulation using k6 to evaluate upload throughput, response latency, and service stability under stress.
 - **Metrics Collection:** Integrated Prometheus to scrape service-level metrics for request counts, latency, and error rates.
@@ -207,7 +228,7 @@ All services communicate via default Docker networking.
 [Read the full report on load testing here](https://github.com/Siuumanth/GoVault/blob/main/LoadTestReport.md)
 
 ---
-## 11. Frontend (MVP - similar look to Google Drive)
+## 12. Frontend (MVP - similar look to Google Drive)
 - Chunk/part slicing logic
 - Upload session handling
 - File views (owned, shared, shortcuts)

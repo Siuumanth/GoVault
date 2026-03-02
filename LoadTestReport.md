@@ -89,6 +89,17 @@ Go handles traffic differently than many other languages, which affects how it b
 
 
 
+### 6. Tools being used:
+To understand a distributed system, you need to see inside it. I used three industry-standard tools to act as the "black box" flight recorder for these tests, all internally built using go:
+
+- **k6 (The Attacker):** This is basically a high-speed battering ram. It’s a tool that lets me write a script (Login -> Upload -> Finish) and tells hundreds of "Virtual Users" to run that loop as fast as humanly possible. It doesn't care if the server is screaming; it just keeps hitting it until something snaps.
+    
+- **Prometheus (The Collector):** Its like a "black box" flight recorder. While the test is running, Prometheus sits in the background and grabs data every couple of seconds—CPU usage, RAM spikes, and every single HTTP metrics, which i mainly focused on. It stores all that raw data so I can look at it later.
+    
+- **Grafana (The Dashboard):** This is the "Control Room" with all the shiny graphs. It takes the messy data from Prometheus and turns it into real-time basic charts. 
+
+
+
 ---
 
 
@@ -278,12 +289,14 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 ![](https://github.com/Siuumanth/GoVault/blob/main/images/proxy2.png?raw=true)
 
 
+
 ## S3 Multipart Uploads:
 
 ![](https://github.com/Siuumanth/GoVault/blob/main/images/mp1.png?raw=true)
 
 
 ![](https://github.com/Siuumanth/GoVault/blob/main/images/mp2.png?raw=true)
+
 
 ## Side by Side 
 
