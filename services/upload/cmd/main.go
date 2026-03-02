@@ -24,8 +24,7 @@ import (
 )
 
 func main() {
-	// development level logger
-	zlog.Init()
+	zlog.Init() // zap logger
 	defer zlog.Sync()
 
 	godotenv.Load()
@@ -35,24 +34,22 @@ func main() {
 	if err != nil {
 		zlog.L.Error("Error connecting to DB ", zap.Error(err))
 	}
-
-	repos := repository.NewRegistryFromDB(db)
-	// ---------- AWS / S3 ----------
-	internalS3Client, presignBaseClient := getS3Clients()
+	repos := repository.NewRegistryFromDB(db) // repo layer
+	// ---------- Minio/S3 ----------
+	internalS3Client, presignBaseClient := getS3Clients() // seperation for switching bet s3 n minio
 	bucket := os.Getenv("BUCKET_NAME")
 	s3Storage := storage.NewS3Storage(internalS3Client, presignBaseClient, bucket)
 
-	// ---------- Service & Client ----------
+	// ---------- Clients for inter service communication ----------
 	fsURL := os.Getenv("GOVAULT_FILES_SERVICE_URL")
 	if dbURL == "" || fsURL == "" || bucket == "" {
 		zlog.L.Error("missing required env vars")
 	}
 
 	fileClient := clients.NewFileClient(fsURL)
-	sr := service.NewServiceRegistry(repos, s3Storage, fileClient)
+	sr := service.NewServiceRegistry(repos, s3Storage, fileClient) // service layer
 
-	// ---------- Handler ----------
-	uploadHandler := handler.NewUploadHandler(sr.Proxy, sr.Multipart)
+	uploadHandler := handler.NewUploadHandler(sr.Proxy, sr.Multipart) // handler layer
 
 	// ---------- Router ----------
 	mainRouter := chi.NewRouter()

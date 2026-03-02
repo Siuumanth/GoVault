@@ -26,8 +26,8 @@ export const ENDPOINTS = {
     SHORTCUT: (id) => `/api/files/f/${id}/shortcut`,
   },
   UPLOAD: {
-    SESSION: '/api/upload/session',
-    CHUNK: (id) => `/api/upload/chunk?id=${id}`,
+    SESSION: '/api/upload/proxy/session',
+    CHUNK: (id) => `/api/upload/proxy/chunk?id=${id}`,
     STATUS: '/api/upload/status',
   },
   SHARING: {

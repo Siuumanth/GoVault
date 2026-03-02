@@ -98,8 +98,7 @@ services:
       timeout: 2s
       retries: 5    
 
-  # ---------- DATABASES ----------
-
+  # ----------DATABASES  ----------
   auth-db:
     image: postgres:16
     container_name: auth-db
@@ -145,7 +144,6 @@ services:
     volumes:
       - files_db_data:/var/lib/postgresql/data
   
-# ---------- Monitoring ----------
 
 # ---------- Monitoring ----------
 
@@ -218,7 +216,7 @@ services:
       timeout: 5s
       retries: 5
 
-# Minio client , responsible for setting up bucket in minio before startup 
+# minio client , for setting up bucket in minio before startup 
   minio-init:
     image: minio/mc
     container_name: minio-init
@@ -231,15 +229,13 @@ services:
       mc mb --ignore-existing local/govault-files &&
       mc anonymous set public local/govault-files  
       "
-  # mc anonymous set public allows public read/write on the bucket which is fine for dev/testing.
     restart: on-failure
 
 # ---------- VOLUMES ----------
-
 volumes:
   auth_db_data:
   upload_db_data:
   files_db_data:
   grafana_data:  
   prometheus_data:
-  upload_session_data:    # 
+  upload_session_data:    

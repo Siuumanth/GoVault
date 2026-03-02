@@ -26,7 +26,7 @@
         <input type="text" id="token" placeholder="Bearer Token...">
         <label>Upload Strategy</label>
         <select id="uploadMethod">
-            <option value="proxy">Proxy (5MB Chunks)</option>
+            <option value="proxy">Proxy (10MB Chunks)</option>
             <option value="multipart">S3 Multipart (100MB Parts)</option>
         </select>
     </div>
@@ -46,7 +46,7 @@
     </div>
 
     <script>
-        const PROXY_CHUNK_SIZE = 5 * 1024 * 1024; 
+        const PROXY_CHUNK_SIZE = 10 * 1024 * 1024; 
         const S3_PART_SIZE = 100 * 1024 * 1024;
         const BASE_URL = "http://localhost:9000/api/upload";
 

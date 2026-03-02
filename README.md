@@ -5,7 +5,7 @@
 ---
 # Dependencies: 
         
-- **Language & Core Backend:** Go (Golang), net/http
+- **Language & Core Backend:** Go (Golang), net/http, Chi (routing)
 - **Authentication & Security:** bcrypt, JWT
 - **Resilience & Utilities:** Circuit breaker (gobreaker), UUID package, Zap
 - **Database:** PostgreSQL
@@ -224,8 +224,6 @@ All services communicate via default Docker networking.
 - **Visualization:** Built a basic Grafana dashboard to monitor performance trends and bottlenecks in HTTP.
 - **Structured Logging:** Implemented structured logging using Uber’s zap logger for performance and machine readability.
 - **Local Object Storage Testing:** Used MinIO (S3-compatible) within Docker Compose for realistic local testing of upload flows and multipart behavior.
-
-[Read the full report on load testing here](https://github.com/Siuumanth/GoVault/blob/main/Load-Test-Report.md)
 
 ---
 ## 12. Frontend (MVP - similar look to Google Drive)
