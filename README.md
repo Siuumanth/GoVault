@@ -1,6 +1,6 @@
 # GoVault
 
-**A Microservices-Based Cloud File Storage System**
+A Micoservices-based Cloud File Storage System, like Google Drive that allows users to upload, store, and manage their files securely using multiple backend services working together.
 
 ---
 # Dependencies: 

@@ -1,4 +1,4 @@
-# Load testing GoVault - A Deep-Dive Performance Analysis Report
+# Load and Stress testing GoVault - A Deep-Dive Performance Analysis Report
 
 ---
 ## **Table of Contents**
@@ -7,7 +7,7 @@
 2. **Core Concepts & Terminology**
 3. **Test Methodology & VU Lifecycle**
 4. **Performance Metrics & Analysis**
-5. **The Engineering Journey: Optimizations**
+5. **The Engineering Journey: Optimizations and learnings**
 6. **Conclusion**
 
 ---
@@ -17,24 +17,37 @@
 
 This report covers the local performance testing of **GoVault**, a cloud-native file storage system.
 - **Core Tech:** Built using the **Go (Golang) `net/http` standard library**. By avoiding heavy frameworks, the backend remains extremely lightweight, providing high execution speed and low memory overhead.
-- **Objective:** The tests compare two ways of uploading files: **Proxy-Based** (through the backend) and **Direct-to-S3** (using MinIO).
+- **Objective:** The goal of these tests was not just to compare upload strategies, but to identify saturation points, quantify throughput limits, and observe how architectural choices affect system behavior under stress.
 ### **System Architecture**
 
 The system uses a **microservices** design. To test this, I simulated a full production stack using **Docker Compose**, running multiple containers simultaneously:
 
 - **4 Go Services:** Gateway, Auth, Upload, and Files.
 - **3 PostgreSQL Instances:** Dedicated database for each core service.
-- **Object Storage:** **MinIO** (S3-compatible) for file storage.
+- **Object/File Storage:** **MinIO** (S3-compatible) for file storage.
 - **Observability:** **Prometheus** and **Grafana** for tracking metrics.
+
+I used MinIO locally instead of S3 in order to avoid cloud costs. As MinIO was fully S3 compatible, it was easy to set up.
 ### **Tools Used**
-- **k6:** For simulating concurrent users and file uploads.
+- **k6:** For simulating concurrent user workflows and file uploads.
 - **Prometheus & Grafana:** For monitoring system health and speed.
-- **Zap:** For high-performance structured logging.
 ### **Testing Environment & Limits**
 
-> **Strictly Local Test:** These tests were run on a single machine (**AMD Ryzen 5, 16GB RAM**) using **Windows with WSL2**.
-> 
-> Running **10+ containers** (4 services, 3 databases, MinIO, Prometheus, and Grafana) on one machine creates significant CPU and I/O overhead due to the WSL2 virtualization layer. This makes the system less efficient than a real cloud environment, but it accurately shows how the architecture handles stress
+**Strictly Local Test:** These tests were run on a single machine (**AMD Ryzen 5, 16GB RAM**) using **Windows with WSL2**.
+
+Running **10+ containers** (4 services, 3 databases, MinIO, Prometheus, and Grafana) on one machine creates significant CPU and I/O overhead due to the WSL2 virtualization layer. This makes the system less efficient than a real cloud environment, but it accurately shows how the architecture handles stress and the bottlenecks.
+
+#### A recap of the 2 upload workflows:
+#### **Proxy-Based 
+
+The backend acts as a bridge. The frontend slices the file into 10MB chunks and sends them to the Go backend. The backend receives the raw bytes, calculates a checksum (SHA-256) to ensure the data isn't corrupted, assembles all chunks and then streams those bytes to S3/MinIO. It’s essentially a "Pass-Through" where the server handles every single bit of the file.
+#### **Direct S3 (The Handshake)**
+
+The backend acts as a coordinator, not a data mover.
+1. The frontend asks the backend for permission to upload.
+2. The backend talks to S3 and gets a **Presigned URL** (a temporary "key" for the bucket).
+3. The frontend then pushes the file chunks **directly to S3**, skipping the Go backend entirely.
+4. Once finished, the frontend just tells the backend, "I’m done, here are the receipt IDs (ETags)."
 
 
 
@@ -42,11 +55,24 @@ The system uses a **microservices** design. To test this, I simulated a full pro
 
 
 # 2. Core Concepts & Terminology
+
+### Tools being used:
+To understand a distributed system, you need to see inside it. I used three industry-standard tools to act as the "black box" flight recorder for these tests, all internally built using go:
+
+- **k6 (The Attacker):** This is basically a high-speed battering ram. It’s a tool that lets me write a script (Login -> Upload -> Finish) and tells hundreds of "Virtual Users" to run that loop as fast as humanly possible. It doesn't care if the server is screaming; it just keeps hitting it until something snaps.
+    
+- **Prometheus (The Collector):** Its like a "black box" flight recorder. While the test is running, Prometheus sits in the background and grabs data every couple of seconds—CPU usage, RAM spikes, and every single HTTP metrics, which i mainly focused on. It stores all that raw data so I can look at it later.
+    
+- **Grafana (The Dashboard):** This is the "Control Room" with all the shiny graphs. It takes the messy data from Prometheus and turns it into real-time basic charts. 
+
+---
 ### **1. Virtual Users (VUs) vs. Actual Users**
 
 In `k6`, we use **Virtual Users (VUs)**.
-- **The Difference:** A real user might click a button and then spend 30 seconds reading a page. A **VU** is a script that executes a loop as fast as possible.
+- **The Difference:** A real user might click a button and then spend 30 seconds reading a page. A **VU** is a script that executes a loop as fast as possible. Because there’s no pause between actions, VUs stress the system much more aggressively than real users.
+
 - **The Mapping:** 50 VUs do not equal 50 people; they might represent 500+ real-world users because the VUs never "stop to think"—they just keep hitting the API.
+
 ### **2. Percentiles (p95, p99) – Why Averages Lie**
 
 If 99 people get their file in 1 second, but 1 person takes 60 seconds, the "Average" looks okay, but the experience for that one person is broken.
@@ -88,15 +114,6 @@ Go handles traffic differently than many other languages, which affects how it b
 - **The "Wait" Factor:** Even though Goroutines are fast, if the Gateway is waiting for a response from the Upload Service, that Goroutine stays active. If the backend is slow, these Goroutines pile up, increasing memory usage and latency.
 
 
-
-### 6. Tools being used:
-To understand a distributed system, you need to see inside it. I used three industry-standard tools to act as the "black box" flight recorder for these tests, all internally built using go:
-
-- **k6 (The Attacker):** This is basically a high-speed battering ram. It’s a tool that lets me write a script (Login -> Upload -> Finish) and tells hundreds of "Virtual Users" to run that loop as fast as humanly possible. It doesn't care if the server is screaming; it just keeps hitting it until something snaps.
-    
-- **Prometheus (The Collector):** Its like a "black box" flight recorder. While the test is running, Prometheus sits in the background and grabs data every couple of seconds—CPU usage, RAM spikes, and every single HTTP metrics, which i mainly focused on. It stores all that raw data so I can look at it later.
-    
-- **Grafana (The Dashboard):** This is the "Control Room" with all the shiny graphs. It takes the messy data from Prometheus and turns it into real-time basic charts. 
 
 
 
@@ -215,7 +232,8 @@ Looking at the results, there are a few things that aren't immediately clear:
 
 # **4. Performance Metrics & Analysis**
 
-In this section, I break down the core performance differences between the **Proxy-Based** and **Direct S3 Multipart** strategies. I used my CSV datasets to compare how the system handles increasing concurrency.
+The data here isn't surprising—Direct S3 wins—but the scale of the performance difference under heavy load is what's actually interesting. I used my CSV datasets to compare how the system handles increasing concurrency.
+
 
 ### **Live Monitoring: Grafana Dashboard**
 
@@ -276,10 +294,9 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 | **850**      | Proxy         | 155                  | 357ms              | 9.84s           | 14.0%          |
 | **850**      | **Multipart** | **170**              | **437ms**          | **10.5s**       | **0.73%**      |
 |              |               |                      |                    |                 |                |
-|              |               |                      |                    |                 |                |
 | 925          | **Multipart** | **178**              | **492ms**          | **10.4**        | **1.89%**      |
 | 1000         | **Multipart** | **176**              | **496ms**          | **11.9**        | **2.27%**      |
-
+The goal wasn’t just comparison — it was identifying saturation points and failure behavior.
 
 ---
 
@@ -377,7 +394,7 @@ Initially, I used **Bcrypt** for password hashing during the Auth phase. I quick
 
 
 
-# **5. The Engineering Journey: Optimization & Lessons**
+# **5. The Engineering Journey: Problems, Optimization & Lessons**
 
 This project wasn't just about collecting numbers; it was about watching a distributed system break and re-engineering it in real-time. Here is what I learned through the "book of tests."
 
@@ -421,7 +438,7 @@ This project was a masterclass in **Resource Saturation**. I saw firsthand how f
 
 - **Root Cause:** 99% of my failures weren’t due to "bad code"; they were caused by **resource exhaustion**. When your CPU and RAM hit that 95% wall, the "laws of physics" take over. The system begins to drift, and even the most efficient Go code can't save you if the OS can't find a spare CPU cycle to run it.
 
-- **Theoretical Mastery:** I now have a deep understanding of how distributed systems actually fail—from **TCP exhaustion** and **Head-of-Line blocking** to **Disk I/O contention**. More importantly, I’ve learned the foundation of architectural patterns needed to overcome these bottlenecks in a real production environment.
+- **Practical Depth:** I now have a deep understanding of how distributed systems actually fail—from **TCP exhaustion** and **Head-of-Line blocking** to **Disk I/O contention**. More importantly, I’ve learned the foundation of architectural patterns needed to overcome these bottlenecks in a real production environment.
 
 
 
@@ -436,7 +453,7 @@ To wrap up the analysis, I want to talk about a major "ghost in the machine" mom
 
 ## **The Ghost Iteration Problem**
 
-I found a confusing gap between my test logs and my actual storage. Even though **k6 reported 13,425 iterations finished**, my **Postgres** and **MinIO** storage only showed **624 unique user folders**.
+I found a confusing gap between my test logs and my actual storage. Even though I ran 850 VUs, my **Postgres** and **MinIO** storage only showed **624 unique user folders**.
 
 Basically, over 200 of my 850 Virtual Users seemed to "finish" their work without actually leaving a single trace in the database or the cloud. It was like they never existed.
 
@@ -447,12 +464,9 @@ After digging into the architecture, I found three main reasons for this "Succes
 
 #### **1. The "Race to the Bottom" (Resource Starvation)**
 
-Since my Go backend handles everything—Auth and File Metadata—850 VUs were all fighting for a tiny pool of **Database Connections**.
+Under heavy load (~850 VUs), many concurrent requests competed for a limited PostgreSQL connection pool. Some requests acquired connections and completed successfully, while others blocked and eventually timed out.
 
-- The "fast" users (the ones who got a connection first) would finish multiple loops.
-- The "slow" users (the ones waiting in line) were completely starved of resources.
-    
-    Because k6 counts an iteration as "complete" even if the script just finishes its loop after a failure, the total count looked high, but the actual data never made it to the disk.
+Because the k6 script loop continues even when individual requests fail (unless explicitly stopped), iteration counts remained high — even though some operations never successfully persisted data.
 
 #### **2. The OS Wall (TCP Exhaustion)**
 
@@ -476,7 +490,42 @@ Since this was due to resource saturation, there was no way I could fix this loc
 
 ### **Theoretical Fix: The Redis "Shock Absorber"**
 
-To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next logical step in this architecture is adding a **Redis layer**.
+To solve the **"Ghost Iteration"** and **Database Starvation** issues, some of the methods might include:
+#### **1. Increasing the DB Connection Pool**
+
+If the Go services are only allowed 20 connections to the postgres DB, but 850 users are hitting them, of course, they’re going to queue up and die.
+
+- **The Fix:** Simply bumping the `MaxOpenConns` in the Go code or the `max_connections` in Postgres.
+    
+- **The Catch:** This isn't infinite. Eventually, the Postgres CPU will melt because it has to manage the overhead of all those open connections. Each connection uses RAM. You'd move the bottleneck from "the pool is too small" to "the database server is out of memory."
+
+#### **2. Read/Write Replicas**
+
+Since the VUs were doing "Home page simulations" (Read) and "Uploads" (Write) at the same time, they were fighting for the same resources.
+
+- **The Fix:** Pointing all the "Owned Files" and "Shared Files" queries to a **Read Replica** (a copy of the DB). Keeping the **Primary DB** strictly for uploads and metadata writes.
+    
+- **The Catch:** On my laptop, this wouldn't help much because both DBs would still be fighting for the same physical SSD and CPU cycles. In the cloud, this is surely a game changer.
+
+#### **3. PgBouncer (Connection Pooling)**
+
+PostgreSQL uses a process-per-connection model, meaning each client connection spawns a dedicated OS process.
+
+- **The Fix:** Put **PgBouncer** in front of Postgres. It acts as a "waiting room." It keeps a small set of "real" connections to the DB and rotates thousands of incoming requests through them. It’s way more efficient than Go managing its own pool.
+
+#### **4. Message Queues (The "Async" Way)**
+
+Instead of trying to write to the DB the exact second the upload finishes:
+
+- **The Fix:** The Upload service could just drop a message into a queue (like **RabbitMQ** or **Kafka**). A background worker then picks it up and updates the Files service whenever the DB has a spare second.
+    
+- **The Catch:** This makes the system "Eventually Consistent." The user might finish the upload and not see their file for a few seconds.
+
+#### **5. Horizontal Scaling**
+
+- **The Fix:** Just run 5 instances of the `Files` service instead of one.
+    
+- **The Catch - Mira-Bhayander fly over:** If the bottleneck is the single Postgres instance at the bottom, adding more "workers" just makes them slam the DB even harder. It’s like adding more lanes to a road that ends in a one-lane bridge. 
 
 - **Rate Limiting:** Instead of letting 850 VUs slam the PostgreSQL instance all at once, I could use Redis to implement a global **Rate Limiter**. This would "reject" excess traffic at the Gateway before it ever hits the expensive Database or Disk I/O.
     
@@ -491,7 +540,7 @@ To solve the **"Ghost Iteration"** and **Database Starvation** issues, the next 
 
 # **6. Conclusion**
 
-The performance testing of GoVault proved one thing: **Architecture matters more than raw hardware.** Even on a single local machine with the overhead of WSL2, the shift from a Proxy-based model to a Direct S3 Multipart strategy transformed how the system handled pressure.
+The performance testing of GoVault didn’t reveal anything unexpected — Proxy-based uploads are naturally heavier. What it did provide was measurable data on where saturation begins and how failure patterns emerge under load.
 
 ### **The Reality of Local Stress Testing**
 
@@ -514,11 +563,12 @@ Look, testing on a laptop isn't the same as testing on a thousand-node cluster, 
 
 ---
 
+
 ### **Final Thoughts**
 
 This marks the end of **3 months of hard grinding**. What started as a cloud-native file storage idea turned into a deep-dive into how distributed systems live, breathe, and eventually break. Seeing the "Ghost Iterations" and "Metric Walls" in real-time made me realize that building for scale isn't just about writing code—it's about managing resources and predicting failures.
 
-Distributed systems are incredibly fun (and frustrating), and watching GoVault survive a 1,000 VU storm was the perfect way to wrap up this journey. It’s been a wild ride seeing my baby, GoVault, go from a few lines of Go code to a battle-hardened system that held its own against a massive wave of traffic.
+Distributed systems are incredibly fun (and frustrating), and watching GoVault survive a 1,000 VU storm was the perfect way to wrap up this journey. It’s been a wild ride seeing my kid, GoVault, go from a few lines of Go code to a battle-hardened system that held its own against a massive wave of traffic.
 
 If you read the whole thing, Congratulations!!!! Do let me know your thoughts and takeaways!
 

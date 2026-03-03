@@ -22,7 +22,7 @@ ax2.plot(df['VU'], df['p95_latency_s'], marker='s', color='#ffcc00',
 ax2.set_ylabel('p95 Latency (Seconds)', color='#ffcc00', fontsize=14, fontweight='bold')
 ax2.tick_params(axis='y', labelcolor='#ffcc00', labelsize=12)
 
-plt.title('Proxy: Throughput vs p95 Latency', fontsize=18, fontweight='bold', pad=25, color='#ffffff')
+plt.title('S3 Multipart: Throughput vs p95 Latency', fontsize=18, fontweight='bold', pad=25, color='#ffffff')
 ax1.grid(True, linestyle=':', alpha=0.3, zorder=1)
 plt.tight_layout()
 plt.show()

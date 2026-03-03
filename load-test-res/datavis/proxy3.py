@@ -19,7 +19,7 @@ ax1.set_xlabel('Concurrent Virtual Users (VUs)', fontsize=14, fontweight='bold',
 ax1.set_ylabel('Latency (Seconds)', color='#ffffff', fontsize=14, fontweight='bold')
 ax1.tick_params(axis='both', labelcolor='#ffffff', labelsize=12)
 
-plt.title('Latency Spread: Median vs P95 - Proxy', fontsize=18, fontweight='bold', pad=25, color='#ffffff')
+plt.title('Proxy: Latency Spread: Median vs P95', fontsize=18, fontweight='bold', pad=25, color='#ffffff')
 ax1.grid(True, linestyle=':', alpha=0.3, zorder=1)
 ax1.legend(fontsize=12, loc='upper left', framealpha=0.2)
 
