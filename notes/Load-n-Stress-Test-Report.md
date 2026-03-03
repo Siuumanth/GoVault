@@ -276,7 +276,7 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 
 ---
 
-## **FINALLY!! (after an eternity of yapping) - The Comparative Results Table**
+## **FINALLY!! (after an eternity of yapping) - The Performance Metrics Table**
 | **VU Count** | **Strategy**  | **Throughput (RPS)** | **Median Latency** | **p95 Latency** | **Error Rate** |
 | ------------ | ------------- | -------------------- | ------------------ | --------------- | -------------- |
 | **200**      | Proxy         | 142                  | 59ms               | 1.49s           | 0.00%          |
@@ -296,7 +296,7 @@ While I used **Grafana** for real-time monitoring, I relied on **k6 CSV exports*
 |              |               |                      |                    |                 |                |
 | 925          | **Multipart** | **178**              | **492ms**          | **10.4**        | **1.89%**      |
 | 1000         | **Multipart** | **176**              | **496ms**          | **11.9**        | **2.27%**      |
-The goal wasn’t just comparison — it was identifying saturation points and failure behavior.
+The goal wasn’t just comparison, it was identifying saturation points and failure behavior.
 
 ---
 
