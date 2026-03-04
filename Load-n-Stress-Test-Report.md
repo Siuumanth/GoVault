@@ -443,6 +443,25 @@ This project was a masterclass in **Resource Saturation**. I saw firsthand how f
 - **Practical Depth:** I now have a deep understanding of how distributed systems actually fail—from **TCP exhaustion** and **Head-of-Line blocking** to **Disk I/O contention**. More importantly, I’ve learned the foundation of architectural patterns needed to overcome these bottlenecks in a real production environment.
 
 
+### **The Cloud Reality: What actually changes?**
+
+Even without auto-scaling, moving **GoVault** from a local laptop to a cloud environment would change how the system behaves under load.
+
+- **Removing the Virtualization Overhead**  
+    In the local setup, the services run inside Docker on top of WSL2, which adds an additional virtualization layer between the application and the host system. Running the services directly on Linux in the cloud would remove this overhead, leading to more stable latency and fewer timing inconsistencies during load.
+    
+- **Dedicated Resource Allocation**  
+    On a laptop, all containers (PostgreSQL, MinIO, monitoring tools, and the load generator) compete for the same CPU, memory, and disk. In a cloud environment, services typically run on separate instances or with dedicated resource limits, reducing contention between components.
+    
+- **Separation of Infrastructure Components**  
+    In the local setup, the database, storage system, and API services share the same physical disk and network resources. In a cloud deployment, these components would typically run on separate infrastructure, allowing database operations and file storage to scale independently.
+    
+- **Improved Networking and Service Isolation**  
+    Cloud environments provide more robust networking and service management. Internal load balancing, service health checks, and automated restarts help maintain system stability when individual components become slow or unresponsive.
+    
+
+Overall, while the exact performance numbers would differ in a cloud deployment, the **bottlenecks and failure patterns observed during local stress testing would still provide valuable insight into the system’s architectural limits.**
+
 
 
 ---
@@ -490,7 +509,7 @@ In the **Multipart** flow, there’s a tiny gap where MinIO gets the file, but t
 
 Since this was due to resource saturation, there was no way I could fix this locally. 
 
-### **Theoretical Fix: The Redis "Shock Absorber"**
+### **Theoretical Fixes:"**
 
 To solve the **"Ghost Iteration"** and **Database Starvation** issues, some of the methods might include:
 #### **1. Increasing the DB Connection Pool**
