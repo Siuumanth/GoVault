@@ -13,6 +13,8 @@
 ---
 # **1. Introduction**
 
+[Link to the Initial report of GoVault talking about the architecture and features.](https://github.com/Siuumanth/GoVault)
+
 ### **Project Overview**
 
 This report covers the local performance testing of **GoVault**, a cloud-native file storage system.

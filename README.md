@@ -232,6 +232,10 @@ All services communicate via default Docker networking.
 - File views (owned, shared, shortcuts)
 - Public access toggling and sharing between users
 
+![](https://github.com/Siuumanth/GoVault/blob/main/images/home-client.png?raw=true)
+
 Frontend is functional, but backend is the core focus.
 
+
 ---
+
